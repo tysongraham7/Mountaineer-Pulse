@@ -147,7 +147,13 @@ export default function ScoresScreen() {
 }
 
 function ScheduleView({ games, c, showTag }: { games: Game[]; c: ReturnType<typeof surfaces>; showTag: boolean }) {
-  const upcoming = games.filter((g) => g.status !== 'final');
+  // "Upcoming" = not final AND still in the future. Past games with no result
+  // (postponed/cancelled dates ESPN never scored) shouldn't linger as upcoming.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const upcoming = games.filter(
+    (g) => g.status !== 'final' && g.start_date != null && new Date(g.start_date) >= startOfToday,
+  );
   const results = games.filter((g) => g.status === 'final').reverse().slice(0, RESULTS_LIMIT);
   return (
     <>
