@@ -35,20 +35,33 @@ def die(msg: str) -> None:
 
 
 def build_context(sb) -> str:
-    """Assemble the real facts Claude is allowed to use."""
+    """Assemble the real facts Claude is allowed to use — nothing else exists."""
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=36)).isoformat()
     news = (
         sb.table("news_items").select("headline,source_name,published_at,sport_id")
         .gte("published_at", cutoff).order("published_at", desc=True).limit(40).execute().data
     )
 
-    lines = ["RECENT WVU HEADLINES (last ~36 hours):"]
+    lines = ["=== RECENT WVU HEADLINES (last ~36 hours) ==="]
     if news:
         for n in news:
             tag = f"[{SPORT_NAME.get(n['sport_id'], 'General')}] " if n.get("sport_id") else ""
             lines.append(f"- {tag}{n['headline']} ({n.get('source_name') or 'source'})")
     else:
         lines.append("- (no headlines in the last 36 hours)")
+
+    # The ONLY source of truth for who is actually on/off the roster.
+    moves = (
+        sb.table("roster_moves").select("player_name,position,direction,category,sport_id")
+        .order("move_date", desc=True).execute().data
+    )
+    if moves:
+        lines.append("\n=== CONFIRMED ROSTER MOVES (only source of truth for who is in/out) ===")
+        for m in moves:
+            d = "IN" if m["direction"] == "in" else "OUT"
+            pos = f" {m['position']}" if m.get("position") else ""
+            lines.append(f"- {d}: {m['player_name']}{pos} "
+                         f"({SPORT_NAME.get(m['sport_id'], m['sport_id'])}, {m.get('category') or 'move'})")
 
     snaps = sb.table("pulse_snapshots").select("*").order("date", desc=True).execute().data
     seen, pulse_lines = set(), []
@@ -58,7 +71,7 @@ def build_context(sb) -> str:
         seen.add(s["sport_id"])
         pulse_lines.append(f"- {SPORT_NAME.get(s['sport_id'], s['sport_id'])}: {s['score']}/100 ({s['trend']})")
     if pulse_lines:
-        lines.append("\nTODAY'S MOUNTAINEER PULSE:")
+        lines.append("\n=== TODAY'S MOUNTAINEER PULSE ===")
         lines += pulse_lines
 
     return "\n".join(lines)
@@ -76,17 +89,29 @@ def main() -> None:
     context = build_context(sb)
 
     system = (
-        "You write the daily briefing for Mountaineer Pulse, a West Virginia University "
-        "sports app. Voice: sharp, factual, a WVU fan's insider — never hype, never fluff. "
-        "STRICT RULE: use ONLY the facts provided. Do not invent scores, names, or events. "
-        "If there is little news, say plainly that it's a quiet day."
+        "You write the daily briefing for Mountaineer Pulse, a West Virginia University sports "
+        "app. Voice: sharp, factual, a plugged-in WVU fan. Never hype, never filler.\n\n"
+        "ABSOLUTE RULES — accuracy is everything; one wrong fact loses a fan's trust:\n"
+        "1. Use ONLY the facts in the DATA provided. Never add a name, coach, player, position, "
+        "record, ranking, or any context from your own knowledge — even if you believe you know "
+        "it. If it is not written in the DATA, it does not exist for this briefing. (You do NOT "
+        "know who WVU's coaches are unless the DATA says so.)\n"
+        "2. Rumors are not facts. Headlines with words like 'trending', 'source', 'reportedly', "
+        "'linked', 'targets', 'could', or 'rumored' are SPECULATION — never state them as done "
+        "deals. Skip them, or clearly mark them ('reportedly').\n"
+        "3. A roster move is real ONLY if it appears in CONFIRMED ROSTER MOVES. Never call a "
+        "player a commit/signing/transfer unless he is on that list.\n"
+        "4. Significance filter: include only genuinely notable items. Do NOT pad to hit a "
+        "number, and NEVER inflate a single minor item (one former player's pro news, a routine "
+        "ranking blurb) into a category.\n"
+        "5. Slow news day? Say so plainly. A short honest briefing beats a padded one."
     )
     prompt = (
-        f"{context}\n\n"
-        "Write today's briefing. Start with a short, warm one-line greeting, then give the "
-        "3 biggest WVU athletics developments from the last 24-36 hours as a numbered list "
-        "(one crisp sentence each). If there isn't enough real news for three, give fewer. "
-        "Keep the whole thing under 120 words. Plain text, no markdown headers."
+        f"DATA:\n{context}\n\n"
+        "Write today's briefing: a short, warm one-line greeting, then the genuinely notable WVU "
+        "developments as a numbered list (one crisp sentence each). Give 2-3 ONLY if you truly "
+        "have that many worth a fan's attention — otherwise give one, or just say it's a quiet "
+        "day. Under 110 words. Plain text, no markdown headers, no invented facts."
     )
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
