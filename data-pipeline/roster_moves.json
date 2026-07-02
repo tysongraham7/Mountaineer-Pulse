@@ -1,0 +1,86 @@
+[
+  {
+    "sport_id": "football", "player_name": "Cam Cook", "position": "RB", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "",
+    "move_date": "2026-04-02", "source_name": "WVU Athletics", "source_url": "",
+    "notes": "Touted portal running back addition"
+  },
+  {
+    "sport_id": "football", "player_name": "Jaire Rawlison", "position": "CB", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "",
+    "move_date": "2026-06-30", "source_name": "On3", "source_url": "",
+    "notes": "Adds depth to the CB room"
+  },
+  {
+    "sport_id": "football", "player_name": "Matt Sieg", "position": "S", "class_year": "Fr",
+    "direction": "in", "category": "recruit", "status": "signed", "other_school": "",
+    "move_date": "2026-02-04", "source_name": "WBOY", "source_url": "",
+    "notes": "4-star safety, flipped to WVU on National Signing Day"
+  },
+  {
+    "sport_id": "football", "player_name": "Kevin Brown", "position": "OL", "class_year": "Fr",
+    "direction": "in", "category": "recruit", "status": "signed", "other_school": "",
+    "move_date": "2026-02-04", "source_name": "On3", "source_url": "",
+    "notes": "Freshman offensive lineman"
+  },
+  {
+    "sport_id": "football", "player_name": "Javan Buchanan", "position": "", "class_year": "Fr",
+    "direction": "in", "category": "recruit", "status": "signed", "other_school": "",
+    "move_date": "2026-02-04", "source_name": "WV News", "source_url": "",
+    "notes": "Signed with West Virginia"
+  },
+  {
+    "sport_id": "football", "player_name": "Akheem Mesidor", "position": "DL", "class_year": "Sr",
+    "direction": "out", "category": "draft", "status": "drafted", "other_school": "NFL",
+    "move_date": "2026-04-24", "source_name": "WV News", "source_url": "",
+    "notes": "Selected in the 2026 NFL Draft"
+  },
+  {
+    "sport_id": "mbb", "player_name": "D.J. Thomas", "position": "F", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "entered", "other_school": "",
+    "move_date": "2026-04-08", "source_name": "Dominion Post", "source_url": "",
+    "notes": ""
+  },
+  {
+    "sport_id": "mbb", "player_name": "Jasper Floyd", "position": "G", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "entered", "other_school": "",
+    "move_date": "2026-04-12", "source_name": "Sports Illustrated", "source_url": "",
+    "notes": "Seeking another year of eligibility"
+  },
+  {
+    "sport_id": "mbb", "player_name": "Harlan Obioha", "position": "C", "class_year": "Sr",
+    "direction": "out", "category": "graduation", "status": "graduated", "other_school": "",
+    "move_date": "2026-04-05", "source_name": "", "source_url": "",
+    "notes": "Out of eligibility"
+  },
+  {
+    "sport_id": "mbb", "player_name": "Miles Sadler", "position": "G", "class_year": "Fr",
+    "direction": "in", "category": "recruit", "status": "signed", "other_school": "",
+    "move_date": "2026-04-10", "source_name": "", "source_url": "",
+    "notes": "Incoming freshman guard"
+  },
+  {
+    "sport_id": "mbb", "player_name": "Seydou Traore", "position": "", "class_year": "Fr",
+    "direction": "in", "category": "recruit", "status": "signed", "other_school": "",
+    "move_date": "2026-04-15", "source_name": "WVU Athletics", "source_url": "",
+    "notes": "Signing announced by Coach Hodge"
+  },
+  {
+    "sport_id": "mbb", "player_name": "Amadou Seini", "position": "", "class_year": "Fr",
+    "direction": "in", "category": "recruit", "status": "signed", "other_school": "",
+    "move_date": "2026-04-20", "source_name": "WVU Athletics", "source_url": "",
+    "notes": "Signing announced by Coach Hodge"
+  },
+  {
+    "sport_id": "baseball", "player_name": "Chase Ecker", "position": "OF", "class_year": "Fr",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "",
+    "move_date": "2026-06-25", "source_name": "Sports Illustrated", "source_url": "",
+    "notes": "Speedy freshman outfielder transfer"
+  },
+  {
+    "sport_id": "baseball", "player_name": "Zahir Barjam", "position": "INF", "class_year": "Fr",
+    "direction": "out", "category": "transfer", "status": "entered", "other_school": "",
+    "move_date": "2026-06-22", "source_name": "Sports Illustrated", "source_url": "",
+    "notes": "Talented freshman infielder"
+  }
+]

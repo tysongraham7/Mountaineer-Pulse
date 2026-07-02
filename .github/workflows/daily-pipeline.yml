@@ -1,0 +1,50 @@
+name: Daily WVU Data Pipeline
+
+# Runs the full Mountaineer Pulse data refresh in the cloud every morning,
+# plus a manual "Run workflow" button in the Actions tab for testing.
+on:
+  schedule:
+    - cron: "0 11 * * *" # 11:00 UTC daily (~7am ET) — briefing ready by morning
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Football data (CFBD)
+        run: python sync_football.py
+
+      - name: Basketball + Baseball data (ESPN)
+        run: python sync_espn.py
+
+      - name: Rosters (wvusports.com)
+        run: python sync_rosters.py
+
+      - name: News feed (Google News)
+        run: python sync_news.py
+
+      - name: Roster movement
+        run: python sync_moves.py
+
+      - name: Compute Mountaineer Pulse
+        run: python compute_pulse.py
+
+      - name: Daily AI Briefing
+        run: python generate_briefing.py
