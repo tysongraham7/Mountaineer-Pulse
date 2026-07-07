@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+      CBD_API_KEY: ${{ secrets.CBD_API_KEY }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -51,6 +52,9 @@ jobs:
 
       - name: Baseball player stats (NCAA API)
         run: python sync_baseball.py
+
+      - name: Basketball player stats (CollegeBasketballData)
+        run: python sync_basketball.py
 
       - name: Depth chart
         run: python sync_depth.py

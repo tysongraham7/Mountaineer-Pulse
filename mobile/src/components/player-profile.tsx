@@ -45,6 +45,18 @@ const STAT_ROWS: [string, string, string][] = [
   ['pitching', 'W', 'Wins'],
   ['pitching', 'L', 'Losses'],
   ['pitching', 'SV', 'Saves'],
+  // basketball
+  ['basketball', 'PPG', 'Points / G'],
+  ['basketball', 'RPG', 'Rebounds / G'],
+  ['basketball', 'APG', 'Assists / G'],
+  ['basketball', 'SPG', 'Steals / G'],
+  ['basketball', 'BPG', 'Blocks / G'],
+  ['basketball', 'MPG', 'Minutes / G'],
+  ['basketball', 'FG%', 'FG %'],
+  ['basketball', '3P%', '3PT %'],
+  ['basketball', 'FT%', 'FT %'],
+  ['basketball', 'GP', 'Games'],
+  ['basketball', 'GS', 'Starts'],
 ];
 
 function fullName(p: Player): string {

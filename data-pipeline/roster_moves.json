@@ -922,5 +922,33 @@
     "source_name": "On3",
     "source_url": "",
     "notes": ""
+  },
+  {
+    "sport_id": "mbb",
+    "player_name": "Miles Sadler",
+    "position": "G",
+    "class_year": "Fr",
+    "direction": "in",
+    "category": "hs",
+    "status": "signed",
+    "other_school": "",
+    "move_date": null,
+    "source_name": "WVU Athletics",
+    "source_url": "",
+    "notes": "5-star, top-25 PG (Class of 2026)"
+  },
+  {
+    "sport_id": "mbb",
+    "player_name": "Aliou Dioum",
+    "position": "C",
+    "class_year": "Fr",
+    "direction": "in",
+    "category": "hs",
+    "status": "signed",
+    "other_school": "",
+    "move_date": null,
+    "source_name": "WVU Athletics",
+    "source_url": "",
+    "notes": "2026 signee (Bella Vista Prep)"
   }
 ]

@@ -35,7 +35,7 @@ const MODES = [
 const LEADER_SEASONS_BY_SPORT: Record<string, number[]> = {
   football: [2025, 2024],
   baseball: [2026],
-  mbb: [],
+  mbb: [2026], // 2025-26 season
 };
 
 // Leaderboards per sport. `asc` = lower is better (ERA); `qual*` gates rate stats
@@ -74,7 +74,16 @@ const LEADERBOARDS_BY_SPORT: Record<string, Board[]> = {
     { title: 'Wins', cat: 'pitching', type: 'W', top: 3 },
     { title: 'Saves', cat: 'pitching', type: 'SV', top: 3 },
   ],
-  mbb: [],
+  mbb: [
+    { title: 'Points / G', cat: 'basketball', type: 'PPG', top: 5 },
+    { title: 'Rebounds / G', cat: 'basketball', type: 'RPG', top: 5 },
+    { title: 'Assists / G', cat: 'basketball', type: 'APG', top: 5 },
+    { title: 'Steals / G', cat: 'basketball', type: 'SPG', top: 3 },
+    { title: 'Blocks / G', cat: 'basketball', type: 'BPG', top: 3 },
+    { title: '3-Pointers Made', cat: 'basketball', type: '3PM', top: 5 },
+    { title: '3PT %', cat: 'basketball', type: '3P%', top: 5, qualCat: 'basketball', qualType: '3PA', qualMin: 30 },
+    { title: 'FG %', cat: 'basketball', type: 'FG%', top: 5, qualCat: 'basketball', qualType: 'FGA', qualMin: 75 },
+  ],
 };
 
 const SPORT_LABEL: Record<string, string> = {
@@ -378,8 +387,22 @@ function RosterSection({
     const departed = new Set(
       moves.filter((m) => m.direction === 'out').map((m) => normName(m.player_name)),
     );
-    returning = players.filter((p) => !departed.has(normName(playerFullName(p))));
-    incoming = moves.filter((m) => m.direction === 'in').map((m) => synthFromMove(m, sport));
+    const inMoves = moves.filter((m) => m.direction === 'in');
+    const incomingNames = new Set(inMoves.map((m) => normName(m.player_name)));
+    // Returning = current roster minus departures minus anyone counted as incoming
+    // (the scrape may already list new arrivals — don't show them in both sections).
+    returning = players.filter((p) => {
+      const k = normName(playerFullName(p));
+      return !departed.has(k) && !incomingNames.has(k);
+    });
+    // Incoming: reuse the scraped roster record (photo/jersey) when it exists, else synth.
+    const rosterByName = new Map(players.map((p) => [normName(playerFullName(p)), p]));
+    incoming = inMoves.map((m) => {
+      const rp = rosterByName.get(normName(m.player_name));
+      return rp
+        ? { ...rp, incoming: true, fromSchool: m.other_school, moveCategory: m.category, note: m.notes }
+        : synthFromMove(m, sport);
+    });
   }
   const sorted = [...returning].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
   const incSorted = [...incoming].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
