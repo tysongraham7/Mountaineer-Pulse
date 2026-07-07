@@ -1,11 +1,5 @@
 [
   {
-    "sport_id": "football", "player_name": "Cam Cook", "position": "RB", "class_year": "",
-    "direction": "in", "category": "transfer", "status": "committed", "other_school": "",
-    "move_date": "2026-04-02", "source_name": "WVU Athletics", "source_url": "",
-    "notes": "Touted portal running back addition"
-  },
-  {
     "sport_id": "football", "player_name": "Jaire Rawlison", "position": "CB", "class_year": "",
     "direction": "in", "category": "transfer", "status": "committed", "other_school": "",
     "move_date": "2026-06-30", "source_name": "On3", "source_url": "",
@@ -49,7 +43,7 @@
   },
   {
     "sport_id": "mbb", "player_name": "Harlan Obioha", "position": "C", "class_year": "Sr",
-    "direction": "out", "category": "graduation", "status": "graduated", "other_school": "",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
     "move_date": "2026-04-05", "source_name": "", "source_url": "",
     "notes": "Out of eligibility"
   },
@@ -71,16 +65,219 @@
     "move_date": "2026-04-20", "source_name": "WVU Athletics", "source_url": "",
     "notes": "Signing announced by Coach Hodge"
   },
+
   {
-    "sport_id": "baseball", "player_name": "Chase Ecker", "position": "OF", "class_year": "Fr",
-    "direction": "in", "category": "transfer", "status": "committed", "other_school": "",
-    "move_date": "2026-06-25", "source_name": "Sports Illustrated", "source_url": "",
-    "notes": "Speedy freshman outfielder transfer"
+    "sport_id": "baseball", "player_name": "Austin Ziance", "position": "RHP", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Marietta",
+    "move_date": "2026-05-12", "source_name": "On3", "source_url": "", "notes": ""
   },
   {
-    "sport_id": "baseball", "player_name": "Zahir Barjam", "position": "INF", "class_year": "Fr",
+    "sport_id": "baseball", "player_name": "Drew Becker", "position": "RHP", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Ashland",
+    "move_date": "2026-05-25", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Zak Whitney", "position": "RHP", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Southern New Hampshire",
+    "move_date": "2026-06-03", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Griffen Paige", "position": "LHP", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Wright State",
+    "move_date": "2026-06-05", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Cash Williams", "position": "C/OF", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Tennessee",
+    "move_date": "2026-06-10", "source_name": "On3", "source_url": "", "notes": "Former top-10 catcher recruit"
+  },
+  {
+    "sport_id": "baseball", "player_name": "Owen Henne", "position": "INF", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Seton Hill",
+    "move_date": "2026-06-10", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Jack Cannon", "position": "OF", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Le Moyne",
+    "move_date": "2026-06-13", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Chase Ecker", "position": "OF", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "William & Mary",
+    "move_date": "2026-06-21", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Robert Satin", "position": "LHP", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Tampa",
+    "move_date": "2026-06-24", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Colton Hartman", "position": "LHP", "class_year": "",
+    "direction": "in", "category": "transfer", "status": "committed", "other_school": "Louisville",
+    "move_date": "2026-06-30", "source_name": "On3", "source_url": "", "notes": "Experienced ACC transfer pitcher"
+  },
+
+  {
+    "sport_id": "baseball", "player_name": "Seth Williams", "position": "OF", "class_year": "",
+    "direction": "in", "category": "juco", "status": "signed", "other_school": "Galveston College",
+    "move_date": "2025-10-29", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Colin Coonradt", "position": "UTIL", "class_year": "",
+    "direction": "in", "category": "juco", "status": "signed", "other_school": "Johnson County CC",
+    "move_date": "2026-01-23", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Ryan Piekutoski", "position": "INF", "class_year": "",
+    "direction": "in", "category": "juco", "status": "signed", "other_school": "USC Sumter",
+    "move_date": "2026-04-23", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Korey Alston", "position": "RHP", "class_year": "",
+    "direction": "in", "category": "juco", "status": "signed", "other_school": "Odessa College",
+    "move_date": "2026-05-19", "source_name": "On3", "source_url": "", "notes": ""
+  },
+
+  {
+    "sport_id": "baseball", "player_name": "Blake Krushinski", "position": "RHP", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Slade Barton", "position": "RHP", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Kyle Casteel", "position": "RHP", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Luke Coats", "position": "RHP", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Colin Harrison", "position": "LHP", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Jordan Burwell", "position": "1B", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Kayden Lipscomb", "position": "SS", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Joshua Viars", "position": "SS", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "CJ Alfano", "position": "OF", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Henkel Acevedo", "position": "OF", "class_year": "Fr",
+    "direction": "in", "category": "hs", "status": "signed", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+
+  {
+    "sport_id": "baseball", "player_name": "Chase Meyer", "position": "RHP", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "transferred", "other_school": "Arizona State",
+    "move_date": "2026-03-03", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Luke Lyman", "position": "RHP", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "transferred", "other_school": "South Alabama",
+    "move_date": "2026-05-27", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Bryson Thacker", "position": "LHP", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "transferred", "other_school": "FIU",
+    "move_date": "2026-05-28", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Andrew Middleton", "position": "LHP", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "transferred", "other_school": "Maryland",
+    "move_date": "2026-05-29", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Mac Stiffler", "position": "RHP", "class_year": "",
     "direction": "out", "category": "transfer", "status": "entered", "other_school": "",
-    "move_date": "2026-06-22", "source_name": "Sports Illustrated", "source_url": "",
-    "notes": "Talented freshman infielder"
+    "move_date": "2026-06-19", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Wyatt Mosley", "position": "LHP", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "entered", "other_school": "",
+    "move_date": "2026-06-19", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Ryan Maggy", "position": "INF", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "entered", "other_school": "",
+    "move_date": "2026-06-19", "source_name": "On3", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Zahir Barjam", "position": "INF", "class_year": "",
+    "direction": "out", "category": "transfer", "status": "transferred", "other_school": "Houston",
+    "move_date": "2026-06-22", "source_name": "On3", "source_url": "", "notes": ""
+  },
+
+  {
+    "sport_id": "baseball", "player_name": "Ian Korn", "position": "RHP", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Reese Bassinger", "position": "RHP", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Carson Estridge", "position": "RHP", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Ben McDougal", "position": "LHP", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Matthew Graveline", "position": "C", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Brodie Kresser", "position": "2B", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Paul Schoenfeld", "position": "OF", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Ben Lumsden", "position": "OF", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Sean Smith", "position": "OF", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
+  },
+  {
+    "sport_id": "baseball", "player_name": "Brock Wills", "position": "OF", "class_year": "Sr",
+    "direction": "out", "category": "eligibility", "status": "out of eligibility", "other_school": "",
+    "move_date": null, "source_name": "CollegeNetWorth", "source_url": "", "notes": ""
   }
 ]

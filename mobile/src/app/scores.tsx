@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,10 +10,9 @@ import {
   useColorScheme,
 } from 'react-native';
 
-import { PlayerProfile } from '@/components/player-profile';
 import { Brand, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
-import { Game, Player } from '@/lib/types';
+import { Game } from '@/lib/types';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -23,13 +21,7 @@ const FILTERS = [
   { id: 'baseball', label: 'Baseball' },
 ] as const;
 
-const SPORT_LABEL: Record<string, string> = {
-  football: 'Football',
-  mbb: "Men's Basketball",
-  baseball: 'Baseball',
-};
 const SPORT_TAG: Record<string, string> = { football: 'FB', mbb: 'MBB', baseball: 'BSB' };
-const SPORT_ORDER = ['football', 'mbb', 'baseball'];
 const RESULTS_LIMIT = 60;
 
 function formatDate(iso: string | null): string {
@@ -56,20 +48,13 @@ export default function ScoresScreen() {
   const c = surfaces(dark);
 
   const [games, setGames] = useState<Game[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('football');
-  const [mode, setMode] = useState<'schedule' | 'roster'>('schedule');
-  const [selected, setSelected] = useState<Player | null>(null);
 
   const load = useCallback(async () => {
-    const [gRes, pRes] = await Promise.all([
-      supabase.from('games').select('*').order('start_date', { ascending: true }),
-      supabase.from('players').select('*'),
-    ]);
-    setGames((gRes.data ?? []) as Game[]);
-    setPlayers((pRes.data ?? []) as Player[]);
+    const { data } = await supabase.from('games').select('*').order('start_date', { ascending: true });
+    setGames((data ?? []) as Game[]);
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -87,27 +72,10 @@ export default function ScoresScreen() {
     );
   }
 
-  const sports = filter === 'all' ? SPORT_ORDER : [filter];
+  const visible = filter === 'all' ? games : games.filter((g) => g.sport_id === filter);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      {/* Schedule / Roster segmented control */}
-      <View style={styles.segment}>
-        {(['schedule', 'roster'] as const).map((m) => {
-          const active = mode === m;
-          return (
-            <Pressable
-              key={m}
-              onPress={() => setMode(m)}
-              style={[styles.segBtn, { backgroundColor: active ? Brand.gold : 'transparent' }]}>
-              <Text style={[styles.segText, { color: active ? Brand.blueDeep : c.textSecondary }]}>
-                {m === 'schedule' ? 'Schedule' : 'Roster'}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
       <View style={styles.filterRow}>
         {FILTERS.map((f) => {
           const active = filter === f.id;
@@ -127,21 +95,8 @@ export default function ScoresScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Brand.gold} />
         }>
-        {mode === 'schedule'
-          ? <ScheduleView games={filter === 'all' ? games : games.filter((g) => g.sport_id === filter)} c={c} showTag={filter === 'all'} />
-          : sports.map((sp) => (
-              <RosterSection
-                key={sp}
-                sport={sp}
-                players={players.filter((p) => p.sport_id === sp)}
-                c={c}
-                onPick={setSelected}
-                showHeader={filter === 'all'}
-              />
-            ))}
+        <ScheduleView games={visible} c={c} showTag={filter === 'all'} />
       </ScrollView>
-
-      <PlayerProfile player={selected} onClose={() => setSelected(null)} />
     </View>
   );
 }
@@ -170,60 +125,10 @@ function ScheduleView({ games, c, showTag }: { games: Game[]; c: ReturnType<type
           {results.map((g) => <GameCard key={g.id} game={g} c={c} showTag={showTag} />)}
         </>
       )}
-    </>
-  );
-}
-
-function RosterSection({
-  sport,
-  players,
-  c,
-  onPick,
-  showHeader,
-}: {
-  sport: string;
-  players: Player[];
-  c: ReturnType<typeof surfaces>;
-  onPick: (p: Player) => void;
-  showHeader: boolean;
-}) {
-  const sorted = [...players].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
-  return (
-    <>
-      {showHeader && <SectionTitle text={SPORT_LABEL[sport]} color={c.text} />}
-      {players.length === 0 ? (
-        <Text style={[styles.empty, { color: c.textSecondary }]}>
-          {sport === 'baseball' ? 'Baseball roster isn’t available yet.' : 'No roster loaded.'}
-        </Text>
-      ) : (
-        sorted.map((p) => <RosterRow key={p.id} player={p} c={c} onPick={onPick} />)
+      {upcoming.length === 0 && results.length === 0 && (
+        <Text style={[styles.empty, { color: c.textSecondary }]}>No games to show yet.</Text>
       )}
     </>
-  );
-}
-
-function RosterRow({ player, c, onPick }: { player: Player; c: ReturnType<typeof surfaces>; onPick: (p: Player) => void }) {
-  const name = `${player.first_name ?? ''} ${player.last_name ?? ''}`.trim();
-  return (
-    <Pressable
-      onPress={() => onPick(player)}
-      style={({ pressed }) => [styles.rosterRow, { backgroundColor: c.card, borderColor: c.border, opacity: pressed ? 0.7 : 1 }]}>
-      {player.photo_url ? (
-        <Image source={{ uri: player.photo_url }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: Brand.blue }]}>
-          <Text style={styles.avatarText}>{(player.first_name?.[0] ?? '') + (player.last_name?.[0] ?? '')}</Text>
-        </View>
-      )}
-      <Text style={[styles.jersey, { color: c.textSecondary }]}>{player.jersey != null ? `#${player.jersey}` : ''}</Text>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.playerName, { color: c.text }]} numberOfLines={1}>{name}</Text>
-        <Text style={[styles.playerMeta, { color: c.textSecondary }]}>
-          {[player.position, player.class_display].filter(Boolean).join(' · ')}
-        </Text>
-      </View>
-      <Text style={{ color: c.textSecondary }}>›</Text>
-    </Pressable>
   );
 }
 
@@ -270,16 +175,13 @@ function GameCard({ game, c, showTag }: { game: Game; c: ReturnType<typeof surfa
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, paddingBottom: 40 },
-  segment: { flexDirection: 'row', margin: 16, marginBottom: 4, borderRadius: 10, backgroundColor: '#8883', padding: 3 },
-  segBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  segText: { fontSize: 14, fontWeight: '800' },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, flexWrap: 'wrap' },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, flexWrap: 'wrap' },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13, fontWeight: '700' },
   sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 8 },
   goldBar: { width: 4, height: 20, borderRadius: 2, backgroundColor: Brand.gold, marginRight: 8 },
   sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
-  empty: { fontSize: 14, paddingVertical: 12 },
+  empty: { fontSize: 14, paddingVertical: 12, textAlign: 'center' },
   card: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 10 },
   cardLeft: { flex: 1, paddingRight: 10 },
   cardRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -292,11 +194,4 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontWeight: '900', fontSize: 13 },
   score: { fontSize: 18, fontWeight: '800', minWidth: 56, textAlign: 'right' },
   upcoming: { fontSize: 13, fontWeight: '700' },
-  rosterRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 8 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0002' },
-  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  jersey: { fontSize: 14, fontWeight: '800', width: 34 },
-  playerName: { fontSize: 16, fontWeight: '700' },
-  playerMeta: { fontSize: 12, marginTop: 2 },
 });

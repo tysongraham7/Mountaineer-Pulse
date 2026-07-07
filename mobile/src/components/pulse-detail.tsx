@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -13,8 +13,8 @@ import {
 
 import { Brand, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
-import { RosterMove } from '@/lib/types';
-import { ChartPoint, PulseChart } from './pulse-chart';
+import { Game, RosterMove } from '@/lib/types';
+import { ChartMarker, ChartPoint, PulseChart } from './pulse-chart';
 
 const SPORT_NAME: Record<string, string> = {
   football: 'Football',
@@ -22,34 +22,122 @@ const SPORT_NAME: Record<string, string> = {
   baseball: 'Baseball',
 };
 const TREND_EMOJI: Record<string, string> = { up: '📈', down: '📉', neutral: '➡️' };
+const JUMP_THRESHOLD = 5; // points of change that count as a "notable" move worth explaining
 
 type Driver = { label: string; delta?: number; kind: string };
+type Reason = { dir: 'up' | 'down'; title: string; detail: string };
+
+function fullDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function wvuView(g: Game) {
+  const home = !!g.is_wvu_home;
+  const wpts = home ? g.home_points : g.away_points;
+  const opts = home ? g.away_points : g.home_points;
+  return {
+    opp: home ? g.away_team : g.home_team,
+    loc: home ? 'vs' : '@',
+    win: (wpts ?? 0) > (opts ?? 0),
+    scoreText: `${wpts}–${opts}`,
+  };
+}
 
 export function PulseDetail({ sport, onClose }: { sport: string | null; onClose: () => void }) {
   const dark = useColorScheme() === 'dark';
   const c = surfaces(dark);
 
-  const [points, setPoints] = useState<ChartPoint[]>([]);
-  const [current, setCurrent] = useState<{ score: number; trend: string; explanation: string | null; drivers: Driver[] | null } | null>(null);
+  const [snaps, setSnaps] = useState<{ date: string; score: number }[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
+  const [current, setCurrent] = useState<{
+    score: number;
+    trend: string;
+    explanation: string | null;
+    drivers: Driver[] | null;
+  } | null>(null);
   const [moves, setMoves] = useState<RosterMove[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeIdx, setActiveIdx] = useState<number>(-1); // -1 => latest
 
   useEffect(() => {
     if (!sport) return;
     setLoading(true);
+    setActiveIdx(-1);
     (async () => {
-      const [snapRes, moveRes] = await Promise.all([
+      const [snapRes, moveRes, gameRes] = await Promise.all([
         supabase.from('pulse_snapshots').select('*').eq('sport_id', sport).order('date'),
         supabase.from('roster_moves').select('*').eq('sport_id', sport).order('move_date', { ascending: false }),
+        supabase.from('games').select('*').eq('sport_id', sport).eq('status', 'final'),
       ]);
-      const snaps = snapRes.data ?? [];
-      setPoints(snaps.map((s: any) => ({ date: s.date, score: s.score })));
-      const latest = snaps[snaps.length - 1] as any;
+      const s = (snapRes.data ?? []) as any[];
+      setSnaps(s.map((x) => ({ date: x.date, score: x.score })));
+      const latest = s[s.length - 1];
       setCurrent(latest ? { score: latest.score, trend: latest.trend, explanation: latest.explanation, drivers: latest.drivers } : null);
       setMoves((moveRes.data ?? []) as RosterMove[]);
+      setGames((gameRes.data ?? []) as Game[]);
       setLoading(false);
     })();
   }, [sport]);
+
+  const points: ChartPoint[] = snaps;
+
+  // Explain the score change between two snapshot dates using REAL events in that
+  // window: game results first, then roster moves, else a generic standing update.
+  const reasonForWindow = useMemo(() => {
+    return (prevDate: string, curDate: string, dir: 'up' | 'down'): Reason => {
+      // Compare by DATE, not timestamp: snapshot dates are midnight, but games
+      // have a kickoff time — a same-day game must land in this window, not the
+      // next one. Snapshot i reflects games/moves dated (prevDate, curDate].
+      const pa = prevDate.slice(0, 10);
+      const pb = curDate.slice(0, 10);
+      const inWin = (iso: string | null) => {
+        if (!iso) return false;
+        const d = iso.slice(0, 10);
+        return d > pa && d <= pb;
+      };
+
+      const gw = games.filter((g) => inWin(g.start_date));
+      if (gw.length === 1) {
+        const v = wvuView(gw[0]);
+        return { dir, title: `${v.win ? 'Win' : 'Loss'} ${v.loc} ${v.opp}`, detail: v.scoreText };
+      }
+      if (gw.length > 1) {
+        const wins = gw.filter((g) => wvuView(g).win).length;
+        return { dir, title: `Went ${wins}–${gw.length - wins}`, detail: `${gw.length} games this stretch` };
+      }
+
+      const mw = moves.filter((m) => inWin(m.move_date));
+      if (mw.length > 0) {
+        const ins = mw.filter((m) => m.direction === 'in').length;
+        const outs = mw.length - ins;
+        const notable = mw.find((m) => m.direction === (dir === 'up' ? 'in' : 'out'));
+        const who = notable
+          ? `${notable.player_name}${notable.other_school ? ` (${dir === 'up' ? 'from' : 'to'} ${notable.other_school})` : ''}`
+          : '';
+        return { dir, title: 'Roster movement', detail: `+${ins} in / −${outs} out${who ? ` · ${who}` : ''}` };
+      }
+
+      return { dir, title: dir === 'up' ? 'Standing climb' : 'Standing slip', detail: 'ranking / record update' };
+    };
+  }, [games, moves]);
+
+  // Markers at every notable jump, each carrying its grounded reason.
+  const { markers, reasonByIndex } = useMemo(() => {
+    const mk: ChartMarker[] = [];
+    const byIdx: Record<number, Reason> = {};
+    for (let i = 1; i < points.length; i++) {
+      const delta = points[i].score - points[i - 1].score;
+      if (Math.abs(delta) < JUMP_THRESHOLD) continue;
+      const dir: 'up' | 'down' = delta >= 0 ? 'up' : 'down';
+      mk.push({ index: i, dir });
+      byIdx[i] = reasonForWindow(points[i - 1].date, points[i].date, dir);
+    }
+    return { markers: mk, reasonByIndex: byIdx };
+  }, [points, reasonForWindow]);
+
+  const n = points.length;
+  const idx = activeIdx < 0 || activeIdx > n - 1 ? n - 1 : activeIdx;
+  const activeReason = reasonByIndex[idx];
 
   return (
     <Modal visible={!!sport} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -95,13 +183,49 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
               <View style={styles.goldBar} />
               <Text style={[styles.sectionTitle, { color: c.text }]}>Pulse over time</Text>
             </View>
-            <View style={[styles.chartCard, { backgroundColor: c.card, borderColor: c.border }]}>
-              {points.length >= 2 ? (
-                <PulseChart data={points} textColor={c.textSecondary} gridColor={c.border} />
-              ) : (
+
+            {n >= 2 ? (
+              <View style={[styles.chartCard, { backgroundColor: c.card, borderColor: c.border }]}>
+                <PulseChart
+                  data={points}
+                  markers={markers}
+                  textColor={c.textSecondary}
+                  gridColor={c.border}
+                  onActiveChange={setActiveIdx}
+                />
+                <Text style={[styles.hint, { color: c.textSecondary }]}>
+                  Drag across the chart to explore — dots mark notable moves
+                </Text>
+
+                {/* Reason panel — updates as you scrub */}
+                <View style={[styles.reasonCard, { borderColor: c.border }]}>
+                  <Text style={[styles.reasonDate, { color: c.textSecondary }]}>
+                    {fullDate(points[idx].date)} · Pulse {points[idx].score}
+                  </Text>
+                  {activeReason ? (
+                    <View style={styles.reasonBody}>
+                      <View style={[styles.reasonBadge, { backgroundColor: activeReason.dir === 'up' ? Brand.win : Brand.loss }]}>
+                        <Ionicons name={activeReason.dir === 'up' ? 'trending-up' : 'trending-down'} size={14} color="#fff" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.reasonTitle, { color: c.text }]}>{activeReason.title}</Text>
+                        {!!activeReason.detail && (
+                          <Text style={[styles.reasonDetail, { color: c.textSecondary }]}>{activeReason.detail}</Text>
+                        )}
+                      </View>
+                    </View>
+                  ) : (
+                    <Text style={[styles.reasonDetail, { color: c.textSecondary }]}>
+                      {idx === n - 1 && current?.explanation ? current.explanation : 'No notable change on this date.'}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ) : (
+              <View style={[styles.chartCard, { backgroundColor: c.card, borderColor: c.border }]}>
                 <Text style={{ color: c.textSecondary, textAlign: 'center' }}>Not enough history yet.</Text>
-              )}
-            </View>
+              </View>
+            )}
 
             {moves.length > 0 && (
               <>
@@ -157,6 +281,13 @@ const styles = StyleSheet.create({
   goldBar: { width: 4, height: 20, borderRadius: 2, backgroundColor: Brand.gold, marginRight: 8 },
   sectionTitle: { fontSize: 18, fontWeight: '800' },
   chartCard: { borderWidth: 1, borderRadius: 14, padding: 10, alignItems: 'center' },
+  hint: { fontSize: 11, marginTop: 6, fontStyle: 'italic' },
+  reasonCard: { borderTopWidth: 1, marginTop: 10, paddingTop: 12, width: '100%' },
+  reasonDate: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  reasonBody: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  reasonBadge: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  reasonTitle: { fontSize: 16, fontWeight: '800' },
+  reasonDetail: { fontSize: 13, marginTop: 8, lineHeight: 18 },
   moveRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, paddingVertical: 10 },
   movePlayer: { flex: 1, fontSize: 15, fontWeight: '700' },
 });

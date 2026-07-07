@@ -19,6 +19,9 @@ mobile/web-build/
 dist/
 *.tsbuildinfo
 
+# --- Personal Claude Code settings (local only) ---
+.claude/settings.local.json
+
 # --- Misc ---
 .DS_Store
 *.log

@@ -31,6 +31,20 @@ export type Player = {
   photo_url: string | null;
 };
 
+export type DepthEntry = {
+  id: string;
+  sport_id: string;
+  season: number | null;
+  unit: string | null;
+  position: string;
+  pos_order: number | null;
+  rank: number;
+  player_name: string;
+  class_year: string | null;
+  status: string | null; // active | questionable | doubtful | out
+  note: string | null;
+};
+
 export type RosterMove = {
   id: string;
   sport_id: string | null;
@@ -45,6 +59,19 @@ export type RosterMove = {
   source_name: string | null;
   source_url: string | null;
   notes: string | null;
+};
+
+export type PlayerStat = {
+  id: string;
+  player_id: string;
+  season: number;
+  sport_id: string | null;
+  player_name: string | null;
+  position: string | null;
+  category: string;
+  stat_type: string;
+  stat: string | null;
+  team: string | null;
 };
 
 export type TeamRecord = {

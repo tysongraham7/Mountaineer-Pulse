@@ -190,3 +190,51 @@ create table if not exists roster_moves (
 
 alter table roster_moves enable row level security;
 create policy "public read moves" on roster_moves for select using (true);
+
+-- ---------------------------------------------------------------------------
+-- depth_chart: curated projected lineup by position. Absorbs injuries (status)
+-- and departures/replacements. No official college source exists — founder
+-- maintains data-pipeline/depth_chart.json from beat-writer projections.
+-- ---------------------------------------------------------------------------
+create table if not exists depth_chart (
+  id          text primary key,          -- hash of sport + season + position + player
+  sport_id    text references sports(id),
+  season      int,                        -- e.g. 2027 (projected) or 2026; null = seasonless
+  unit        text,                       -- Offense | Defense | Special Teams (football)
+  position    text not null,              -- QB, RB, WR, ...
+  pos_order   int default 0,              -- sort order for positions
+  rank        int not null,              -- 1 = starter, 2 = backup, ...
+  player_name text not null,
+  class_year  text,
+  status      text default 'active',      -- active | questionable | doubtful | out
+  note        text,
+  updated_at  timestamptz default now()
+);
+
+alter table depth_chart enable row level security;
+create policy "public read depth" on depth_chart for select using (true);
+
+-- ---------------------------------------------------------------------------
+-- player_stats: per-season stat lines (long format) from CFBD. Prior seasons
+-- populate now; the current season fills in once games are played. Keyed by
+-- CFBD athlete id (= players.id), so a player's profile joins straight to it.
+-- Not a FK to players -- we keep stat lines for players who have since left.
+-- ---------------------------------------------------------------------------
+create table if not exists player_stats (
+  id          text primary key,           -- player_id|season|category|stat_type
+  player_id   text not null,              -- CFBD athlete id (matches players.id)
+  season      int not null,
+  sport_id    text default 'football' references sports(id),
+  player_name text,
+  position    text,
+  category    text not null,              -- passing | rushing | receiving | defensive | ...
+  stat_type   text not null,             -- YDS | TD | INT | TOT | ...
+  stat        text,                       -- value as reported by CFBD
+  team        text default 'West Virginia', -- school stats were earned at (prev school for incoming transfers)
+  updated_at  timestamptz default now()
+);
+
+create index if not exists player_stats_player_idx on player_stats (player_id, season);
+
+alter table player_stats enable row level security;
+create policy "public read player stats" on player_stats for select using (true);

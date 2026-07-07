@@ -1,0 +1,48 @@
+[
+  { "sport_id": "football", "unit": "Offense", "position": "QB", "pos_order": 1, "rank": 1, "player_name": "Michael Hawkins Jr.", "class_year": "R-So.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Offense", "position": "QB", "pos_order": 1, "rank": 2, "player_name": "Max Brown", "class_year": "R-Sr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Offense", "position": "RB", "pos_order": 2, "rank": 1, "player_name": "Cam Cook", "class_year": "Sr.", "status": "active", "note": "Preseason All-American" },
+  { "sport_id": "football", "unit": "Offense", "position": "RB", "pos_order": 2, "rank": 2, "player_name": "Amari Latimer", "class_year": "Fr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Offense", "position": "WR", "pos_order": 3, "rank": 1, "player_name": "Jaden Bray", "class_year": "R-Sr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Offense", "position": "WR", "pos_order": 3, "rank": 2, "player_name": "DJ Epps", "class_year": "R-Sr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Offense", "position": "TE", "pos_order": 4, "rank": 1, "player_name": "Josh Sapp", "class_year": "R-Sr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Offense", "position": "TE", "pos_order": 4, "rank": 2, "player_name": "Cam Ball", "class_year": "R-Sr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Offense", "position": "OL", "pos_order": 5, "rank": 1, "player_name": "Nick Krahe", "class_year": "R-Jr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Offense", "position": "OL", "pos_order": 5, "rank": 2, "player_name": "Raymond Kovalesky", "class_year": "R-So.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Defense", "position": "DL", "pos_order": 6, "rank": 1, "player_name": "Zeke Durham-Campbell", "class_year": "R-Sr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Defense", "position": "DL", "pos_order": 6, "rank": 2, "player_name": "KJ Henson", "class_year": "R-Jr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Defense", "position": "LB", "pos_order": 7, "rank": 1, "player_name": "Ben Cutter", "class_year": "Sr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Defense", "position": "LB", "pos_order": 7, "rank": 2, "player_name": "Tyler Stolsky", "class_year": "R-Sr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Defense", "position": "CB", "pos_order": 8, "rank": 1, "player_name": "Chams Diagne", "class_year": "R-Sr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Defense", "position": "CB", "pos_order": 8, "rank": 2, "player_name": "Da'Mun Allen", "class_year": "Jr.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Defense", "position": "S", "pos_order": 9, "rank": 1, "player_name": "Kamari Wilson", "class_year": "R-Sr.", "status": "active", "note": "" },
+  { "sport_id": "football", "unit": "Defense", "position": "S", "pos_order": 9, "rank": 2, "player_name": "Da'Mare Williams", "class_year": "R-So.", "status": "active", "note": "" },
+
+  { "sport_id": "football", "unit": "Special Teams", "position": "P", "pos_order": 10, "rank": 1, "player_name": "Bryan Hansen", "class_year": "R-Sr.", "status": "active", "note": "" },
+
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "CF", "pos_order": 1, "rank": 1, "player_name": "Armani Guzman", "class_year": "", "status": "active", "note": "Returning starter — pending MLB Draft" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "C", "pos_order": 2, "rank": 1, "player_name": "Gavin Kelly", "class_year": "", "status": "active", "note": "Returning starter — not draft-eligible, locked in" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "LF", "pos_order": 3, "rank": 1, "player_name": "Colin Coonradt", "class_year": "", "status": "active", "note": "JUCO (Johnson County CC) — .430, 37 HR; can play 1B/DH" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "DH", "pos_order": 4, "rank": 1, "player_name": "Ryan Piekutoski", "class_year": "", "status": "active", "note": "JUCO (USC Sumter) — .463, 25 HR" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "RF", "pos_order": 5, "rank": 1, "player_name": "Jack Cannon", "class_year": "", "status": "active", "note": "Transfer (Le Moyne) — .439, 2nd in D1 in AVG & steals" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "2B", "pos_order": 6, "rank": 1, "player_name": "Matt Ineich", "class_year": "", "status": "active", "note": "Returning starter — projected to move from SS to 2B" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "3B", "pos_order": 7, "rank": 1, "player_name": "Tyrus Hall", "class_year": "", "status": "active", "note": "Returning starter" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "1B", "pos_order": 8, "rank": 1, "player_name": "TBD", "class_year": "", "status": "active", "note": "Open — Maggy entered the portal; Coonradt a possibility here" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Projected Lineup", "position": "SS", "pos_order": 9, "rank": 1, "player_name": "Owen Henne", "class_year": "", "status": "active", "note": "Transfer (Seton Hill) — .401; SS spot fluid (Henne/Robaugh)" },
+
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 10, "rank": 1, "player_name": "Chansen Cole", "class_year": "", "status": "active", "note": "Returning — CWS rotation arm; back & better in 2027" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 11, "rank": 1, "player_name": "Griffen Paige", "class_year": "", "status": "active", "note": "Transfer (Wright State) — 8 IP/1 R vs Vanderbilt; could become the ace" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 12, "rank": 1, "player_name": "David Hagen", "class_year": "", "status": "active", "note": "Returning — strong final four appearances of 2026" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 13, "rank": 1, "player_name": "Kyle Casteel", "class_year": "Fr.", "status": "active", "note": "Incoming freshman — low-to-mid 90s FB, sweeper, changeup" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 14, "rank": 1, "player_name": "Austin Ziance", "class_year": "", "status": "active", "note": "Transfer (Marietta, D3) — Korn-role innings eater; 1.77 ERA, 50 BB / 191 IP" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 15, "rank": 1, "player_name": "Robert Satin", "class_year": "", "status": "active", "note": "Transfer (Tampa, D2) — LHP; helped Tampa to a D-II national title" },
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 16, "rank": 1, "player_name": "Colton Hartman", "class_year": "", "status": "active", "note": "Transfer (Louisville) — 6-3 LHP; started 11 games for the Cardinals" }
+]

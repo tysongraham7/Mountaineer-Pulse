@@ -13,6 +13,7 @@ import {
 
 import { PulseDetail } from '@/components/pulse-detail';
 import { Brand, surfaces } from '@/constants/brand';
+import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
 
 const SPORT_NAME: Record<string, string> = {
@@ -45,6 +46,11 @@ export default function PulseScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const { favorites } = useFavorites();
+  // Favorited sports rise to the top.
+  const orderedSports = [...SPORT_ORDER].sort(
+    (a, b) => (favorites.includes(b) ? 1 : 0) - (favorites.includes(a) ? 1 : 0),
+  );
 
   const load = useCallback(async () => {
     const [overallRes, snapRes, briefingRes] = await Promise.all([
@@ -112,7 +118,7 @@ export default function PulseScreen() {
         <Text style={[styles.sectionTitle, { color: c.text }]}>Program Pulse</Text>
       </View>
 
-      {SPORT_ORDER.map((sport) => {
+      {orderedSports.map((sport) => {
         const s = snaps[sport];
         return (
           <Pressable
@@ -123,7 +129,10 @@ export default function PulseScreen() {
               { backgroundColor: c.card, borderColor: c.border, opacity: pressed ? 0.7 : 1 },
             ]}>
             <View style={styles.cardTop}>
-              <Text style={[styles.cardName, { color: c.text }]}>{SPORT_NAME[sport]}</Text>
+              <View style={styles.nameWrap}>
+                {favorites.includes(sport) && <Ionicons name="star" size={14} color={Brand.gold} />}
+                <Text style={[styles.cardName, { color: c.text }]}>{SPORT_NAME[sport]}</Text>
+              </View>
               <View style={styles.scoreWrap}>
                 <Text style={styles.trend}>{s ? TREND_EMOJI[s.trend] : ''}</Text>
                 <Text style={[styles.score, { color: Brand.gold }]}>{s ? s.score : '—'}</Text>
@@ -185,6 +194,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '800' },
   card: { borderWidth: 1, borderRadius: 14, padding: 16, marginBottom: 10 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  nameWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cardName: { fontSize: 17, fontWeight: '800' },
   scoreWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   trend: { fontSize: 22 },

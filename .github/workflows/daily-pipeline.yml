@@ -40,8 +40,20 @@ jobs:
       - name: News feed (Google News)
         run: python sync_news.py
 
-      - name: Roster movement
+      - name: Roster movement (curated)
         run: python sync_moves.py
+
+      - name: Football transfers (CFBD portal)
+        run: python sync_transfers.py
+
+      - name: Football player stats (CFBD)
+        run: python sync_player_stats.py
+
+      - name: Baseball player stats (NCAA API)
+        run: python sync_baseball.py
+
+      - name: Depth chart
+        run: python sync_depth.py
 
       - name: Compute Mountaineer Pulse
         run: python compute_pulse.py

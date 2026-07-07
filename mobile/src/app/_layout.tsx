@@ -4,12 +4,14 @@ import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 
 import { Brand } from '@/constants/brand';
+import { FavoritesProvider } from '@/lib/favorites';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
   const dark = scheme === 'dark';
 
   return (
+    <FavoritesProvider>
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
       <Tabs
         screenOptions={{
@@ -45,11 +47,11 @@ export default function RootLayout() {
           }}
         />
         <Tabs.Screen
-          name="movement"
+          name="team"
           options={{
-            title: 'Movement',
+            title: 'Team',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="swap-horizontal" size={size} color={color} />
+              <Ionicons name="people" size={size} color={color} />
             ),
           }}
         />
@@ -62,5 +64,6 @@ export default function RootLayout() {
         />
       </Tabs>
     </ThemeProvider>
+    </FavoritesProvider>
   );
 }
