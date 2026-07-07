@@ -66,6 +66,35 @@ def num(x) -> float:
         return 0.0
 
 
+def stat_rows(pid, season, team, p) -> list:
+    """Build the long-format per-game/shooting rows for one player-season."""
+    games = int(p.get("games") or 0)
+    if games <= 0:
+        return []
+    reb = p.get("rebounds") or {}
+    reb_total = reb.get("total") if isinstance(reb, dict) else reb
+    fg = p.get("fieldGoals") or {}
+    tp = p.get("threePointFieldGoals") or {}
+    ft = p.get("freeThrows") or {}
+    stat_map = {
+        "GP": games, "GS": int(p.get("starts") or 0),
+        "MPG": pg(p.get("minutes"), games), "PPG": pg(p.get("points"), games),
+        "RPG": pg(reb_total, games), "APG": pg(p.get("assists"), games),
+        "SPG": pg(p.get("steals"), games), "BPG": pg(p.get("blocks"), games),
+        "FG%": round(num(fg.get("pct")), 1), "FGA": int(num(fg.get("attempted"))),
+        "3P%": round(num(tp.get("pct")), 1), "3PA": int(num(tp.get("attempted"))),
+        "3PM": int(num(tp.get("made"))), "FT%": round(num(ft.get("pct")), 1),
+        "PTS": int(num(p.get("points"))), "REB": int(num(reb_total)),
+        "AST": int(num(p.get("assists"))),
+    }
+    return [{
+        "id": f"{pid}|{season}|{team}|basketball|{stype}",
+        "player_id": pid, "season": season, "sport_id": SPORT,
+        "player_name": p.get("name"), "position": p.get("position"),
+        "category": "basketball", "stat_type": stype, "stat": str(val), "team": team,
+    } for stype, val in stat_map.items()]
+
+
 def main() -> None:
     for name, val in [("CBD_API_KEY", CBD_KEY), ("SUPABASE_URL", SB_URL),
                       ("SUPABASE_SECRET_KEY", SB_KEY)]:
@@ -81,6 +110,7 @@ def main() -> None:
         if k:
             name_to_id[k] = p["id"]
 
+    # --- Phase 1: WVU stats -------------------------------------------------
     rows = []
     linked = set()
     by_season = {}
@@ -88,56 +118,46 @@ def main() -> None:
         data = cbd(f"/stats/player/season?season={season}&team={TEAM}")
         by_season[season] = len(data)
         for p in data:
-            games = int(p.get("games") or 0)
-            if games <= 0:
-                continue
-            name = p.get("name") or ""
-            key = norm_name(name)
+            key = norm_name(p.get("name") or "")
             pid = name_to_id.get(key) or f"cbd_{key.replace(' ', '_')}"
-            if not pid.startswith("cbd_"):
+            r = stat_rows(pid, season, TEAM, p)
+            if r and not pid.startswith("cbd_"):
                 linked.add(pid)
+            rows += r
 
-            reb = p.get("rebounds") or {}
-            reb_total = reb.get("total") if isinstance(reb, dict) else reb
-            fg = p.get("fieldGoals") or {}
-            tp = p.get("threePointFieldGoals") or {}
-            ft = p.get("freeThrows") or {}
-
-            stat_map = {
-                "GP": games,
-                "GS": int(p.get("starts") or 0),
-                "MPG": pg(p.get("minutes"), games),
-                "PPG": pg(p.get("points"), games),
-                "RPG": pg(reb_total, games),
-                "APG": pg(p.get("assists"), games),
-                "SPG": pg(p.get("steals"), games),
-                "BPG": pg(p.get("blocks"), games),
-                "FG%": round(num(fg.get("pct")), 1),
-                "FGA": int(num(fg.get("attempted"))),
-                "3P%": round(num(tp.get("pct")), 1),
-                "3PA": int(num(tp.get("attempted"))),
-                "3PM": int(num(tp.get("made"))),
-                "FT%": round(num(ft.get("pct")), 1),
-                "PTS": int(num(p.get("points"))),
-                "REB": int(num(reb_total)),
-                "AST": int(num(p.get("assists"))),
-            }
-            for stype, val in stat_map.items():
-                rows.append({
-                    "id": f"{pid}|{season}|{TEAM}|basketball|{stype}",
-                    "player_id": pid, "season": season, "sport_id": SPORT,
-                    "player_name": name, "position": p.get("position"),
-                    "category": "basketball", "stat_type": stype, "stat": str(val),
-                    "team": TEAM,
-                })
+    # --- Phase 2: incoming transfers' previous-school stats -----------------
+    # Basketball transfers come from D1 schools CBD covers, so we can attach their
+    # old-school line to their WVU profile (tagged with the previous school).
+    incoming = sb.table("roster_moves").select("player_name,other_school").eq(
+        "sport_id", SPORT).eq("direction", "in").eq("category", "transfer").execute().data or []
+    school_cache = {}
+    prev_linked = 0
+    for mv in incoming:
+        school = (mv.get("other_school") or "").strip()
+        pid = name_to_id.get(norm_name(mv.get("player_name") or ""))
+        if not school or not pid:
+            continue  # need both a school and a roster profile to attach to
+        want = norm_name(mv["player_name"])
+        for season in SEASONS:
+            ck = (school, season)
+            if ck not in school_cache:
+                school_cache[ck] = cbd(
+                    f"/stats/player/season?season={season}&team={requests.utils.quote(school)}")
+            match = next((p for p in school_cache[ck] if norm_name(p.get("name", "")) == want), None)
+            if match:
+                r = stat_rows(pid, season, school, match)
+                if r:
+                    rows += r
+                    prev_linked += 1
 
     sb.table("player_stats").delete().eq("sport_id", SPORT).execute()
     for i in range(0, len(rows), 500):
         sb.table("player_stats").upsert(rows[i:i + 500]).execute()
 
     summary = "  ".join(f"{yr}:{n}" for yr, n in by_season.items())
-    print(f"player_stats -> {len(rows)} basketball stat lines  (players/season  {summary})")
-    print(f"              {len(linked)} linked to current roster")
+    print(f"player_stats -> {len(rows)} basketball stat lines  (WVU players/season  {summary})")
+    print(f"              {len(linked)} returners linked; "
+          f"{prev_linked} incoming-transfer prev-school seasons")
     print("\n[OK] Basketball player stats synced to Supabase.")
 
 

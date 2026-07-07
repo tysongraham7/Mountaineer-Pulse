@@ -15,7 +15,8 @@ import Svg, {
 import { Brand } from '@/constants/brand';
 
 export type ChartPoint = { date: string; score: number };
-export type ChartMarker = { index: number; dir: 'up' | 'down' };
+// 'up'/'down' = a notable scoring jump (green/red); 'move' = a roster move (gold).
+export type ChartMarker = { index: number; kind: 'up' | 'down' | 'move' };
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -121,16 +122,17 @@ export function PulseChart({
         <Polygon points={area} fill="url(#pulseFill)" />
         <Polyline points={line} fill="none" stroke={color} strokeWidth={2.5} />
 
-        {/* event markers (colored by direction) */}
+        {/* event markers: green/red for scoring jumps, gold for roster moves */}
         {markers.map((m) => {
           if (m.index < 0 || m.index >= n) return null;
-          const mc = m.dir === 'up' ? Brand.win : Brand.loss;
+          const mc = m.kind === 'up' ? Brand.win : m.kind === 'down' ? Brand.loss : Brand.gold;
+          const base = m.kind === 'move' ? 3.5 : 4.5;
           return (
             <Circle
               key={`m${m.index}`}
               cx={x(m.index)}
               cy={y(data[m.index].score)}
-              r={m.index === ai ? 6 : 4.5}
+              r={m.index === ai ? base + 1.5 : base}
               fill={mc}
               stroke="#fff"
               strokeWidth={1.5}

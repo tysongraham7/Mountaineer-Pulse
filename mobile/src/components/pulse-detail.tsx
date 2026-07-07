@@ -25,7 +25,7 @@ const TREND_EMOJI: Record<string, string> = { up: '📈', down: '📉', neutral:
 const JUMP_THRESHOLD = 5; // points of change that count as a "notable" move worth explaining
 
 type Driver = { label: string; delta?: number; kind: string };
-type Reason = { dir: 'up' | 'down'; title: string; detail: string };
+type PulseEvent = { kind: 'win' | 'loss' | 'in' | 'out'; label: string };
 
 function fullDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -82,12 +82,11 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
   const points: ChartPoint[] = snaps;
 
   // Explain the score change between two snapshot dates using REAL events in that
-  // window: game results first, then roster moves, else a generic standing update.
-  const reasonForWindow = useMemo(() => {
-    return (prevDate: string, curDate: string, dir: 'up' | 'down'): Reason => {
-      // Compare by DATE, not timestamp: snapshot dates are midnight, but games
-      // have a kickoff time — a same-day game must land in this window, not the
-      // next one. Snapshot i reflects games/moves dated (prevDate, curDate].
+  // Every event (game + roster move) in the window (prevDate, curDate]. Compare by
+  // DATE, not timestamp: snapshot dates are midnight, but a same-day game/move must
+  // land in this window. Snapshot i reflects everything dated (prevDate, curDate].
+  const eventsForWindow = useMemo(() => {
+    return (prevDate: string, curDate: string): PulseEvent[] => {
       const pa = prevDate.slice(0, 10);
       const pb = curDate.slice(0, 10);
       const inWin = (iso: string | null) => {
@@ -95,49 +94,39 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
         const d = iso.slice(0, 10);
         return d > pa && d <= pb;
       };
-
-      const gw = games.filter((g) => inWin(g.start_date));
-      if (gw.length === 1) {
-        const v = wvuView(gw[0]);
-        return { dir, title: `${v.win ? 'Win' : 'Loss'} ${v.loc} ${v.opp}`, detail: v.scoreText };
+      const evs: PulseEvent[] = [];
+      for (const g of games) {
+        if (!inWin(g.start_date)) continue;
+        const v = wvuView(g);
+        evs.push({ kind: v.win ? 'win' : 'loss', label: `${v.loc} ${v.opp} ${v.scoreText}` });
       }
-      if (gw.length > 1) {
-        const wins = gw.filter((g) => wvuView(g).win).length;
-        return { dir, title: `Went ${wins}–${gw.length - wins}`, detail: `${gw.length} games this stretch` };
+      for (const m of moves) {
+        if (!inWin(m.move_date)) continue;
+        const isIn = m.direction === 'in';
+        const school = m.other_school ? ` ${isIn ? 'from' : 'to'} ${m.other_school}` : '';
+        evs.push({ kind: isIn ? 'in' : 'out', label: `${m.player_name}${school}` });
       }
-
-      const mw = moves.filter((m) => inWin(m.move_date));
-      if (mw.length > 0) {
-        const ins = mw.filter((m) => m.direction === 'in').length;
-        const outs = mw.length - ins;
-        const notable = mw.find((m) => m.direction === (dir === 'up' ? 'in' : 'out'));
-        const who = notable
-          ? `${notable.player_name}${notable.other_school ? ` (${dir === 'up' ? 'from' : 'to'} ${notable.other_school})` : ''}`
-          : '';
-        return { dir, title: 'Roster movement', detail: `+${ins} in / −${outs} out${who ? ` · ${who}` : ''}` };
-      }
-
-      return { dir, title: dir === 'up' ? 'Standing climb' : 'Standing slip', detail: 'ranking / record update' };
+      return evs;
     };
   }, [games, moves]);
 
-  // Markers at every notable jump, each carrying its grounded reason.
-  const { markers, reasonByIndex } = useMemo(() => {
+  // Mark notable scoring jumps (green/red) and any roster-move point (gold).
+  const markers = useMemo(() => {
     const mk: ChartMarker[] = [];
-    const byIdx: Record<number, Reason> = {};
     for (let i = 1; i < points.length; i++) {
       const delta = points[i].score - points[i - 1].score;
-      if (Math.abs(delta) < JUMP_THRESHOLD) continue;
-      const dir: 'up' | 'down' = delta >= 0 ? 'up' : 'down';
-      mk.push({ index: i, dir });
-      byIdx[i] = reasonForWindow(points[i - 1].date, points[i].date, dir);
+      if (Math.abs(delta) >= JUMP_THRESHOLD) {
+        mk.push({ index: i, kind: delta >= 0 ? 'up' : 'down' });
+      } else if (eventsForWindow(points[i - 1].date, points[i].date).some((e) => e.kind === 'in' || e.kind === 'out')) {
+        mk.push({ index: i, kind: 'move' });
+      }
     }
-    return { markers: mk, reasonByIndex: byIdx };
-  }, [points, reasonForWindow]);
+    return mk;
+  }, [points, eventsForWindow]);
 
   const n = points.length;
   const idx = activeIdx < 0 || activeIdx > n - 1 ? n - 1 : activeIdx;
-  const activeReason = reasonByIndex[idx];
+  const activeEvents = idx > 0 ? eventsForWindow(points[idx - 1].date, points[idx].date) : [];
 
   return (
     <Modal visible={!!sport} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -194,25 +183,36 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
                   onActiveChange={setActiveIdx}
                 />
                 <Text style={[styles.hint, { color: c.textSecondary }]}>
-                  Drag across the chart to explore — dots mark notable moves
+                  Drag across the chart — <Text style={{ color: Brand.gold }}>●</Text> marks roster moves,{' '}
+                  <Text style={{ color: Brand.win }}>●</Text>/<Text style={{ color: Brand.loss }}>●</Text> scoring swings
                 </Text>
 
-                {/* Reason panel — updates as you scrub */}
+                {/* Events panel — lists the games & moves at the scrubbed point */}
                 <View style={[styles.reasonCard, { borderColor: c.border }]}>
                   <Text style={[styles.reasonDate, { color: c.textSecondary }]}>
                     {fullDate(points[idx].date)} · Pulse {points[idx].score}
                   </Text>
-                  {activeReason ? (
-                    <View style={styles.reasonBody}>
-                      <View style={[styles.reasonBadge, { backgroundColor: activeReason.dir === 'up' ? Brand.win : Brand.loss }]}>
-                        <Ionicons name={activeReason.dir === 'up' ? 'trending-up' : 'trending-down'} size={14} color="#fff" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.reasonTitle, { color: c.text }]}>{activeReason.title}</Text>
-                        {!!activeReason.detail && (
-                          <Text style={[styles.reasonDetail, { color: c.textSecondary }]}>{activeReason.detail}</Text>
-                        )}
-                      </View>
+                  {activeEvents.length > 0 ? (
+                    <View style={{ marginTop: 8 }}>
+                      {activeEvents.slice(0, 6).map((e, i) => {
+                        const col = e.kind === 'win' || e.kind === 'in' ? Brand.win : Brand.loss;
+                        const tag = e.kind === 'win' ? 'W' : e.kind === 'loss' ? 'L' : e.kind === 'in' ? 'IN' : 'OUT';
+                        return (
+                          <View key={i} style={styles.eventRow}>
+                            <View style={[styles.eventTag, { backgroundColor: col }]}>
+                              <Text style={styles.eventTagText}>{tag}</Text>
+                            </View>
+                            <Text style={[styles.eventLabel, { color: c.text }]} numberOfLines={1}>
+                              {e.label}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                      {activeEvents.length > 6 && (
+                        <Text style={[styles.reasonDetail, { color: c.textSecondary }]}>
+                          +{activeEvents.length - 6} more
+                        </Text>
+                      )}
                     </View>
                   ) : (
                     <Text style={[styles.reasonDetail, { color: c.textSecondary }]}>
@@ -288,6 +288,10 @@ const styles = StyleSheet.create({
   reasonBadge: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   reasonTitle: { fontSize: 16, fontWeight: '800' },
   reasonDetail: { fontSize: 13, marginTop: 8, lineHeight: 18 },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+  eventTag: { minWidth: 30, borderRadius: 5, paddingHorizontal: 5, paddingVertical: 1, alignItems: 'center' },
+  eventTagText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+  eventLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
   moveRow: { flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, paddingVertical: 10 },
   movePlayer: { flex: 1, fontSize: 15, fontWeight: '700' },
 });
