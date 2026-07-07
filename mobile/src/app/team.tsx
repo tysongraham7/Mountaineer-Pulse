@@ -115,7 +115,12 @@ const ROSTER_SEASON_LABELS: Record<string, { projected: string; last: string }> 
 };
 
 // A projected-incoming player synthesized from a roster move (no photo/jersey yet).
-type RosterItem = Player & { incoming?: boolean; fromSchool?: string | null; moveCategory?: string | null };
+type RosterItem = Player & {
+  incoming?: boolean;
+  fromSchool?: string | null;
+  moveCategory?: string | null;
+  note?: string | null;
+};
 
 function normName(n: string): string {
   return (n || '')
@@ -151,6 +156,7 @@ function synthFromMove(m: RosterMove, sport: string): RosterItem {
     incoming: true,
     fromSchool: m.other_school,
     moveCategory: m.category,
+    note: m.notes,
   };
 }
 

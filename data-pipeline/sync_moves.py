@@ -59,6 +59,10 @@ def main() -> None:
             "notes": m.get("notes") or None,
         })
 
+    # Rebuild curated rows so entries removed from the JSON also drop from the DB.
+    # CFBD football portal rows (ids prefixed "pt-") are owned by sync_transfers.py,
+    # so leave those alone.
+    sb.table("roster_moves").delete().not_.like("id", "pt-%").execute()
     if rows:
         sb.table("roster_moves").upsert(rows).execute()
 

@@ -56,7 +56,10 @@ function hometown(p: Player): string | null {
   return parts.length ? parts.join(', ') : null;
 }
 
-export function PlayerProfile({ player, onClose }: { player: Player | null; onClose: () => void }) {
+// Incoming projected-roster players carry a prev-school note (no structured stats).
+type ProfilePlayer = Player & { incoming?: boolean; note?: string | null; fromSchool?: string | null };
+
+export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | null; onClose: () => void }) {
   const dark = useColorScheme() === 'dark';
   const c = surfaces(dark);
 
@@ -204,13 +207,34 @@ export function PlayerProfile({ player, onClose }: { player: Player | null; onCl
                   </Text>
                 )}
               </>
+            ) : player.incoming && (player.note || player.fromSchool) ? (
+              <>
+                <Text style={[styles.sectionHead, { color: c.text }]}>Before WVU</Text>
+                <View style={[styles.statCard, { backgroundColor: c.card, borderColor: c.border, paddingVertical: 14 }]}>
+                  {player.fromSchool ? (
+                    <Text style={[styles.beforeSchool, { color: Brand.gold }]}>{player.fromSchool}</Text>
+                  ) : null}
+                  {player.note ? (
+                    <Text style={[styles.beforeLine, { color: c.text }]}>{player.note}</Text>
+                  ) : (
+                    <Text style={[styles.note, { color: c.textSecondary, textAlign: 'left', marginTop: 0 }]}>
+                      Stats not available for this player’s previous school.
+                    </Text>
+                  )}
+                </View>
+                <Text style={[styles.note, { color: c.textSecondary }]}>
+                  Last-season production before transferring (per On3 / SI reports).
+                </Text>
+              </>
             ) : (
               <Text style={[styles.note, { color: c.textSecondary }]}>
                 {loadingStats
                   ? 'Loading stats…'
                   : hasHistory
                   ? 'No season stats on record.'
-                  : `No prior stats — ${CURRENT_SEASON} numbers begin at kickoff.`}
+                  : player.sport_id === 'football'
+                  ? `No prior stats — ${CURRENT_SEASON} numbers begin at kickoff.`
+                  : 'No stats on record yet.'}
               </Text>
             )}
           </ScrollView>
@@ -235,6 +259,8 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 14, fontWeight: '600' },
   statValue: { fontSize: 15, fontWeight: '800' },
   sectionHead: { fontSize: 18, fontWeight: '800', marginTop: 22, marginBottom: 10 },
+  beforeSchool: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
+  beforeLine: { fontSize: 16, fontWeight: '700', lineHeight: 22 },
   tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   tableLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
   tableCell: { width: 64, fontSize: 15, fontWeight: '800', textAlign: 'right' },

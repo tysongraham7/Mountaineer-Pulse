@@ -44,5 +44,17 @@
   { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 13, "rank": 1, "player_name": "Kyle Casteel", "class_year": "Fr.", "status": "active", "note": "Incoming freshman — low-to-mid 90s FB, sweeper, changeup" },
   { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 14, "rank": 1, "player_name": "Austin Ziance", "class_year": "", "status": "active", "note": "Transfer (Marietta, D3) — Korn-role innings eater; 1.77 ERA, 50 BB / 191 IP" },
   { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 15, "rank": 1, "player_name": "Robert Satin", "class_year": "", "status": "active", "note": "Transfer (Tampa, D2) — LHP; helped Tampa to a D-II national title" },
-  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 16, "rank": 1, "player_name": "Colton Hartman", "class_year": "", "status": "active", "note": "Transfer (Louisville) — 6-3 LHP; started 11 games for the Cardinals" }
+  { "sport_id": "baseball", "season": 2027, "unit": "Pitching", "position": "P", "pos_order": 16, "rank": 1, "player_name": "Colton Hartman", "class_year": "", "status": "active", "note": "Transfer (Louisville) — 6-3 LHP; started 11 games for the Cardinals" },
+
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "PG", "pos_order": 1, "rank": 1, "player_name": "Miles Sadler", "class_year": "", "status": "active", "note": "Projected starter at the point" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "PG", "pos_order": 1, "rank": 2, "player_name": "Martin Somerville", "class_year": "", "status": "active", "note": "Florida State transfer" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "PG", "pos_order": 1, "rank": 3, "player_name": "Amir Jenkins", "class_year": "", "status": "questionable", "note": "Recovering from two shoulder surgeries — availability uncertain" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "SG", "pos_order": 2, "rank": 1, "player_name": "Finley Bizjack", "class_year": "", "status": "active", "note": "Butler transfer" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "SG", "pos_order": 2, "rank": 2, "player_name": "Keonte Greybear", "class_year": "Fr.", "status": "active", "note": "Top-25 HS combo guard" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "SG", "pos_order": 2, "rank": 3, "player_name": "Joson Sanon", "class_year": "", "status": "active", "note": "St. John's transfer — recent addition, role TBD" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "SF", "pos_order": 3, "rank": 1, "player_name": "Evans Barning Jr.", "class_year": "", "status": "active", "note": "Returning" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "SF", "pos_order": 3, "rank": 2, "player_name": "Seydou Traore", "class_year": "", "status": "active", "note": "Utah transfer — recent addition, role TBD" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "PF", "pos_order": 4, "rank": 1, "player_name": "Javan Buchanan", "class_year": "", "status": "active", "note": "Boise State transfer" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "C", "pos_order": 5, "rank": 1, "player_name": "Mouhamed Sylla", "class_year": "", "status": "active", "note": "Georgia Tech transfer" },
+  { "sport_id": "mbb", "season": 2027, "unit": "Projected Lineup", "position": "C", "pos_order": 5, "rank": 2, "player_name": "Aliou Dioum", "class_year": "", "status": "active", "note": "" }
 ]
