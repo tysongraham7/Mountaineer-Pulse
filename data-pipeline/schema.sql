@@ -168,6 +168,24 @@ alter table daily_briefings enable row level security;
 create policy "public read briefings" on daily_briefings for select using (true);
 
 -- ---------------------------------------------------------------------------
+-- daily_sport_notes: one grounded, AI-written headline of the day PER SPORT,
+-- from that sport's classified news. generate_briefing.py writes these; the
+-- Pulse chart shows the note on that sport's point for the day.
+-- ---------------------------------------------------------------------------
+create table if not exists daily_sport_notes (
+  id         text primary key,            -- sport|date
+  sport_id   text references sports(id),
+  date       date not null,
+  note       text not null,
+  created_at timestamptz default now()
+);
+
+create index if not exists daily_sport_notes_idx on daily_sport_notes (sport_id, date);
+
+alter table daily_sport_notes enable row level security;
+create policy "public read sport notes" on daily_sport_notes for select using (true);
+
+-- ---------------------------------------------------------------------------
 -- roster_moves: confirmed transfer portal entries (out) and commitments (in).
 -- Curated (no free portal API). Feeds the Movement tab and the offseason Pulse.
 -- ---------------------------------------------------------------------------

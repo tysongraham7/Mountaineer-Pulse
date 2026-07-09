@@ -134,6 +134,8 @@ def main() -> None:
     print("-" * 60)
     print(f"\n[OK] Briefing stored. (tokens: {resp.usage.input_tokens} in / {resp.usage.output_tokens} out)")
 
+    generate_sport_notes(client, sb, today)
+
 
 if __name__ == "__main__":
     main()

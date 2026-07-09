@@ -15,8 +15,6 @@ import Svg, {
 import { Brand } from '@/constants/brand';
 
 export type ChartPoint = { date: string; score: number };
-// 'up'/'down' = a notable scoring jump (green/red); 'move' = a roster move (gold).
-export type ChartMarker = { index: number; kind: 'up' | 'down' | 'move' };
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
@@ -27,7 +25,6 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 export function PulseChart({
   data,
-  markers = [],
   color = Brand.gold,
   textColor,
   gridColor,
@@ -36,7 +33,6 @@ export function PulseChart({
   onActiveChange,
 }: {
   data: ChartPoint[];
-  markers?: ChartMarker[];
   color?: string;
   textColor: string;
   gridColor: string;
@@ -72,10 +68,11 @@ export function PulseChart({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
-        // Claim the touch only for a horizontal drag, so vertical page scroll still works.
-        onMoveShouldSetPanResponder: (_evt, g) =>
-          Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy),
+        // Grab the touch immediately so tapping/dragging the chart scrubs it
+        // (on native the SVG would otherwise swallow the gesture).
+        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
+        onMoveShouldSetPanResponder: () => true,
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (evt) => setActive(idxFromX(evt.nativeEvent.locationX)),
         onPanResponderMove: (evt) => setActive(idxFromX(evt.nativeEvent.locationX)),
@@ -100,7 +97,7 @@ export function PulseChart({
 
   return (
     <View {...panResponder.panHandlers}>
-      <Svg width={W} height={height}>
+      <Svg width={W} height={height} pointerEvents="none">
         <Defs>
           <LinearGradient id="pulseFill" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={color} stopOpacity={0.28} />
@@ -121,24 +118,6 @@ export function PulseChart({
         {/* area + line */}
         <Polygon points={area} fill="url(#pulseFill)" />
         <Polyline points={line} fill="none" stroke={color} strokeWidth={2.5} />
-
-        {/* event markers: green/red for scoring jumps, gold for roster moves */}
-        {markers.map((m) => {
-          if (m.index < 0 || m.index >= n) return null;
-          const mc = m.kind === 'up' ? Brand.win : m.kind === 'down' ? Brand.loss : Brand.gold;
-          const base = m.kind === 'move' ? 3.5 : 4.5;
-          return (
-            <Circle
-              key={`m${m.index}`}
-              cx={x(m.index)}
-              cy={y(data[m.index].score)}
-              r={m.index === ai ? base + 1.5 : base}
-              fill={mc}
-              stroke="#fff"
-              strokeWidth={1.5}
-            />
-          );
-        })}
 
         {/* active crosshair + dot */}
         <Line x1={ax} y1={pad.top} x2={ax} y2={pad.top + h} stroke={color} strokeWidth={1} strokeDasharray="3,3" opacity={0.7} />

@@ -4,9 +4,12 @@ Mountaineer Pulse - The Pulse Formula (v2: national-standing-first)
 Per-sport Pulse (0-100) is anchored on NATIONAL STANDING (ranking), because
 that is the true "against other schools" measure:
 
-  * Ranked team   -> anchor from national rank  (#1 ~= 98, #25 ~= 76)
-  * Unranked team -> anchor from win%           (0% = 30, 100% = 70)
-  + postseason bonus (e.g. College World Series appearance)
+  * Ranked team   -> anchor from national rank  (#1 ~= 81, #25 ~= 61)
+  * Unranked team -> anchor from win%           (0% = 32, 100% = 78)
+  + net postseason (wins - losses), form, roster moves, and news hype
+
+The anchor is kept below the cap so an elite team lands in the 90s with room to
+rise AND fall — losses and outbound transfers stay visible instead of pinning at 99.
 
 Trend arrow uses REGULAR-SEASON form only, so a deep postseason run that ends
 in a loss (e.g. the CWS) is never mistaken for a decline.
@@ -21,9 +24,11 @@ import os
 import sys
 from datetime import date, datetime
 
-import requests
 from dotenv import load_dotenv
 from supabase import create_client
+
+from pulse_model import is_postseason as post_by_date
+from pulse_model import national_rank, news_hype, pulse_score, surge, trend_of, wvu_won
 
 load_dotenv()
 
@@ -47,33 +52,6 @@ def die(msg: str) -> None:
     sys.exit(1)
 
 
-def wvu_won(g: dict) -> bool:
-    wvu = g["home_points"] if g["is_wvu_home"] else g["away_points"]
-    opp = g["away_points"] if g["is_wvu_home"] else g["home_points"]
-    return (wvu or 0) > (opp or 0)
-
-
-def national_rank(sport: str) -> int | None:
-    """WVU's current national rank from ESPN's rankings (media poll), or None."""
-    try:
-        j = requests.get(
-            f"https://site.api.espn.com/apis/site/v2/sports/{ESPN_PATH[sport]}/rankings",
-            headers=UA,
-            timeout=20,
-        ).json()
-        for poll in j.get("rankings", []):
-            if "seed" in (poll.get("name", "").lower()):
-                continue  # prefer a media poll over tournament seedings
-            for r in poll.get("ranks", []):
-                team = r.get("team", {}) or {}
-                blob = f"{team.get('name','')} {team.get('location','')} {team.get('displayName','')}".lower()
-                if "west virginia" in blob:
-                    return r.get("current")
-    except Exception as e:
-        print(f"    (ranking lookup failed for {sport}: {e})")
-    return None
-
-
 def is_postseason(sport: str, g: dict) -> bool:
     if not g.get("start_date"):
         return False
@@ -81,31 +59,12 @@ def is_postseason(sport: str, g: dict) -> bool:
         d = datetime.fromisoformat(g["start_date"].replace("Z", "+00:00"))
     except ValueError:
         return False
-    m, day = POSTSEASON_CUTOFF[sport]
-    return d.month > m or (d.month == m and d.day >= day)
+    return post_by_date(sport, d)
 
 
 def made_cws(games: list[dict]) -> bool:
     return any("charles schwab" in (g.get("venue") or "").lower() or "omaha" in (g.get("venue") or "").lower()
                for g in games)
-
-
-def anchor_score(w: int, l: int, rank: int | None) -> float:
-    if rank is not None:
-        return 98.0 - (rank - 1) * (22.0 / 24.0)  # #1 -> 98, #25 -> 76
-    total = w + l
-    winpct = (w / total) if total else 0.5
-    return 30.0 + winpct * 40.0  # 0% -> 30, 50% -> 50, 100% -> 70
-
-
-def trend_from_regular(sport: str, games: list[dict]) -> str:
-    reg = [1 if wvu_won(g) else 0 for g in games if not is_postseason(sport, g)]
-    if len(reg) < 3:
-        return "neutral"
-    season = sum(reg) / len(reg)
-    recent = sum(reg[-5:]) / len(reg[-5:])
-    diff = recent - season
-    return "up" if diff > 0.12 else ("down" if diff < -0.12 else "neutral")
 
 
 def ai_explanation(ctx: str) -> str | None:
@@ -169,31 +128,39 @@ def main() -> None:
         rank = national_rank(sport)
         cws = sport == "baseball" and made_cws(season_games)
 
-        # Offseason driver: roster movement, weighted by category. A graduating
-        # senior is expected attrition (~0); a portal departure is a real signal.
-        moves = sb.table("roster_moves").select("direction,category").eq("sport_id", sport).execute().data
+        # Roster movement, by category. Incoming class = transfer/recruit/juco/hs;
+        # departures = portal-out plus graduation/eligibility/draft. Only DATED moves
+        # count, matching the chart — an undated move can't cause an unexplained bump.
+        all_moves = sb.table("roster_moves").select("direction,category,move_date").eq("sport_id", sport).execute().data
+        moves = [m for m in all_moves if m.get("move_date")]
         transfers_in = sum(1 for m in moves if m["direction"] == "in" and m.get("category") == "transfer")
         transfers_out = sum(1 for m in moves if m["direction"] == "out" and m.get("category") == "transfer")
-        recruits = sum(1 for m in moves if m["direction"] == "in" and m.get("category") == "recruit")
-        departures = sum(1 for m in moves if m["direction"] == "out" and m.get("category") in ("graduation", "draft"))
-
+        recruits = sum(1 for m in moves if m["direction"] == "in" and m.get("category") in ("recruit", "juco", "hs"))
+        departures = sum(1 for m in moves if m["direction"] == "out" and m.get("category") in ("graduation", "eligibility", "draft"))
         transfers_delta = (transfers_in - transfers_out) * 1.5
-        recruits_delta = recruits * 1.0
-        departures_delta = departures * -0.4  # graduations/draft: expected, light
-        roster_delta = max(-8.0, min(8.0, transfers_delta + recruits_delta + departures_delta))
+        recruits_delta = recruits * 0.8
+        departures_delta = departures * -0.4
 
-        anchor = anchor_score(w, l, rank)
-        bonus = 4.0 if cws else 0.0
-        score = int(round(max(5, min(99, anchor + bonus + roster_delta))))
-        trend = trend_from_regular(sport, season_games)
+        note_dates = [date.fromisoformat(r["date"][:10]) for r in
+                      sb.table("daily_sport_notes").select("date").eq("sport_id", sport).execute().data]
+        hype = news_hype(note_dates, date.today())
+
+        reg = [1 if wvu_won(g) else 0 for g in season_games if not is_postseason(sport, g)]
+        post_games = [g for g in season_games if is_postseason(sport, g)]
+        post_wins = sum(1 for g in post_games if wvu_won(g))
+        post_losses = len(post_games) - post_wins
+        score = pulse_score(sport, w, l, rank, reg, moves, post_wins, post_losses, hype)
+        trend = trend_of(reg)
         scored[sport] = score
 
         # Transparent breakdown of what's moving the score.
         drivers = []
         if rank:
             drivers.append({"label": f"#{rank} nationally", "kind": "rank"})
+        if hype >= 1:
+            drivers.append({"label": "News buzz", "delta": round(hype), "kind": "news"})
         if cws:
-            drivers.append({"label": "CWS run", "delta": 4, "kind": "post"})
+            drivers.append({"label": "CWS run", "delta": round(surge(post_wins, post_losses)), "kind": "post"})
         if transfers_in or transfers_out:
             drivers.append({"label": f"Transfers +{transfers_in}/-{transfers_out}",
                             "delta": round(transfers_delta), "kind": "portal"})

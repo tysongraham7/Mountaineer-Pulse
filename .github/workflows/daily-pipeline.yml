@@ -59,6 +59,9 @@ jobs:
       - name: Depth chart
         run: python sync_depth.py
 
+      - name: Per-sport news notes (feeds Pulse note + hype)
+        run: python sync_sport_notes.py
+
       - name: Backfill Pulse history (chart reflects games + moves)
         run: python backfill_pulse.py
 
