@@ -65,9 +65,11 @@ def main() -> None:
         for m in moves:
             m["_d"] = to_date(m["move_date"])
 
-        note_dates = [to_date(r["date"]) for r in
-                      sb.table("daily_sport_notes").select("date").eq("sport_id", sport).execute().data]
-        note_dates = [d for d in note_dates if d]
+        note_rows = sb.table("daily_sport_notes").select("date,hype").eq("sport_id", sport).execute().data
+        # Every note day gets a chart point (so the line's note is hoverable); only
+        # BIG news (hype=true) actually bumps the Pulse score.
+        note_dates = [d for d in (to_date(r["date"]) for r in note_rows) if d]
+        hype_dates = [d for d in (to_date(r["date"]) for r in note_rows if r.get("hype")) if d]
 
         rank = national_rank(sport)  # constant caliber across the season (blended in)
 
@@ -87,7 +89,7 @@ def main() -> None:
             post_games = [g for g in games_to if is_postseason(sport, g["_d"])]
             post_wins = sum(1 for g in post_games if wvu_won(g))
             post_losses = len(post_games) - post_wins
-            hype = news_hype(note_dates, d)
+            hype = news_hype(hype_dates, d)
             score = pulse_score(sport, w, l, rank, reg, moves_to, post_wins, post_losses, hype)
             rows.append({"sport_id": sport, "date": d.isoformat(), "score": score, "trend": trend_of(reg)})
 

@@ -168,15 +168,18 @@ alter table daily_briefings enable row level security;
 create policy "public read briefings" on daily_briefings for select using (true);
 
 -- ---------------------------------------------------------------------------
--- daily_sport_notes: one grounded, AI-written headline of the day PER SPORT,
--- from that sport's classified news. generate_briefing.py writes these; the
--- Pulse chart shows the note on that sport's point for the day.
+-- daily_sport_notes: one grounded, AI-written news line of the day PER SPORT,
+-- from that sport's classified news + the day's general WVU headlines.
+-- sync_sport_notes.py writes these. The Pulse chart shows the note on that sport's
+-- point for the day; `hype` marks BIG news (award/commit/ranking/win) that is the
+-- ONLY kind allowed to bump the Pulse score (routine notes show but don't move it).
 -- ---------------------------------------------------------------------------
 create table if not exists daily_sport_notes (
   id         text primary key,            -- sport|date
   sport_id   text references sports(id),
   date       date not null,
   note       text not null,
+  hype       boolean not null default false,  -- true = big news, feeds the Pulse bump
   created_at timestamptz default now()
 );
 

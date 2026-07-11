@@ -141,9 +141,10 @@ def main() -> None:
         recruits_delta = recruits * 0.8
         departures_delta = departures * -0.4
 
-        note_dates = [date.fromisoformat(r["date"][:10]) for r in
-                      sb.table("daily_sport_notes").select("date").eq("sport_id", sport).execute().data]
-        hype = news_hype(note_dates, date.today())
+        note_rows = sb.table("daily_sport_notes").select("date,hype").eq("sport_id", sport).execute().data
+        note_dates = [date.fromisoformat(r["date"][:10]) for r in note_rows]  # any note = a real event
+        hype_dates = [date.fromisoformat(r["date"][:10]) for r in note_rows if r.get("hype")]
+        hype = news_hype(hype_dates, date.today())
 
         reg = [1 if wvu_won(g) else 0 for g in season_games if not is_postseason(sport, g)]
         post_games = [g for g in season_games if is_postseason(sport, g)]
