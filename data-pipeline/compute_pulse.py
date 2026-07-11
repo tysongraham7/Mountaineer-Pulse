@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from pulse_model import is_postseason as post_by_date
-from pulse_model import national_rank, news_hype, pulse_score, surge, trend_of, wvu_won
+from pulse_model import clamp, national_rank, news_hype, pulse_score, surge, trend_of, wvu_won
 
 load_dotenv()
 
@@ -150,6 +150,23 @@ def main() -> None:
         post_wins = sum(1 for g in post_games if wvu_won(g))
         post_losses = len(post_games) - post_wins
         score = pulse_score(sport, w, l, rank, reg, moves, post_wins, post_losses, hype)
+
+        # Anti-spike guard: the line may only make a big move on a day with a REAL
+        # event — a game, a dated roster move, or a news note TODAY. On a "quiet" day
+        # nothing can move the score much, so cap the day-over-day change. This stops a
+        # transient/partial data read during the daily run from writing a phantom spike
+        # (e.g. a -34 drop with no news) that then lingers permanently on the chart.
+        has_event_today = (
+            any((g.get("start_date") or "")[:10] == today for g in season_games)
+            or any((m.get("move_date") or "")[:10] == today for m in moves)
+            or date.today() in note_dates
+        )
+        if not has_event_today:
+            prev = (sb.table("pulse_snapshots").select("score").eq("sport_id", sport)
+                    .lt("date", today).order("date", desc=True).limit(1).execute().data)
+            if prev:
+                score = int(round(clamp(score, prev[0]["score"] - 2, prev[0]["score"] + 2)))
+
         trend = trend_of(reg)
         scored[sport] = score
 
