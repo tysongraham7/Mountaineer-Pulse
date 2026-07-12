@@ -82,7 +82,8 @@ export default function PulseScreen() {
     setOverall(overalls.length ? overalls[overalls.length - 1] : null);
     const oseries = overalls.map((o) => o.score);
     setOverallSeries(oseries.slice(-16));
-    setOverallDelta(oseries.length >= 2 ? oseries[oseries.length - 1] - oseries[Math.max(0, oseries.length - 8)] : 0);
+    // Day-over-day change (today vs the prior point). Drives whether an arrow shows.
+    setOverallDelta(oseries.length >= 2 ? oseries[oseries.length - 1] - oseries[oseries.length - 2] : 0);
     setBriefing((briefingRes.data?.[0] as Briefing) ?? null);
 
     const latest: Record<string, Snapshot> = {};
@@ -179,13 +180,15 @@ export default function PulseScreen() {
             <Text style={styles.heroScore}>{overall ? overall.score : '—'}</Text>
             <Text style={styles.heroOutOf}>/ 100</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-            <Text style={{ fontFamily: Font.bodyBold, fontSize: 12, color: trendColor }}>
-              {overallDelta > 0 ? '▲' : overallDelta < 0 ? '▼' : '▶'} {overallDelta > 0 ? '+' : ''}
-              {overallDelta}
-            </Text>
-            <Text style={{ color: c.blueLabel, fontSize: 12 }}>this week</Text>
-          </View>
+          {overallDelta !== 0 && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+              <Text style={{ fontFamily: Font.bodyBold, fontSize: 12, color: trendColor }}>
+                {overallDelta > 0 ? '▲ +' : '▼ −'}
+                {Math.abs(overallDelta)}
+              </Text>
+              <Text style={{ color: c.blueLabel, fontSize: 12 }}>since yesterday</Text>
+            </View>
+          )}
         </View>
         <Sparkline data={overallSeries} color={Brand.gold} width={140} height={68} />
       </LinearGradient>
@@ -213,7 +216,8 @@ export default function PulseScreen() {
         if (s?.ranking) meta.push(`#${s.ranking}`);
         const scoreColor = (s?.score ?? 0) >= 60 ? Brand.gold : c.text;
         const sser = series[sport] ?? [];
-        const sdelta = sser.length >= 2 ? sser[sser.length - 1] - sser[Math.max(0, sser.length - 8)] : 0;
+        // Day-over-day change (today vs the prior point) — arrow shows only if it moved.
+        const sdelta = sser.length >= 2 ? sser[sser.length - 1] - sser[sser.length - 2] : 0;
         const lineColor = sdelta > 0 ? Brand.green : sdelta < 0 ? Brand.red : c.textSecondary;
         const goldTile = sport !== 'mbb';
         return (
@@ -271,9 +275,9 @@ export default function PulseScreen() {
             <Sparkline data={sser} color={lineColor} width={56} height={30} />
             <View style={{ alignItems: 'flex-end', minWidth: 40 }}>
               <Text style={[styles.sportScore, { color: scoreColor }]}>{s ? s.score : '—'}</Text>
-              {s && (
+              {s && sdelta !== 0 && (
                 <View style={{ marginTop: 2 }}>
-                  <TrendTag trend={sdelta > 0 ? 'up' : sdelta < 0 ? 'down' : 'neutral'} delta={sdelta} />
+                  <TrendTag trend={sdelta > 0 ? 'up' : 'down'} delta={sdelta} />
                 </View>
               )}
             </View>
