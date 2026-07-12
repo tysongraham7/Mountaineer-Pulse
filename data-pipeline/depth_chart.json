@@ -16,8 +16,8 @@
     "position": "QB",
     "pos_order": 1,
     "rank": 2,
-    "player_name": "Max Brown",
-    "class_year": "R-Sr.",
+    "player_name": "Scotty Fox Jr.",
+    "class_year": "So.",
     "status": "active",
     "note": ""
   },
@@ -575,6 +575,61 @@
     "rank": 3,
     "player_name": "Jaire Rawlison",
     "class_year": "R-So.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "QB",
+    "pos_order": 1,
+    "rank": 3,
+    "player_name": "Max Brown",
+    "class_year": "R-Sr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "RB",
+    "pos_order": 2,
+    "rank": 3,
+    "player_name": "Martavious Boswell",
+    "class_year": "Jr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "TE",
+    "pos_order": 4,
+    "rank": 3,
+    "player_name": "Ryan Ward",
+    "class_year": "Jr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Defense",
+    "position": "LB",
+    "pos_order": 7,
+    "rank": 3,
+    "player_name": "Malachi Hood",
+    "class_year": "R-Sr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Defense",
+    "position": "S",
+    "pos_order": 9,
+    "rank": 3,
+    "player_name": "Tim Roberson",
+    "class_year": "R-Jr.",
     "status": "active",
     "note": ""
   }
