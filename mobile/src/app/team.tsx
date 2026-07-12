@@ -10,13 +10,15 @@ import {
   StyleSheet,
   Text,
   View,
-  useColorScheme,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlayerProfile } from '@/components/player-profile';
-import { Brand, surfaces } from '@/constants/brand';
+import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 import { DepthEntry, Player, RosterMove } from '@/lib/types';
+
+const c = surfaces(true);
 
 const FILTERS = [
   { id: 'football', label: 'Football' },
@@ -170,8 +172,7 @@ function synthFromMove(m: RosterMove, sport: string): RosterItem {
 }
 
 export default function TeamScreen() {
-  const dark = useColorScheme() === 'dark';
-  const c = surfaces(dark);
+  const insets = useSafeAreaInsets();
 
   const [players, setPlayers] = useState<Player[]>([]);
   const [depth, setDepth] = useState<DepthEntry[]>([]);
@@ -217,8 +218,12 @@ export default function TeamScreen() {
   const effLeaderSeason = leaderSeasonList.includes(leaderSeason) ? leaderSeason : leaderSeasonList[0];
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
-      {/* Roster / Depth Chart / Movement segmented control */}
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+      <View style={styles.screenHeader}>
+        <Text style={styles.screenTitle}>Team</Text>
+      </View>
+
+      {/* Roster / Depth Chart / Movement / Leaders segmented control */}
       <View style={styles.segment}>
         {MODES.map((m) => {
           const active = mode === m.id;
@@ -226,8 +231,8 @@ export default function TeamScreen() {
             <Pressable
               key={m.id}
               onPress={() => setMode(m.id)}
-              style={[styles.segBtn, { backgroundColor: active ? Brand.gold : 'transparent' }]}>
-              <Text style={[styles.segText, { color: active ? Brand.blueDeep : c.textSecondary }]}>
+              style={[styles.segBtn, active ? { backgroundColor: Brand.gold } : { backgroundColor: c.card, borderWidth: 1, borderColor: c.border }]}>
+              <Text style={[styles.segText, { color: active ? Brand.onGold : c.textSecondary }]}>
                 {m.label}
               </Text>
             </Pressable>
@@ -244,8 +249,8 @@ export default function TeamScreen() {
                 <Pressable
                   key={f.id}
                   onPress={() => setFilter(f.id)}
-                  style={[styles.chip, { backgroundColor: active ? Brand.blue : c.card, borderColor: active ? Brand.blue : c.border }]}>
-                  <Text style={[styles.chipText, { color: active ? Brand.gold : c.textSecondary }]}>{f.label}</Text>
+                  style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
+                  <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{f.label}</Text>
                 </Pressable>
               );
             })}
@@ -259,7 +264,7 @@ export default function TeamScreen() {
                     key={yr}
                     onPress={() => setLeaderSeason(yr)}
                     style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
-                    <Text style={[styles.chipText, { color: active ? Brand.blueDeep : c.textSecondary }]}>{yr} Season</Text>
+                    <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{yr} Season</Text>
                   </Pressable>
                 );
               })}
@@ -275,8 +280,8 @@ export default function TeamScreen() {
                 <Pressable
                   key={f.id}
                   onPress={() => setFilter(f.id)}
-                  style={[styles.chip, { backgroundColor: active ? Brand.blue : c.card, borderColor: active ? Brand.blue : c.border }]}>
-                  <Text style={[styles.chipText, { color: active ? Brand.gold : c.textSecondary }]}>{f.label}</Text>
+                  style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
+                  <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{f.label}</Text>
                 </Pressable>
               );
             })}
@@ -291,7 +296,7 @@ export default function TeamScreen() {
                     key={v}
                     onPress={() => setRosterView(v)}
                     style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
-                    <Text style={[styles.chipText, { color: active ? Brand.blueDeep : c.textSecondary }]}>
+                    <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>
                       {label}
                       {v === 'projected' ? ' · Proj.' : ''}
                     </Text>
@@ -310,7 +315,7 @@ export default function TeamScreen() {
                     key={v}
                     onPress={() => setDepthView(v)}
                     style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
-                    <Text style={[styles.chipText, { color: active ? Brand.blueDeep : c.textSecondary }]}>
+                    <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>
                       {label}
                       {v === 'projected' ? ' · Proj.' : ''}
                     </Text>
@@ -552,15 +557,18 @@ function DepthPositionCard({
 
   return (
     <View style={[styles.depthCard, { backgroundColor: c.card, borderColor: c.border }]}>
-      <Text style={[styles.depthPos, { color: c.text }]}>{position}</Text>
+      <Text style={styles.depthPos}>{position}</Text>
       <View style={{ flex: 1 }}>
         {ordered.map((p, i) => {
           const isProj = starterOut && i === projIdx;
           const meta = p.status && p.status !== 'active' ? STATUS_META[p.status] : null;
           const struck = p.status === 'out';
+          const starter = i === 0; // the #1 spot — gold like the design
           return (
             <View key={p.id} style={styles.depthPlayerRow}>
-              <Text style={[styles.depthRank, { color: c.textSecondary }]}>{i + 1}</Text>
+              <View style={[styles.depthRank, starter ? { backgroundColor: Brand.gold } : { backgroundColor: c.surface2 }]}>
+                <Text style={[styles.depthRankText, { color: starter ? Brand.onGold : c.textSecondary }]}>{i + 1}</Text>
+              </View>
               <View style={{ flex: 1 }}>
                 <Text
                   style={[
@@ -621,9 +629,8 @@ function MovementView({ moves, c, showTag }: { moves: RosterMove[]; c: ReturnTyp
       {sections.map((s) => (
         <View key={s.title}>
           <View style={styles.moveSectionRow}>
-            <View style={styles.goldBar} />
-            <Text style={[styles.sectionTitle, { color: c.text }]}>{s.title}</Text>
-            <View style={[styles.countPill, { backgroundColor: c.card, borderColor: c.border }]}>
+            <Text style={styles.sectionTitle}>{s.title}</Text>
+            <View style={[styles.countPill, { backgroundColor: c.surface2 }]}>
               <Text style={[styles.countText, { color: c.textSecondary }]}>{s.items.length}</Text>
             </View>
           </View>
@@ -650,13 +657,13 @@ function MoveCard({
   const body = (
     <View style={[styles.moveCard, { backgroundColor: c.card, borderColor: c.border, borderLeftColor: accent }]}>
       <View style={styles.cardHead}>
-        <View style={[styles.dirBadge, { backgroundColor: accent }]}>
-          <Ionicons name={isIn ? 'arrow-down' : 'arrow-up'} size={12} color="#fff" />
-          <Text style={styles.dirText}>{isIn ? 'IN' : 'OUT'}</Text>
+        <View style={[styles.dirBadge, { backgroundColor: isIn ? Brand.greenTint : Brand.redTint }]}>
+          <Ionicons name={isIn ? 'arrow-down' : 'arrow-up'} size={11} color={accent} />
+          <Text style={[styles.dirText, { color: accent }]}>{isIn ? 'IN' : 'OUT'}</Text>
         </View>
         {move.category && CATEGORY_LABEL[move.category] && (
-          <View style={[styles.catTag, { borderColor: accent }]}>
-            <Text style={[styles.catText, { color: accent }]}>{CATEGORY_LABEL[move.category]}</Text>
+          <View style={[styles.catTag, { backgroundColor: c.surface2 }]}>
+            <Text style={[styles.catText, { color: c.textSecondary }]}>{CATEGORY_LABEL[move.category]}</Text>
           </View>
         )}
         {showTag && move.sport_id && SPORT_TAG[move.sport_id] && (
@@ -821,64 +828,67 @@ function SectionTitle({ text, color }: { text: string; color: string }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, paddingBottom: 40 },
-  segment: { flexDirection: 'row', margin: 16, marginBottom: 4, borderRadius: 10, backgroundColor: '#8883', padding: 3 },
-  segBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  segText: { fontSize: 13, fontWeight: '800' },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, flexWrap: 'wrap' },
-  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1 },
-  chipText: { fontSize: 13, fontWeight: '700' },
-  sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, marginBottom: 8 },
-  goldBar: { width: 4, height: 20, borderRadius: 2, backgroundColor: Brand.gold, marginRight: 8 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
-  empty: { fontSize: 14, paddingVertical: 12 },
+  content: { paddingHorizontal: 20, paddingBottom: 40 },
+  screenHeader: { paddingHorizontal: 20, paddingBottom: 8 },
+  screenTitle: { fontFamily: Font.display, fontSize: 24, color: c.text, letterSpacing: -0.4 },
+  segment: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, gap: 6 },
+  segBtn: { flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: 'center' },
+  segText: { fontSize: 12, fontFamily: Font.bodyBold },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4, flexWrap: 'wrap' },
+  chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  chipText: { fontSize: 12, fontFamily: Font.bodySemi },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 8 },
+  goldBar: { width: 3, height: 14, borderRadius: 2, backgroundColor: Brand.gold, marginRight: 8 },
+  sectionTitle: { fontSize: 12, fontFamily: Font.bodyBold, letterSpacing: 1.4, color: Brand.gold, textTransform: 'uppercase' },
+  empty: { fontSize: 14, paddingVertical: 12, color: c.textSecondary, fontFamily: Font.body },
   // roster
-  rosterRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 12, padding: 10, marginBottom: 8 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0002' },
+  rosterRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 14, padding: 12, marginBottom: 8 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface2 },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  jersey: { fontSize: 14, fontWeight: '800', width: 34 },
-  playerName: { fontSize: 16, fontWeight: '700' },
-  playerMeta: { fontSize: 12, marginTop: 2 },
-  rosterNote: { fontSize: 12, fontStyle: 'italic', marginTop: 10, marginBottom: 8 },
-  incomingLabel: { fontSize: 12, fontWeight: '900', letterSpacing: 1, marginTop: 16, marginBottom: 8 },
-  incTag: { borderWidth: 1, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  incTagText: { fontSize: 10, fontWeight: '900' },
+  avatarText: { color: c.textSecondary, fontFamily: Font.display, fontSize: 13 },
+  jersey: { fontSize: 14, fontFamily: Font.display, width: 34 },
+  playerName: { fontSize: 14, fontFamily: Font.displaySemi },
+  playerMeta: { fontSize: 12, marginTop: 2, fontFamily: Font.body },
+  rosterNote: { fontSize: 11, fontStyle: 'italic', marginTop: 12, marginBottom: 8, color: c.textMuted, fontFamily: Font.body },
+  incomingLabel: { fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 16, marginBottom: 8 },
+  incTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  incTagText: { fontSize: 10, fontFamily: Font.bodyBold },
   // depth chart
-  depthNote: { fontSize: 12, fontStyle: 'italic', marginTop: 10, marginBottom: 6 },
-  unitLabel: { color: Brand.gold, fontSize: 12, fontWeight: '900', letterSpacing: 1, marginTop: 12, marginBottom: 6 },
-  depthCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 8 },
-  depthPos: { width: 50, fontSize: 15, fontWeight: '900', paddingTop: 2 },
-  depthPlayerRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingVertical: 5 },
-  depthRank: { width: 14, fontSize: 12, fontWeight: '700', paddingTop: 1 },
-  depthName: { fontSize: 15, fontWeight: '600' },
-  depthNoteLine: { fontSize: 11, marginTop: 2, lineHeight: 15 },
-  projTag: { color: Brand.gold, fontSize: 10, fontWeight: '800' },
+  depthNote: { fontSize: 11, fontStyle: 'italic', marginTop: 10, marginBottom: 6, color: c.textMuted, fontFamily: Font.body },
+  unitLabel: { color: Brand.gold, fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 14, marginBottom: 8 },
+  depthCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 8 },
+  depthPos: { width: 40, fontSize: 15, fontFamily: Font.black, color: Brand.gold, paddingTop: 2 },
+  depthPlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
+  depthRank: { width: 20, height: 20, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
+  depthRankText: { fontSize: 12, fontFamily: Font.bodyBold },
+  depthName: { fontSize: 14, fontFamily: Font.bodySemi },
+  depthNoteLine: { fontSize: 11, marginTop: 2, lineHeight: 15, fontFamily: Font.body },
+  projTag: { color: Brand.gold, fontSize: 10, fontFamily: Font.bodyBold },
   statusBadge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
-  statusText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+  statusText: { color: '#fff', fontSize: 10, fontFamily: Font.bodyBold },
   // leaders
-  leaderCard: { borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10 },
-  leaderTitle: { fontSize: 15, fontWeight: '900', marginBottom: 8 },
-  leaderRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
-  leaderRank: { width: 16, fontSize: 14, fontWeight: '900', textAlign: 'center' },
-  leaderName: { flex: 1, fontSize: 15, fontWeight: '600' },
-  leaderVal: { fontSize: 15, fontWeight: '800' },
+  leaderCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 10, overflow: 'hidden' },
+  leaderTitle: { fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, color: Brand.gold, textTransform: 'uppercase', marginBottom: 10 },
+  leaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  leaderRank: { width: 16, fontSize: 14, fontFamily: Font.black, textAlign: 'center' },
+  leaderName: { flex: 1, fontSize: 14, fontFamily: Font.bodySemi },
+  leaderVal: { fontSize: 16, fontFamily: Font.display, fontVariant: ['tabular-nums'] },
   // movement
   moveSectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18, marginBottom: 10 },
-  countPill: { marginLeft: 8, minWidth: 22, paddingHorizontal: 7, paddingVertical: 1, borderRadius: 11, borderWidth: 1, alignItems: 'center' },
-  countText: { fontSize: 12, fontWeight: '800' },
-  moveCard: { borderWidth: 1, borderLeftWidth: 4, borderRadius: 12, padding: 14, marginBottom: 10 },
+  countPill: { marginLeft: 8, minWidth: 22, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, alignItems: 'center' },
+  countText: { fontSize: 11, fontFamily: Font.bodyBold },
+  moveCard: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, borderLeftWidth: 3, borderRadius: 14, padding: 14, marginBottom: 8 },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  dirBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
-  dirText: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  tag: { backgroundColor: Brand.blue, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
-  tagText: { color: Brand.gold, fontSize: 10, fontWeight: '900' },
-  catTag: { borderWidth: 1, borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
-  catText: { fontSize: 10, fontWeight: '800' },
-  status: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize', flex: 1, textAlign: 'right' },
-  player: { fontSize: 17, fontWeight: '800' },
-  school: { fontSize: 14, fontWeight: '600', marginTop: 3 },
-  notes: { fontSize: 13, marginTop: 4, lineHeight: 18 },
-  source: { fontSize: 12, marginTop: 6, fontWeight: '600' },
-  footer: { textAlign: 'center', marginTop: 16, fontSize: 12 },
+  dirBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
+  dirText: { fontSize: 10, fontFamily: Font.bodyBold },
+  tag: { backgroundColor: c.surface2, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  tagText: { color: c.textSecondary, fontSize: 10, fontFamily: Font.bodyBold },
+  catTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
+  catText: { fontSize: 10, fontFamily: Font.bodyBold },
+  status: { fontSize: 11, color: c.textMuted, flex: 1, textAlign: 'right', fontFamily: Font.body },
+  player: { fontSize: 14, fontFamily: Font.displaySemi },
+  school: { fontSize: 13, fontFamily: Font.bodyMed, marginTop: 3 },
+  notes: { fontSize: 12, marginTop: 4, lineHeight: 17, color: c.textSecondary, fontFamily: Font.body },
+  source: { fontSize: 11, marginTop: 6, fontFamily: Font.bodyMed },
+  footer: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, fontFamily: Font.body },
 });

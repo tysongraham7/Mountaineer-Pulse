@@ -1,24 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dimensions, PanResponder, View } from 'react-native';
-import Svg, {
-  Circle,
-  Defs,
-  Line,
-  LinearGradient,
-  Polygon,
-  Polyline,
-  Rect,
-  Stop,
-  Text as SvgText,
-} from 'react-native-svg';
+import { Dimensions, PanResponder, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Defs, Line, LinearGradient, Polygon, Polyline, Stop, Text as SvgText } from 'react-native-svg';
 
-import { Brand } from '@/constants/brand';
+import { Brand, Font, surfaces } from '@/constants/brand';
+
+const c = surfaces(true);
 
 export type ChartPoint = { date: string; score: number };
 
 function shortDate(iso: string): string {
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function tooltipDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -91,12 +87,17 @@ export function PulseChart({
   const ax = x(ai);
   const ay = y(data[ai].score);
 
-  // Tooltip box (date + score), clamped inside the chart width.
-  const tw = 74;
-  const tx = clamp(ax - tw / 2, pad.left, W - tw - 2);
+  // Floating tooltip (date + score + trend), following the active point.
+  const prevScore = ai > 0 ? data[ai - 1].score : data[ai].score;
+  const dir = data[ai].score > prevScore ? 'up' : data[ai].score < prevScore ? 'down' : 'flat';
+  const arrowColor = dir === 'up' ? Brand.green : dir === 'down' ? Brand.red : c.textSecondary;
+  const arrow = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '▶';
+  const ttW = 96;
+  const ttLeft = clamp(ax - ttW / 2, 2, W - ttW - 2);
+  const ttTop = ay - 54 > 2 ? ay - 54 : ay + 14;
 
   return (
-    <View {...panResponder.panHandlers}>
+    <View {...panResponder.panHandlers} style={{ width: W, height }}>
       <Svg width={W} height={height} pointerEvents="none">
         <Defs>
           <LinearGradient id="pulseFill" x1="0" y1="0" x2="0" y2="1">
@@ -119,15 +120,10 @@ export function PulseChart({
         <Polygon points={area} fill="url(#pulseFill)" />
         <Polyline points={line} fill="none" stroke={color} strokeWidth={2.5} />
 
-        {/* active crosshair + dot */}
-        <Line x1={ax} y1={pad.top} x2={ax} y2={pad.top + h} stroke={color} strokeWidth={1} strokeDasharray="3,3" opacity={0.7} />
-        <Circle cx={ax} cy={ay} r={5} fill={color} stroke="#fff" strokeWidth={1.5} />
-
-        {/* tooltip */}
-        <Rect x={tx} y={2} width={tw} height={18} rx={4} fill={color} opacity={0.95} />
-        <SvgText x={tx + tw / 2} y={14} fontSize={10} fontWeight="bold" fill={Brand.blueDeep} textAnchor="middle">
-          {shortDate(data[ai].date)} · {data[ai].score}
-        </SvgText>
+        {/* active crosshair + hollow dot */}
+        <Line x1={ax} y1={pad.top} x2={ax} y2={pad.top + h} stroke={color} strokeWidth={1} strokeDasharray="3,4" opacity={0.5} />
+        <Circle cx={ax} cy={ay} r={8} fill={color} opacity={0.18} />
+        <Circle cx={ax} cy={ay} r={5} fill="#060B16" stroke={color} strokeWidth={2.5} />
 
         {/* x date ticks */}
         {tickIdx.map((i, k) => (
@@ -142,6 +138,33 @@ export function PulseChart({
           </SvgText>
         ))}
       </Svg>
+
+      {/* floating tooltip card — matches the 2C design */}
+      <View pointerEvents="none" style={[styles.tooltip, { left: ttLeft, top: ttTop, width: ttW }]}>
+        <Text style={styles.ttDate}>{tooltipDate(data[ai].date)}</Text>
+        <Text style={styles.ttScore}>
+          {data[ai].score} <Text style={{ color: arrowColor, fontSize: 11 }}>{arrow}</Text>
+        </Text>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  tooltip: {
+    position: 'absolute',
+    backgroundColor: '#131D30',
+    borderWidth: 1,
+    borderColor: 'rgba(234,170,0,0.35)',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  ttDate: { fontFamily: Font.bodyBold, fontSize: 10, letterSpacing: 0.8, color: c.textMuted },
+  ttScore: { fontFamily: Font.black, fontSize: 16, color: Brand.gold, marginTop: 1 },
+});

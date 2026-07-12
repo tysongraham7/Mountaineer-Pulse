@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Brand, surfaces } from '@/constants/brand';
+import { SectionLabel } from '@/components/ui';
+import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 import { Player, PlayerStat } from '@/lib/types';
 
-// Football season currently in progress (its stats fill in once games are played).
+const c = surfaces(true);
 const CURRENT_SEASON = 2026;
 
-// Curated, ordered stat lines to surface. Only rows a player actually has are shown.
 const STAT_ROWS: [string, string, string][] = [
   ['passing', 'YDS', 'Passing Yds'],
   ['passing', 'TD', 'Passing TD'],
@@ -31,21 +33,18 @@ const STAT_ROWS: [string, string, string][] = [
   ['kicking', 'PTS', 'Points'],
   ['punting', 'NO', 'Punts'],
   ['punting', 'YPP', 'Yds / Punt'],
-  // baseball — hitting
   ['hitting', 'AVG', 'Batting Avg'],
   ['hitting', 'H', 'Hits'],
   ['hitting', 'RBI', 'RBI'],
   ['hitting', 'R', 'Runs'],
   ['hitting', 'BB', 'Walks'],
   ['hitting', 'SO', 'Strikeouts'],
-  // baseball — pitching
   ['pitching', 'ERA', 'ERA'],
   ['pitching', 'IP', 'Innings'],
   ['pitching', 'SO', 'Strikeouts (P)'],
   ['pitching', 'W', 'Wins'],
   ['pitching', 'L', 'Losses'],
   ['pitching', 'SV', 'Saves'],
-  // basketball
   ['basketball', 'PPG', 'Points / G'],
   ['basketball', 'RPG', 'Rebounds / G'],
   ['basketball', 'APG', 'Assists / G'],
@@ -62,19 +61,16 @@ const STAT_ROWS: [string, string, string][] = [
 function fullName(p: Player): string {
   return `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || 'Player';
 }
-
 function hometown(p: Player): string | null {
   const parts = [p.home_city, p.home_state].filter(Boolean);
   return parts.length ? parts.join(', ') : null;
 }
+const SPORT_LABEL: Record<string, string> = { football: 'Football', mbb: "Men's Basketball", baseball: 'Baseball' };
 
-// Incoming projected-roster players carry a prev-school note (no structured stats).
 type ProfilePlayer = Player & { incoming?: boolean; note?: string | null; fromSchool?: string | null };
 
 export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | null; onClose: () => void }) {
-  const dark = useColorScheme() === 'dark';
-  const c = surfaces(dark);
-
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
 
@@ -92,163 +88,155 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
       });
   }, [player]);
 
-  const bio: { label: string; value: string }[] = [];
+  const subParts: string[] = [];
   if (player) {
-    if (player.position) bio.push({ label: 'Position', value: player.position });
-    if (player.jersey != null) bio.push({ label: 'Number', value: `#${player.jersey}` });
-    if (player.class_display) bio.push({ label: 'Class', value: player.class_display });
-    if (player.height_display) bio.push({ label: 'Height', value: player.height_display });
-    if (player.weight) bio.push({ label: 'Weight', value: `${player.weight} lb` });
+    if (player.jersey != null) subParts.push(`#${player.jersey}`);
+    if (player.position) subParts.push(player.position);
+    if (player.class_display) subParts.push(player.class_display);
+    if (player.height_display) subParts.push(player.height_display);
+    if (player.weight) subParts.push(`${player.weight} lb`);
+  }
+  const originParts: string[] = [];
+  if (player) {
     const town = hometown(player);
-    if (town) bio.push({ label: 'Hometown', value: town });
+    if (town) originParts.push(town);
+    if (player.fromSchool) originParts.push(`via ${player.fromSchool}`);
   }
 
-  // Pivot stat lines into a season table.
   const lookup = new Map<string, string>();
   const seasonSet = new Set<number>();
-  const teamBySeason = new Map<number, string>(); // which school the player was at that year
+  const teamBySeason = new Map<number, string>();
   for (const s of stats) {
     lookup.set(`${s.category}|${s.stat_type}|${s.season}`, s.stat ?? '');
     seasonSet.add(s.season);
     if (s.team) teamBySeason.set(s.season, s.team);
   }
   const hasHistory = seasonSet.size > 0;
-  seasonSet.add(CURRENT_SEASON); // always show the current season column
+  seasonSet.add(CURRENT_SEASON);
   const seasons = [...seasonSet].sort((a, b) => a - b);
   const hasPrevSchool = [...teamBySeason.values()].some((t) => t !== 'West Virginia');
-  const presentRows = STAT_ROWS.filter(([cat, type]) =>
-    seasons.some((yr) => lookup.has(`${cat}|${type}|${yr}`)),
-  );
-  // Only nudge "fills in at kickoff" when the current season truly has no data
-  // (true for football's upcoming year; baseball's 2026 is already complete).
+  const presentRows = STAT_ROWS.filter(([cat, type]) => seasons.some((yr) => lookup.has(`${cat}|${type}|${yr}`)));
   const currentHasData = presentRows.some(([cat, type]) => lookup.has(`${cat}|${type}|${CURRENT_SEASON}`));
 
   return (
     <Modal visible={!!player} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
-        <View style={[styles.header, { backgroundColor: Brand.blue }]}>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={26} color="#fff" />
-          </Pressable>
-        </View>
-
         {player && (
-          <ScrollView contentContainerStyle={styles.content}>
-            <View style={styles.hero}>
-              {player.photo_url ? (
-                <Image source={{ uri: player.photo_url }} style={styles.photo} />
-              ) : (
-                <View style={[styles.photo, styles.photoFallback, { backgroundColor: Brand.blue }]}>
-                  <Text style={styles.photoInitials}>
-                    {(player.first_name?.[0] ?? '') + (player.last_name?.[0] ?? '')}
-                  </Text>
-                </View>
-              )}
-              {player.jersey != null && (
-                <Text style={[styles.jersey, { color: Brand.gold }]}>#{player.jersey}</Text>
-              )}
-              <Text style={[styles.name, { color: c.text }]}>{fullName(player)}</Text>
-              <Text style={[styles.sub, { color: c.textSecondary }]}>
-                {[player.position, player.class_display].filter(Boolean).join(' · ')}
-              </Text>
-            </View>
+          <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+            {/* Gradient hero header */}
+            <LinearGradient
+              colors={Gradients.hero}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={[styles.hero, { paddingTop: insets.top + 8 }]}>
+              <View style={styles.heroTop}>
+                <Pressable onPress={onClose} hitSlop={12} style={styles.circleBtn}>
+                  <Ionicons name="chevron-back" size={20} color="#C8D4E4" />
+                </Pressable>
+                <SectionLabel style={{ color: c.blueLabel } as never}>
+                  {[SPORT_LABEL[player.sport_id] ?? '', player.position].filter(Boolean).join(' · ')}
+                </SectionLabel>
+                <View style={styles.circleBtn} />
+              </View>
 
-            <View style={[styles.statCard, { backgroundColor: c.card, borderColor: c.border }]}>
-              {bio.map((s, i) => (
-                <View
-                  key={s.label}
-                  style={[
-                    styles.statRow,
-                    { borderBottomColor: c.border, borderBottomWidth: i === bio.length - 1 ? 0 : 1 },
-                  ]}>
-                  <Text style={[styles.statLabel, { color: c.textSecondary }]}>{s.label}</Text>
-                  <Text style={[styles.statValue, { color: c.text }]}>{s.value}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Season stats */}
-            {presentRows.length > 0 ? (
-              <>
-                <Text style={[styles.sectionHead, { color: c.text }]}>Stats by Season</Text>
-                <View style={[styles.statCard, { backgroundColor: c.card, borderColor: c.border }]}>
-                  <View style={[styles.tableRow, { borderBottomColor: c.border }]}>
-                    <Text style={[styles.tableLabel, styles.tableHeadText, { color: c.textSecondary }]} />
-                    {seasons.map((yr) => {
-                      const tm = teamBySeason.get(yr);
-                      const prev = !!tm && tm !== 'West Virginia';
-                      return (
-                        <View key={yr} style={styles.tableHeadCell}>
-                          <Text style={[styles.tableHeadText, { color: Brand.gold, textAlign: 'right' }]}>{yr}</Text>
-                          {prev && (
-                            <Text style={[styles.headSchool, { color: c.textSecondary }]} numberOfLines={2}>
-                              {tm}
-                            </Text>
-                          )}
-                        </View>
-                      );
-                    })}
+              <View style={styles.heroBody}>
+                {player.photo_url ? (
+                  <Image source={{ uri: player.photo_url }} style={styles.photo} />
+                ) : (
+                  <View style={[styles.photo, styles.photoFallback]}>
+                    <Text style={styles.photoInitials}>
+                      {(player.first_name?.[0] ?? '') + (player.last_name?.[0] ?? '')}
+                    </Text>
                   </View>
-                  {presentRows.map(([cat, type, label], i) => (
-                    <View
-                      key={`${cat}|${type}`}
-                      style={[
-                        styles.tableRow,
-                        { borderBottomColor: c.border, borderBottomWidth: i === presentRows.length - 1 ? 0 : 1 },
-                      ]}>
-                      <Text style={[styles.tableLabel, { color: c.text }]}>{label}</Text>
+                )}
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <Text style={styles.name}>{fullName(player)}</Text>
+                    {player.incoming && (
+                      <View style={styles.inTag}>
+                        <Text style={styles.inTagText}>↓ IN</Text>
+                      </View>
+                    )}
+                  </View>
+                  {subParts.length > 0 && <Text style={styles.heroSub}>{subParts.join(' · ')}</Text>}
+                  {originParts.length > 0 && <Text style={styles.heroSub}>{originParts.join(' · ')}</Text>}
+                </View>
+              </View>
+            </LinearGradient>
+
+            <View style={{ paddingHorizontal: 20 }}>
+              {/* Season stats */}
+              {presentRows.length > 0 ? (
+                <>
+                  <SectionLabel tone="muted" style={styles.head as never}>Stats by Season</SectionLabel>
+                  <View style={styles.table}>
+                    <View style={[styles.tableRow, styles.tableHeadRow]}>
+                      <Text style={[styles.tableLabel, styles.headText]} />
                       {seasons.map((yr) => {
-                        const v = lookup.get(`${cat}|${type}|${yr}`);
+                        const tm = teamBySeason.get(yr);
+                        const prev = !!tm && tm !== 'West Virginia';
                         return (
-                          <Text key={yr} style={[styles.tableCell, { color: v ? c.text : c.textSecondary }]}>
-                            {v ?? '—'}
-                          </Text>
+                          <View key={yr} style={styles.headCell}>
+                            <Text style={[styles.headText, { color: Brand.gold, textAlign: 'right' }]}>{yr}</Text>
+                            {prev && (
+                              <Text style={styles.headSchool} numberOfLines={2}>{tm}</Text>
+                            )}
+                          </View>
                         );
                       })}
                     </View>
-                  ))}
-                </View>
-                {(hasPrevSchool || !currentHasData) && (
-                  <Text style={[styles.note, { color: c.textSecondary }]}>
-                    {[
-                      hasPrevSchool ? 'Seasons labeled with a school are stats from before WVU.' : '',
-                      currentHasData ? '' : `${CURRENT_SEASON} fills in once the season kicks off.`,
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                  </Text>
-                )}
-              </>
-            ) : player.incoming && (player.note || player.fromSchool) ? (
-              <>
-                <Text style={[styles.sectionHead, { color: c.text }]}>Before WVU</Text>
-                <View style={[styles.statCard, { backgroundColor: c.card, borderColor: c.border, paddingVertical: 14 }]}>
-                  {player.fromSchool ? (
-                    <Text style={[styles.beforeSchool, { color: Brand.gold }]}>{player.fromSchool}</Text>
-                  ) : null}
-                  {player.note ? (
-                    <Text style={[styles.beforeLine, { color: c.text }]}>{player.note}</Text>
-                  ) : (
-                    <Text style={[styles.note, { color: c.textSecondary, textAlign: 'left', marginTop: 0 }]}>
-                      Stats not available for this player’s previous school.
+                    {presentRows.map(([cat, type, label], i) => (
+                      <View key={`${cat}|${type}`} style={[styles.tableRow, i === presentRows.length - 1 && { borderBottomWidth: 0 }]}>
+                        <Text style={styles.tableLabel}>{label}</Text>
+                        {seasons.map((yr) => {
+                          const v = lookup.get(`${cat}|${type}|${yr}`);
+                          return (
+                            <Text key={yr} style={[styles.tableCell, { color: v ? c.text : c.textMuted }]}>
+                              {v ?? '—'}
+                            </Text>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                  {(hasPrevSchool || !currentHasData) && (
+                    <Text style={styles.note}>
+                      {[
+                        hasPrevSchool ? 'Seasons labeled with a school are stats from before WVU.' : '',
+                        currentHasData ? '' : `${CURRENT_SEASON} fills in once the season kicks off.`,
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
                     </Text>
                   )}
-                </View>
-                <Text style={[styles.note, { color: c.textSecondary }]}>
-                  Last-season production before transferring (per On3 / SI reports).
+                </>
+              ) : player.incoming && (player.note || player.fromSchool) ? (
+                <>
+                  <SectionLabel tone="muted" style={styles.head as never}>Before WVU</SectionLabel>
+                  <View style={[styles.card, { paddingVertical: 16 }]}>
+                    {player.fromSchool ? <Text style={styles.beforeSchool}>{player.fromSchool}</Text> : null}
+                    {player.note ? (
+                      <Text style={styles.beforeLine}>{player.note}</Text>
+                    ) : (
+                      <Text style={[styles.note, { textAlign: 'left', marginTop: 0 }]}>
+                        Stats not available for this player's previous school.
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={styles.note}>Last-season production before transferring (per On3 / SI reports).</Text>
+                </>
+              ) : (
+                <Text style={styles.note}>
+                  {loadingStats
+                    ? 'Loading stats…'
+                    : hasHistory
+                      ? 'No season stats on record.'
+                      : player.sport_id === 'football'
+                        ? `No prior stats — ${CURRENT_SEASON} numbers begin at kickoff.`
+                        : 'No stats on record yet.'}
                 </Text>
-              </>
-            ) : (
-              <Text style={[styles.note, { color: c.textSecondary }]}>
-                {loadingStats
-                  ? 'Loading stats…'
-                  : hasHistory
-                  ? 'No season stats on record.'
-                  : player.sport_id === 'football'
-                  ? `No prior stats — ${CURRENT_SEASON} numbers begin at kickoff.`
-                  : 'No stats on record yet.'}
-              </Text>
-            )}
+              )}
+            </View>
           </ScrollView>
         )}
       </View>
@@ -257,27 +245,28 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
 }
 
 const styles = StyleSheet.create({
-  header: { paddingTop: 54, paddingBottom: 12, paddingHorizontal: 18 },
-  content: { padding: 20, paddingBottom: 40 },
-  hero: { alignItems: 'center', marginBottom: 20 },
-  photo: { width: 128, height: 128, borderRadius: 64, backgroundColor: '#0002' },
+  hero: { paddingHorizontal: 20, paddingBottom: 20 },
+  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  circleBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 },
+  photo: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: Brand.gold, backgroundColor: c.card },
   photoFallback: { alignItems: 'center', justifyContent: 'center' },
-  photoInitials: { color: '#fff', fontSize: 40, fontWeight: '900' },
-  jersey: { fontSize: 16, fontWeight: '900', marginTop: 10 },
-  name: { fontSize: 26, fontWeight: '900', marginTop: 4, textAlign: 'center' },
-  sub: { fontSize: 15, fontWeight: '600', marginTop: 4 },
-  statCard: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 16 },
-  statRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14 },
-  statLabel: { fontSize: 14, fontWeight: '600' },
-  statValue: { fontSize: 15, fontWeight: '800' },
-  sectionHead: { fontSize: 18, fontWeight: '800', marginTop: 22, marginBottom: 10 },
-  beforeSchool: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 },
-  beforeLine: { fontSize: 16, fontWeight: '700', lineHeight: 22 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
-  tableLabel: { flex: 1, fontSize: 14, fontWeight: '600' },
-  tableCell: { width: 64, fontSize: 15, fontWeight: '800', textAlign: 'right' },
-  tableHeadCell: { width: 64, alignItems: 'flex-end' },
-  headSchool: { fontSize: 9, fontWeight: '700', textAlign: 'right', marginTop: 1 },
-  tableHeadText: { fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
-  note: { textAlign: 'center', marginTop: 18, fontSize: 12 },
+  photoInitials: { color: Brand.gold, fontSize: 24, fontFamily: Font.black },
+  name: { fontFamily: Font.black, fontSize: 24, color: c.text, letterSpacing: -0.4 },
+  inTag: { backgroundColor: 'rgba(75,201,126,0.15)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  inTagText: { color: Brand.green, fontSize: 10, fontFamily: Font.bodyBold },
+  heroSub: { fontSize: 13, color: c.blueLabel, marginTop: 3, fontFamily: Font.body },
+  head: { marginTop: 20, marginBottom: 8 },
+  card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingHorizontal: 18 },
+  table: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingHorizontal: 16, overflow: 'hidden' },
+  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: c.border },
+  tableHeadRow: { borderBottomColor: c.border },
+  tableLabel: { flex: 1.4, fontSize: 13, color: c.text, fontFamily: Font.bodyMed },
+  tableCell: { flex: 1, fontSize: 13, color: c.text, textAlign: 'right', fontFamily: Font.bodySemi, fontVariant: ['tabular-nums'] },
+  headCell: { flex: 1, alignItems: 'flex-end' },
+  headText: { fontSize: 11, color: Brand.gold, fontFamily: Font.bodyBold, letterSpacing: 0.5 },
+  headSchool: { fontSize: 9, color: c.textMuted, textAlign: 'right', marginTop: 1, fontFamily: Font.body },
+  beforeSchool: { fontSize: 13, color: Brand.gold, fontFamily: Font.displaySemi, marginBottom: 6 },
+  beforeLine: { fontSize: 15, color: c.text, lineHeight: 22, fontFamily: Font.body },
+  note: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, lineHeight: 18, fontFamily: Font.body },
 });
