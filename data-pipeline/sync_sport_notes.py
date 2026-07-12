@@ -54,8 +54,11 @@ NOTE_SYSTEM = (
     "as discussion but NEVER stated as fact — prefer confirmed news.\n"
     "5. If there is genuinely no relevant WVU {sport} headline, the note is NONE.\n"
     "Also decide \"big\": true ONLY when the note is a genuinely notable POSITIVE development that "
-    "raises the program's stock — an award/honor, a commitment or signing, a ranking, a major win, "
-    "or a big hire. Routine analysis, previews, columns, and schedule breakdowns are big=false.\n"
+    "raises the CURRENT program's stock — an award/honor, a ranking, a major win, a big hire, or a "
+    "commitment/signing by a player arriving for the upcoming season. A commitment for a FUTURE "
+    "recruiting class (a high-schooler years away, e.g. class of 2027 or later) is NOT big — those "
+    "don't affect the current team; set big=false (still write the note). Routine analysis, "
+    "previews, columns, and schedule breakdowns are big=false.\n"
     "Reply as compact JSON on ONE line: "
     "{{\"note\": \"<one factual sentence, max 18 words, or NONE>\", \"big\": <true or false>}}"
 )
