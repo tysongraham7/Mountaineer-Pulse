@@ -533,5 +533,49 @@
     "status": "active",
     "note": "",
     "notes": "2026 HS signee (Bella Vista Prep)"
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "WR",
+    "pos_order": 3,
+    "rank": 3,
+    "player_name": "Prince Strachan",
+    "class_year": "R-Jr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "OL",
+    "pos_order": 5,
+    "rank": 3,
+    "player_name": "Malik Agbo",
+    "class_year": "R-Sr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Defense",
+    "position": "DL",
+    "pos_order": 6,
+    "rank": 3,
+    "player_name": "Gabe Ryan",
+    "class_year": "Sr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Defense",
+    "position": "CB",
+    "pos_order": 8,
+    "rank": 3,
+    "player_name": "Jaire Rawlison",
+    "class_year": "R-So.",
+    "status": "active",
+    "note": ""
   }
 ]
