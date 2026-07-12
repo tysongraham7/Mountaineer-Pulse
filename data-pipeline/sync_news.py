@@ -100,6 +100,13 @@ def build_name_index(sb):
         add(f"{p.get('first_name') or ''} {p.get('last_name') or ''}", p.get("sport_id"))
     for m in sb.table("roster_moves").select("player_name,sport_id").execute().data:
         add(m.get("player_name") or "", m.get("sport_id"))
+    # player_stats covers anyone who's played (incl. last-season players who've since
+    # left the roster but are still in the news, e.g. MLB-draft picks); depth_chart
+    # covers projected additions.
+    for r in sb.table("player_stats").select("player_name,sport_id").execute().data:
+        add(r.get("player_name") or "", r.get("sport_id"))
+    for r in sb.table("depth_chart").select("player_name,sport_id").execute().data:
+        add(r.get("player_name") or "", r.get("sport_id"))
     for name, sport in COACHES.items():
         add(name, sport)
 
