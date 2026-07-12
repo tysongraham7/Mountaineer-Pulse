@@ -35,11 +35,17 @@ RSS_URL = (
     f"?q={requests.utils.quote(QUERY)}&hl=en-US&gl=US&ceid=US:en"
 )
 
-# Sport keyword fallback -> sport_id (first match wins).
+# Sport keyword fallback -> sport_id (first match wins). Space-padded position
+# abbreviations (" ol ", " wr ", ...) are strong football signals; "point guard"
+# is used instead of bare "guard" (which is also a football O-lineman).
 SPORT_KEYWORDS = [
-    ("baseball", ("baseball", "college world series", "cws", "diamond")),
-    ("mbb", ("basketball", "hoops", "guard", "forward")),
-    ("football", ("football", "quarterback", " qb ", "gridiron", "running back")),
+    ("baseball", ("baseball", "college world series", "cws", "diamond", " mlb", "pitcher",
+                  "shortstop", "outfielder", "home run", " rbi", "bullpen")),
+    ("mbb", ("basketball", "hoops", " nba", "march madness", "final four", "point guard")),
+    ("football", ("football", "quarterback", " qb ", " rb ", " wr ", " ol ", " dl ", " cb ",
+                  " te ", " lb ", "gridiron", "running back", "wide receiver", "offensive line",
+                  "defensive line", "linebacker", "cornerback", "tight end", " fpi", " nfl ",
+                  "recruiting class")),
 ]
 
 # Coaches aren't in the players table — tag them explicitly. Add staff here as
