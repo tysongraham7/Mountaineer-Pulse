@@ -201,7 +201,7 @@
     "sport_id": "football",
     "unit": "Special Teams",
     "position": "P",
-    "pos_order": 10,
+    "pos_order": 11,
     "rank": 1,
     "player_name": "Bryan Hansen",
     "class_year": "R-Sr.",
@@ -630,6 +630,28 @@
     "rank": 3,
     "player_name": "Tim Roberson",
     "class_year": "R-Jr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "WR",
+    "pos_order": 3,
+    "rank": 4,
+    "player_name": "Keon Hutchins",
+    "class_year": "Jr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Special Teams",
+    "position": "PK",
+    "pos_order": 10,
+    "rank": 1,
+    "player_name": "Jack Cassidy",
+    "class_year": "R-Sr.",
     "status": "active",
     "note": ""
   }
