@@ -137,7 +137,8 @@
     "move_date": "2026-06-10",
     "source_name": "On3",
     "source_url": "",
-    "notes": "SEC transfer, former top-10 catcher recruit"
+    "notes": "SEC transfer, former top-10 catcher recruit",
+    "impact": "high"
   },
   {
     "sport_id": "baseball",
@@ -165,7 +166,8 @@
     "move_date": "2026-06-13",
     "source_name": "On3",
     "source_url": "",
-    "notes": ".439 AVG (2nd in D1), 10 HR, 51 SB"
+    "notes": ".439 AVG (2nd in D1), 10 HR, 51 SB",
+    "impact": "high"
   },
   {
     "sport_id": "baseball",
@@ -669,7 +671,8 @@
     "move_date": "2026-05-28",
     "source_name": "On3",
     "source_url": "",
-    "notes": ""
+    "notes": "",
+    "impact": "high"
   },
   {
     "sport_id": "mbb",

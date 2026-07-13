@@ -131,7 +131,7 @@ def main() -> None:
         # Roster movement, by category. Incoming class = transfer/recruit/juco/hs;
         # departures = portal-out plus graduation/eligibility/draft. Only DATED moves
         # count, matching the chart — an undated move can't cause an unexplained bump.
-        all_moves = sb.table("roster_moves").select("direction,category,move_date").eq("sport_id", sport).execute().data
+        all_moves = sb.table("roster_moves").select("direction,category,move_date,impact").eq("sport_id", sport).execute().data
         moves = [m for m in all_moves if m.get("move_date")]
         transfers_in = sum(1 for m in moves if m["direction"] == "in" and m.get("category") == "transfer")
         transfers_out = sum(1 for m in moves if m["direction"] == "out" and m.get("category") == "transfer")

@@ -61,7 +61,7 @@ def main() -> None:
             g["_d"] = to_date(g["start_date"])
         games = [g for g in games if g["_d"]]
 
-        moves = sb.table("roster_moves").select("direction,category,move_date").eq("sport_id", sport).execute().data
+        moves = sb.table("roster_moves").select("direction,category,move_date,impact").eq("sport_id", sport).execute().data
         for m in moves:
             m["_d"] = to_date(m["move_date"])
 

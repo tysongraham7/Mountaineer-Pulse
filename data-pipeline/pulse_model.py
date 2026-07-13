@@ -53,6 +53,7 @@ CAT_WEIGHT = {
     ("graduation", "out"): -0.2, ("eligibility", "out"): -0.2, ("draft", "out"): -0.25,
 }
 ROSTER_CAP = 24.0  # max +/- the roster component can swing the score
+IMPACT_MULT = 1.7  # a marquee addition (impact="high") weighs more than a depth piece
 
 # Per-sport roster-move weighting. Basketball (~13-15 players, 5 starters) weighs
 # each move MORE than football (85). Baseball reloads a huge chunk of its roster
@@ -116,10 +117,16 @@ def form_adj(reg: list) -> float:
 
 
 def roster_delta(moves: list, sport: str = "football") -> float:
-    """moves: dicts with 'direction' and 'category'. Weighted, sport-scaled & capped."""
-    d = sum(CAT_WEIGHT.get((m.get("category") or "transfer", m.get("direction")), 0.0) for m in moves)
-    d *= SPORT_ROSTER_MULT.get(sport, 1.0)
-    return clamp(d, -ROSTER_CAP, ROSTER_CAP)
+    """moves: dicts with 'direction'/'category' (+ optional 'impact'). Weighted by
+    category, boosted for marquee additions, sport-scaled & capped."""
+    total = 0.0
+    for m in moves:
+        w = CAT_WEIGHT.get((m.get("category") or "transfer", m.get("direction")), 0.0)
+        if m.get("impact") == "high" and m.get("direction") == "in":
+            w *= IMPACT_MULT  # a 5-star / high-major starter moves the needle more
+        total += w
+    total *= SPORT_ROSTER_MULT.get(sport, 1.0)
+    return clamp(total, -ROSTER_CAP, ROSTER_CAP)
 
 
 def surge(post_wins: int, post_losses: int) -> float:

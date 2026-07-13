@@ -57,6 +57,7 @@ def main() -> None:
             "source_name": m.get("source_name") or None,
             "source_url": m.get("source_url") or None,
             "notes": m.get("notes") or None,
+            "impact": m.get("impact") or None,
         })
 
     # Rebuild curated rows so entries removed from the JSON also drop from the DB.

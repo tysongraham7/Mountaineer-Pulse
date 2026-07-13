@@ -206,6 +206,7 @@ create table if not exists roster_moves (
   source_name  text,
   source_url   text,
   notes        text,
+  impact       text,                      -- 'high' = marquee add (5-star/high-major), weighs more in the Pulse
   created_at   timestamptz default now()
 );
 
