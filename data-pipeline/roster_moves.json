@@ -666,7 +666,7 @@
     "category": "transfer",
     "status": "committed",
     "other_school": "St. John's",
-    "move_date": null,
+    "move_date": "2026-05-28",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -680,7 +680,7 @@
     "category": "transfer",
     "status": "committed",
     "other_school": "Butler",
-    "move_date": null,
+    "move_date": "2026-04-13",
     "source_name": "On3",
     "source_url": "",
     "notes": "One year of eligibility"
@@ -694,7 +694,7 @@
     "category": "transfer",
     "status": "committed",
     "other_school": "Georgia Tech",
-    "move_date": null,
+    "move_date": "2026-04-14",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -708,7 +708,7 @@
     "category": "transfer",
     "status": "committed",
     "other_school": "Florida State",
-    "move_date": null,
+    "move_date": "2026-04-23",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -722,7 +722,7 @@
     "category": "transfer",
     "status": "committed",
     "other_school": "Utah",
-    "move_date": null,
+    "move_date": "2026-05-02",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -736,7 +736,7 @@
     "category": "transfer",
     "status": "committed",
     "other_school": "Boise State",
-    "move_date": null,
+    "move_date": "2026-04-18",
     "source_name": "On3",
     "source_url": "",
     "notes": "One year of eligibility"
@@ -750,7 +750,7 @@
     "category": "hs",
     "status": "signed",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2025-11-12",
     "source_name": "On3",
     "source_url": "",
     "notes": "Top-25 combo guard (Class of 2026)"
@@ -764,7 +764,7 @@
     "category": "transfer",
     "status": "transferred",
     "other_school": "William & Mary",
-    "move_date": null,
+    "move_date": "2026-04-05",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -778,7 +778,7 @@
     "category": "transfer",
     "status": "transferred",
     "other_school": "TCU",
-    "move_date": null,
+    "move_date": "2026-03-30",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -792,7 +792,7 @@
     "category": "transfer",
     "status": "transferred",
     "other_school": "Stony Brook",
-    "move_date": null,
+    "move_date": "2026-04-10",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -806,7 +806,7 @@
     "category": "transfer",
     "status": "transferred",
     "other_school": "UC Riverside",
-    "move_date": null,
+    "move_date": "2026-04-12",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -820,7 +820,7 @@
     "category": "transfer",
     "status": "entered",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-04-08",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -834,7 +834,7 @@
     "category": "transfer",
     "status": "transferred",
     "other_school": "Georgia Tech",
-    "move_date": null,
+    "move_date": "2026-04-15",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -848,7 +848,7 @@
     "category": "eligibility",
     "status": "out of eligibility",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-03-16",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -862,7 +862,7 @@
     "category": "eligibility",
     "status": "out of eligibility",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-03-16",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -876,7 +876,7 @@
     "category": "eligibility",
     "status": "out of eligibility",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-03-16",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -890,7 +890,7 @@
     "category": "eligibility",
     "status": "out of eligibility",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-03-16",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -904,7 +904,7 @@
     "category": "eligibility",
     "status": "out of eligibility",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-03-16",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -918,7 +918,7 @@
     "category": "eligibility",
     "status": "out of eligibility",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-03-16",
     "source_name": "On3",
     "source_url": "",
     "notes": ""
@@ -932,7 +932,7 @@
     "category": "hs",
     "status": "signed",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2025-11-12",
     "source_name": "WVU Athletics",
     "source_url": "",
     "notes": "5-star, top-25 PG (Class of 2026)"
@@ -946,9 +946,23 @@
     "category": "hs",
     "status": "signed",
     "other_school": "",
-    "move_date": null,
+    "move_date": "2026-04-16",
     "source_name": "WVU Athletics",
     "source_url": "",
     "notes": "2026 signee (Bella Vista Prep)"
+  },
+  {
+    "sport_id": "mbb",
+    "player_name": "Amadou Seini",
+    "position": "C",
+    "class_year": "Fr",
+    "direction": "in",
+    "category": "hs",
+    "status": "signed",
+    "other_school": "Bella Vista Prep",
+    "move_date": "2026-05-01",
+    "source_name": "WVU Athletics",
+    "source_url": "",
+    "notes": "7'1 center, Class of 2026 (Bella Vista Prep, via Cameroon)"
   }
 ]
