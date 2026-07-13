@@ -28,8 +28,8 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from pulse_model import is_postseason as post_by_date
-from pulse_model import (SEASON_RANK, clamp, national_rank, news_delta, pulse_score,
-                         surge, trend_of, wvu_won)
+from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, clamp, national_rank, news_delta,
+                         pulse_score, surge, trend_of, wvu_won)
 
 load_dotenv()
 
@@ -156,8 +156,12 @@ def main() -> None:
         post_games = [g for g in season_games if is_postseason(sport, g)]
         post_wins = sum(1 for g in post_games if wvu_won(g))
         post_losses = len(post_games) - post_wins
+        # Offseason projected-caliber bonus, once the season's last game has passed.
+        last_dates = [d for d in (g.get("start_date") for g in season_games) if d]
+        season_over = bool(last_dates) and today > max(last_dates)[:10]
+        extra = OFFSEASON_BONUS.get(sport, 0.0) if season_over else 0.0
         score = pulse_score(sport, w, l, score_rank, reg, moves, post_wins, post_losses,
-                            news, ranked_flat=ranked_flat)
+                            news, ranked_flat=ranked_flat, extra=extra)
 
         # Anti-spike guard: the line may only make a big move on a day with a REAL
         # event — a game, a dated roster move, or a news note TODAY. On a "quiet" day

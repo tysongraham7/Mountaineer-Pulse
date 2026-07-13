@@ -85,7 +85,7 @@ SPORT_SURGE_SCALE = {"baseball": 0.6}
 # it shouldn't prop the offseason back up after the proven core departs. Departures
 # (this season's losses) keep their full weight, so the roster line trends DOWN in the
 # offseason as the core leaves.
-SPORT_INCOMING_SCALE = {"baseball": 0.4}
+SPORT_INCOMING_SCALE = {"baseball": 0.18}
 
 # In-season national rank per sport for the latest COMPLETED season, used for dates
 # within that season so the model credits a team that was ranked all year (the live
@@ -93,6 +93,14 @@ SPORT_INCOMING_SCALE = {"baseball": 0.4}
 # offseason dates fall back to the live rank (which regresses the score, as intended).
 # Revisit each year — this is the 2026 baseball season's representative ranking.
 SEASON_RANK = {"baseball": 8}
+
+# Offseason strength bonus, applied only to dates AFTER a sport's last game — a
+# founder judgment of the program's PROJECTED caliber for next season, on top of the
+# completed-season anchor. It lifts the current/offseason number without inflating
+# last season's line. Baseball: modest, its CWS run already banks caliber. Basketball:
+# larger — a projected top-20 class (a 5-star, two 4-stars, proven high-major transfers)
+# that last year's 18-14 record badly understates. Revisit once a season tips off.
+OFFSEASON_BONUS = {"mbb": 17.0}
 
 # ".500 prior" blended into win%, so tiny early-season samples don't swing wildly
 # (a 2-0 start shouldn't read like a 100% juggernaut). Sized as a FRACTION of each
@@ -212,9 +220,9 @@ def trend_of(reg: list) -> str:
 
 
 def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, news=0.0,
-                ranked_flat=False) -> int:
+                ranked_flat=False, extra=0.0) -> int:
     raw = (anchor_score(sport, w, l, rank, flat=ranked_flat) + form_adj(reg)
            + roster_delta(moves, sport)
            + surge(post_wins, post_losses) * SPORT_SURGE_SCALE.get(sport, 1.0) + news
-           + SPORT_BASELINE.get(sport, 0.0))
+           + SPORT_BASELINE.get(sport, 0.0) + extra)
     return int(round(clamp(raw, 5, 99)))

@@ -18,8 +18,8 @@ from datetime import date, datetime
 from dotenv import load_dotenv
 from supabase import create_client
 
-from pulse_model import (SEASON_RANK, is_postseason, national_rank, news_delta,
-                         pulse_score, trend_of, wvu_won)
+from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, is_postseason, national_rank,
+                         news_delta, pulse_score, trend_of, wvu_won)
 
 load_dotenv()
 
@@ -77,6 +77,8 @@ def main() -> None:
         season_rank = SEASON_RANK.get(sport)
         base_rank = season_rank if season_rank else national_rank(sport)
         flat = bool(season_rank)
+        last_game = max((g["_d"] for g in games), default=None)
+        off_bonus = OFFSEASON_BONUS.get(sport, 0.0)
 
         # A point at every game date + dated move date + news day.
         event_dates = sorted({g["_d"] for g in games} | {m["_d"] for m in moves if m["_d"]} | set(note_dates))
@@ -95,8 +97,11 @@ def main() -> None:
             post_wins = sum(1 for g in post_games if wvu_won(g))
             post_losses = len(post_games) - post_wins
             news = news_delta(note_deltas, d)
+            # Offseason bonus (projected next-season caliber) applies only after the
+            # season's final game — it lifts the offseason line, not the played season.
+            extra = off_bonus if (last_game and d > last_game) else 0.0
             score = pulse_score(sport, w, l, base_rank, reg, moves_to, post_wins, post_losses,
-                                news, ranked_flat=flat)
+                                news, ranked_flat=flat, extra=extra)
             rows.append({"sport_id": sport, "date": d.isoformat(), "score": score, "trend": trend_of(reg)})
 
         # Rebuild from scratch so stale points (old/redated moves) don't linger.
@@ -104,7 +109,8 @@ def main() -> None:
         if rows:
             sb.table("pulse_snapshots").upsert(rows, on_conflict="sport_id,date").execute()
         print(f"  {sport:<9} rebuilt {len(rows)} points "
-              f"({rows[0]['date'] if rows else '-'} -> {rows[-1]['date'] if rows else '-'})  rank {rank or 'NR'}")
+              f"({rows[0]['date'] if rows else '-'} -> {rows[-1]['date'] if rows else '-'})  "
+              f"rank {base_rank or 'NR'}{' flat' if flat else ''}")
 
     print("\n[OK] Historical Pulse rebuilt with the shared model.")
 
