@@ -15,7 +15,9 @@ Score = anchor (national standing) + form (recent games) + roster (moves) + surg
   * roster  - portal/recruiting/eligibility moves, weighted & capped (+/-24).
   * surge   - NET postseason result (wins - losses), so a deep run that ends in a
               loss pulls the score back instead of only ratcheting up.
-  * hype    - a small, HELD bump (+2 each, capped +4) for really-good news; no fade.
+  * news    - a SIGNED, HELD move from notable news. AI daily notes nudge -2..+2;
+              curated big events carry an exact hand-set number (e.g. -4). No fade,
+              so the line reacts BOTH ways and stays there until later news offsets it.
 """
 
 import requests
@@ -135,19 +137,22 @@ def surge(post_wins: int, post_losses: int) -> float:
     return clamp((post_wins - post_losses) * 1.5, -10.0, 12.0)
 
 
-# Hype: a really-good-news day (a major honor, a top-25 ranking, a marquee win)
-# nudges the score up a little and it HOLDS — no fade-down, so there's never a
-# "hype drop". Small and bounded so news never dominates the tangible factors.
-NEWS_BUMP = 2.0
-NEWS_HYPE_CAP = 4.0
+# News delta: each notable news day carries a SIGNED, non-decaying Pulse move so
+# the line feels alive and reacts BOTH ways. AI daily notes contribute small nudges
+# (-2..+2 for genuine good/bad news); curated big events (e.g. a vital signee getting
+# drafted) carry an exact hand-set number (e.g. -4). It HOLDS — no fade — so a drop
+# stays until a later note offsets it (e.g. a +4 the day the player returns). The
+# cap is asymmetric: everyday good news stays modest, but bad news can bite harder.
+NEWS_DELTA_CAP_UP = 8.0
+NEWS_DELTA_CAP_DOWN = -16.0
 
 
-def news_hype(note_dates: list, as_of) -> float:
-    """Small, NON-decaying bump for really-good-news days up to `as_of`. Each such
-    day adds NEWS_BUMP and it stays; the score only comes off it when a real event
-    (a loss, a departure) moves the other components. Capped so it can't run away."""
-    n = sum(1 for nd in note_dates if nd is not None and nd <= as_of)
-    return min(n * NEWS_BUMP, NEWS_HYPE_CAP)
+def news_delta(note_deltas: list, as_of) -> float:
+    """Signed, NON-decaying sum of note pulse-deltas dated on/before `as_of`.
+    note_deltas: list of (date, delta) pairs. Bounded so news never fully dominates
+    the tangible factors (record, ranking, roster)."""
+    total = sum(dl for (nd, dl) in note_deltas if nd is not None and nd <= as_of)
+    return clamp(total, NEWS_DELTA_CAP_DOWN, NEWS_DELTA_CAP_UP)
 
 
 def trend_of(reg: list) -> str:
@@ -160,7 +165,7 @@ def trend_of(reg: list) -> str:
     return "up" if diff > 0.12 else ("down" if diff < -0.12 else "neutral")
 
 
-def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, hype=0.0) -> int:
+def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, news=0.0) -> int:
     raw = (anchor_score(sport, w, l, rank) + form_adj(reg)
-           + roster_delta(moves, sport) + surge(post_wins, post_losses) + hype)
+           + roster_delta(moves, sport) + surge(post_wins, post_losses) + news)
     return int(round(clamp(raw, 5, 99)))

@@ -55,12 +55,20 @@ NOTE_SYSTEM = (
     "4. Rumors ('reportedly', 'could', 'targets', 'linked', 'trending', 'source') may be framed "
     "as discussion but NEVER stated as fact — prefer confirmed news.\n"
     "5. If there is genuinely no relevant WVU {sport} headline, the note is NONE.\n"
-    "Also decide \"big\": true ONLY for MAJOR, headline-level good news that clearly raises the "
-    "CURRENT program's national standing — a conference/national honor or award, a top-25 ranking, "
-    "a marquee or ranked win, or a major coaching hire. Be strict: routine signings, ordinary "
-    "commitments, previews, analysis, and schedule breakdowns are all big=false.\n"
+    "Then set \"delta\": a SIGNED integer for how this news moves the program's Pulse. Be "
+    "CONSERVATIVE — most days are 0. Use small values only, never large swings:\n"
+    "  +2 = MAJOR good news raising national standing (national/conference honor, top-25 ranking, "
+    "marquee or ranked win, major coaching hire, a marquee commitment).\n"
+    "  +1 = solid good news (a notable commitment/signing, a clear quality win).\n"
+    "   0 = routine/neutral (previews, analysis, schedule talk, minor notes) — the DEFAULT.\n"
+    "  -1 = notable bad program news (a rotation player enters the portal, a recruit decommits, a "
+    "meaningful injury).\n"
+    "  -2 = significant bad news hurting the current program (losing a key starter or vital signee, "
+    "a major injury to a star, a stunning off-field loss to the roster).\n"
+    "NEVER assign a negative delta for a normal game LOSS — game results already move the Pulse "
+    "elsewhere; delta is for roster/off-field program news only. Be strict and default to 0.\n"
     "Reply as compact JSON on ONE line: "
-    "{{\"note\": \"<one factual sentence, max 18 words, or NONE>\", \"big\": <true or false>}}"
+    "{{\"note\": \"<one factual sentence, max 18 words, or NONE>\", \"delta\": <integer -2..2>}}"
 )
 
 
@@ -70,18 +78,48 @@ def die(msg: str) -> None:
 
 
 def parse_note(raw: str):
-    """Return (note, big). Tolerant of stray prose around the JSON."""
+    """Return (note, delta). Tolerant of stray prose around the JSON."""
     raw = (raw or "").strip()
     m = re.search(r"\{.*\}", raw, re.DOTALL)
     if m:
         try:
             obj = json.loads(m.group(0))
             note = str(obj.get("note", "")).strip()
-            return note, bool(obj.get("big", False))
+            try:
+                delta = int(obj.get("delta", 0))
+            except (ValueError, TypeError):
+                delta = 0
+            return note, max(-2, min(2, delta))  # clamp AI to the small-nudge range
         except (ValueError, TypeError):
             pass
-    # Fallback: treat the whole reply as the note, not big.
-    return raw, False
+    # Fallback: treat the whole reply as the note, no Pulse move.
+    return raw, 0
+
+
+def seed_curated(sb, today: str) -> None:
+    """Upsert hand-curated Pulse events (curated_notes.json) as note rows with an
+    exact signed delta and id `sport|date|c`, so they live alongside the AI daily
+    note (id `sport|date`) without colliding. Idempotent — safe every run, and a DB
+    rebuild restores them. Remove an entry from the JSON to reverse it (e.g. if a
+    player who was 'likely gone' returns)."""
+    path = os.path.join(os.path.dirname(__file__), "curated_notes.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            events = json.load(f)
+    except (OSError, ValueError):
+        return
+    n = 0
+    for e in events:
+        sport, d = e.get("sport_id"), e.get("date")
+        if sport not in SPORT_NAME or not d:
+            continue
+        delta = int(e.get("delta", 0))
+        sb.table("daily_sport_notes").upsert(
+            {"id": f"{sport}|{d}|c", "sport_id": sport, "date": d,
+             "note": e.get("note", ""), "hype": delta > 0, "pulse_delta": delta},
+            on_conflict="id").execute()
+        n += 1
+    print(f"  curated events seeded: {n}")
 
 
 def main() -> None:
@@ -128,16 +166,19 @@ def main() -> None:
                        f"{headlines}\n\nWrite the JSON note for WVU {SPORT_NAME[sport]}."}],
         )
         raw = "".join(b.text for b in resp.content if b.type == "text")
-        note, big = parse_note(raw)
+        note, delta = parse_note(raw)
         if not note or note.upper().startswith("NONE"):
             sb.table("daily_sport_notes").delete().eq("id", f"{sport}|{today}").execute()
             print(f"  {SPORT_NAME[sport]}: (nothing relevant)")
             continue
         sb.table("daily_sport_notes").upsert(
-            {"id": f"{sport}|{today}", "sport_id": sport, "date": today, "note": note, "hype": big},
+            {"id": f"{sport}|{today}", "sport_id": sport, "date": today, "note": note,
+             "hype": delta > 0, "pulse_delta": delta},
             on_conflict="id").execute()
-        print(f"  {SPORT_NAME[sport]}: {'[BIG] ' if big else ''}{note}")
+        tag = f"[{'+' if delta > 0 else ''}{delta}] " if delta else ""
+        print(f"  {SPORT_NAME[sport]}: {tag}{note}")
 
+    seed_curated(sb, today)
     print("\n[OK] Per-sport notes synced.")
 
 

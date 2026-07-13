@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from pulse_model import is_postseason as post_by_date
-from pulse_model import clamp, national_rank, news_hype, pulse_score, surge, trend_of, wvu_won
+from pulse_model import clamp, national_rank, news_delta, pulse_score, surge, trend_of, wvu_won
 
 load_dotenv()
 
@@ -141,16 +141,16 @@ def main() -> None:
         recruits_delta = recruits * 0.8
         departures_delta = departures * -0.4
 
-        note_rows = sb.table("daily_sport_notes").select("date,hype").eq("sport_id", sport).execute().data
+        note_rows = sb.table("daily_sport_notes").select("date,pulse_delta").eq("sport_id", sport).execute().data
         note_dates = [date.fromisoformat(r["date"][:10]) for r in note_rows]  # any note = a real event
-        hype_dates = [date.fromisoformat(r["date"][:10]) for r in note_rows if r.get("hype")]
-        hype = news_hype(hype_dates, date.today())
+        note_deltas = [(date.fromisoformat(r["date"][:10]), r.get("pulse_delta") or 0) for r in note_rows]
+        news = news_delta(note_deltas, date.today())
 
         reg = [1 if wvu_won(g) else 0 for g in season_games if not is_postseason(sport, g)]
         post_games = [g for g in season_games if is_postseason(sport, g)]
         post_wins = sum(1 for g in post_games if wvu_won(g))
         post_losses = len(post_games) - post_wins
-        score = pulse_score(sport, w, l, rank, reg, moves, post_wins, post_losses, hype)
+        score = pulse_score(sport, w, l, rank, reg, moves, post_wins, post_losses, news)
 
         # Anti-spike guard: the line may only make a big move on a day with a REAL
         # event — a game, a dated roster move, or a news note TODAY. On a "quiet" day
@@ -175,8 +175,9 @@ def main() -> None:
         drivers = []
         if rank:
             drivers.append({"label": f"#{rank} nationally", "kind": "rank"})
-        if hype >= 1:
-            drivers.append({"label": "News buzz", "delta": round(hype), "kind": "news"})
+        if round(news) != 0:
+            label = "News buzz" if news > 0 else "Recent news"
+            drivers.append({"label": label, "delta": round(news), "kind": "news"})
         if cws:
             drivers.append({"label": "CWS run", "delta": round(surge(post_wins, post_losses)), "kind": "post"})
         if transfers_in or transfers_out:

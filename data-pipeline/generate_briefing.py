@@ -1,18 +1,24 @@
 """
-Mountaineer Pulse - Daily AI Briefing
-=====================================
-Claude reads the last ~36h of WVU headlines + today's Mountaineer Pulse and
-writes a short "3 biggest developments" briefing for the app's home screen.
+Mountaineer Pulse - Daily AI Briefing (per-sport, research-backed)
+=================================================================
+Claude reads the day's WVU headlines + confirmed roster moves + Pulse, then uses
+web search to READ the actual articles and writes a briefing split into three
+per-sport sections (Football / Men's Basketball / Baseball). Each section has a
+few topics, a couple of sentences each — real detail (draft rounds, slot money,
+who's staying/leaving), not one-liners. A sport with no genuine news is omitted.
 
-Needs ANTHROPIC_API_KEY in .env (get one at https://console.anthropic.com).
+Why search: our stored links are Google News redirects that don't fetch cleanly,
+so we let Claude search the open web for each day's WVU stories and read the real
+sources (SI, On3, 247, WV athletics, etc.). Grounding rules keep it to CONFIRMED,
+current-program facts.
 
-Model: claude-sonnet-5 (strong synthesis, cheaper than Opus). Swap MODEL below to
-"claude-haiku-4-5" for the cheapest option, or "claude-opus-4-8" for top quality.
-
-Run:  python generate_briefing.py
+Writes daily_briefings.sections (jsonb) + a plain-text content fallback.
+Needs ANTHROPIC_API_KEY. Run:  python generate_briefing.py
 """
 
+import json
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 
@@ -25,8 +31,10 @@ SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-MODEL = "claude-sonnet-5"          # cheaper than Opus; "claude-haiku-4-5" is ~cheapest
+MODEL = "claude-sonnet-5"
+WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 5}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
+SPORT_ORDER = ["football", "mbb", "baseball"]
 
 
 def die(msg: str) -> None:
@@ -35,33 +43,41 @@ def die(msg: str) -> None:
 
 
 def build_context(sb) -> str:
-    """Assemble the real facts Claude is allowed to use — nothing else exists."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=36)).isoformat()
+    """The day's real facts — the AGENDA Claude researches and writes from."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=40)).isoformat()
     news = (
         sb.table("news_items").select("headline,source_name,published_at,sport_id")
-        .gte("published_at", cutoff).order("published_at", desc=True).limit(40).execute().data
+        .gte("published_at", cutoff).order("published_at", desc=True).limit(60).execute().data
     )
+    by_sport: dict[str, list] = {s: [] for s in SPORT_ORDER}
+    general: list[str] = []
+    for n in news:
+        line = f"- {n['headline']} ({n.get('source_name') or 'source'})"
+        if n.get("sport_id") in by_sport:
+            by_sport[n["sport_id"]].append(line)
+        elif not n.get("sport_id"):
+            general.append(line)
 
-    lines = ["=== RECENT WVU HEADLINES (last ~36 hours) ==="]
-    if news:
-        for n in news:
-            tag = f"[{SPORT_NAME.get(n['sport_id'], 'General')}] " if n.get("sport_id") else ""
-            lines.append(f"- {tag}{n['headline']} ({n.get('source_name') or 'source'})")
-    else:
-        lines.append("- (no headlines in the last 36 hours)")
+    lines = ["=== TODAY'S WVU HEADLINES (last ~40h), grouped by sport ==="]
+    for s in SPORT_ORDER:
+        lines.append(f"\n[{SPORT_NAME[s]}]")
+        lines += (by_sport[s] or ["- (no classified headlines)"])
+    if general:
+        lines.append("\n[General WVU]")
+        lines += general
 
-    # The ONLY source of truth for who is actually on/off the roster.
     moves = (
-        sb.table("roster_moves").select("player_name,position,direction,category,sport_id")
+        sb.table("roster_moves").select("player_name,position,direction,category,sport_id,other_school,alert")
         .order("move_date", desc=True).execute().data
     )
     if moves:
-        lines.append("\n=== CONFIRMED ROSTER MOVES (only source of truth for who is in/out) ===")
+        lines.append("\n=== CONFIRMED ROSTER MOVES (the ONLY source of truth for who is in/out) ===")
         for m in moves:
             d = "IN" if m["direction"] == "in" else "OUT"
             pos = f" {m['position']}" if m.get("position") else ""
-            lines.append(f"- {d}: {m['player_name']}{pos} "
-                         f"({SPORT_NAME.get(m['sport_id'], m['sport_id'])}, {m.get('category') or 'move'})")
+            sch = f" ({'from' if d == 'IN' else 'to'} {m['other_school']})" if m.get("other_school") else ""
+            alert = f"  ** NOTE: {m['alert']}" if m.get("alert") else ""
+            lines.append(f"- {d}: {m['player_name']}{pos}{sch} [{SPORT_NAME.get(m['sport_id'], m['sport_id'])}]{alert}")
 
     snaps = sb.table("pulse_snapshots").select("*").order("date", desc=True).execute().data
     seen, pulse_lines = set(), []
@@ -77,6 +93,96 @@ def build_context(sb) -> str:
     return "\n".join(lines)
 
 
+SYSTEM = (
+    "You write the daily briefing for Mountaineer Pulse, a West Virginia University sports app. "
+    "Voice: sharp, factual, a plugged-in WVU fan. Never hype, never filler.\n\n"
+    "You have web search. USE IT: for each genuinely notable item in the DATA, search and read the "
+    "actual articles so your summary has real detail (draft round & pick number, slot money, who is "
+    "staying vs leaving, scores, honors) — not vague one-liners.\n\n"
+    "ABSOLUTE ACCURACY RULES — one wrong fact loses a fan's trust:\n"
+    "1. Every roster fact must match CONFIRMED ROSTER MOVES. Never call a player a commit/transfer/"
+    "signing unless he is on that list. If a move has a ** NOTE, reflect it faithfully (e.g. a signee "
+    "who is now likely to leave).\n"
+    "2. Rumors are not facts. 'reportedly', 'expected to', 'targets', 'linked', 'could' = mark clearly "
+    "as such, never as done deals.\n"
+    "3. WVU players being drafted (MLB/NFL) IS notable program news — include it. But ignore unrelated "
+    "alumni pro-career news, off-field/legal/personal stories, and other teams.\n"
+    "4. CURRENT program only. Exclude commitments from FUTURE high-school recruiting classes a year+ "
+    "away (e.g. class of 2027 or later high-schoolers). Incoming college transfers for the upcoming "
+    "season ARE current.\n"
+    "5. Significance filter: include only items a fan would care about. Do NOT pad. If a sport has no "
+    "genuine news, omit its section entirely.\n\n"
+    "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
+    "{\n"
+    '  "intro": "<one short, warm greeting line>",\n'
+    '  "sections": [\n'
+    '    {"sport": "football|mbb|baseball",\n'
+    '     "items": [{"topic": "<3-6 word headline>", "body": "<2-3 factual sentences with real detail>"}]}\n'
+    "  ]\n"
+    "}\n"
+    "Include a section ONLY for sports with real news (0-3 topics each). Order sections football, then "
+    "men's basketball, then baseball. Keep each body tight (~2-3 sentences)."
+)
+
+
+def extract_json(text: str):
+    m = re.search(r"\{.*\}", text, re.DOTALL)
+    if not m:
+        return None
+    try:
+        return json.loads(m.group(0))
+    except ValueError:
+        return None
+
+
+def call_model(client, context: str, use_search: bool):
+    kwargs = dict(
+        model=MODEL,
+        max_tokens=4500,
+        thinking={"type": "adaptive"},
+        system=SYSTEM,
+        messages=[{"role": "user", "content":
+                   f"DATA:\n{context}\n\nResearch the notable items with web search, then output the "
+                   f"briefing JSON. Today is {date.today().isoformat()}."}],
+    )
+    if use_search:
+        kwargs["tools"] = [WEB_SEARCH_TOOL]
+    resp = client.messages.create(**kwargs)
+    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+    searches = sum(1 for b in resp.content if getattr(b, "type", "") == "server_tool_use")
+    return text, searches, resp.usage
+
+
+def to_plaintext(intro: str, sections: list) -> str:
+    parts = [intro.strip()] if intro else []
+    for sec in sections:
+        parts.append(f"\n{SPORT_NAME.get(sec['sport'], sec['sport']).upper()}")
+        for it in sec.get("items", []):
+            parts.append(f"• {it.get('topic', '').strip()}: {it.get('body', '').strip()}")
+    return "\n".join(parts).strip()
+
+
+def clean_sections(obj) -> tuple[str, list]:
+    """Validate + normalize the model's JSON into (intro, sections)."""
+    intro = str(obj.get("intro", "")).strip()
+    out = []
+    raw = obj.get("sections", []) if isinstance(obj, dict) else []
+    by_sport = {s.get("sport"): s for s in raw if isinstance(s, dict)}
+    for sp in SPORT_ORDER:  # enforce football -> mbb -> baseball order
+        sec = by_sport.get(sp)
+        if not sec:
+            continue
+        items = []
+        for it in sec.get("items", []):
+            topic = str(it.get("topic", "")).strip()
+            body = str(it.get("body", "")).strip()
+            if topic and body:
+                items.append({"topic": topic, "body": body})
+        if items:
+            out.append({"sport": sp, "items": items[:3]})
+    return intro, out
+
+
 def main() -> None:
     if not SB_URL or not SB_KEY:
         die("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env")
@@ -87,56 +193,42 @@ def main() -> None:
 
     sb = create_client(SB_URL, SB_KEY)
     context = build_context(sb)
-
-    system = (
-        "You write the daily briefing for Mountaineer Pulse, a West Virginia University sports "
-        "app. Voice: sharp, factual, a plugged-in WVU fan. Never hype, never filler.\n\n"
-        "ABSOLUTE RULES — accuracy is everything; one wrong fact loses a fan's trust:\n"
-        "1. Use ONLY the facts in the DATA provided. Never add a name, coach, player, position, "
-        "record, ranking, or any context from your own knowledge — even if you believe you know "
-        "it. If it is not written in the DATA, it does not exist for this briefing. (You do NOT "
-        "know who WVU's coaches are unless the DATA says so.)\n"
-        "2. Rumors are not facts. Headlines with words like 'trending', 'source', 'reportedly', "
-        "'linked', 'targets', 'could', or 'rumored' are SPECULATION — never state them as done "
-        "deals. Skip them, or clearly mark them ('reportedly').\n"
-        "3. A roster move is real ONLY if it appears in CONFIRMED ROSTER MOVES. Never call a "
-        "player a commit/signing/transfer unless he is on that list.\n"
-        "4. Significance filter: include only genuinely notable items. Do NOT pad to hit a "
-        "number, and NEVER inflate a single minor item (one former player's pro news, a routine "
-        "ranking blurb) into a category.\n"
-        "5. Slow news day? Say so plainly. A short honest briefing beats a padded one."
-    )
-    prompt = (
-        f"DATA:\n{context}\n\n"
-        "Write today's briefing: a short, warm one-line greeting, then the genuinely notable WVU "
-        "developments as a numbered list (one crisp sentence each). Give 2-3 ONLY if you truly "
-        "have that many worth a fan's attention — otherwise give one, or just say it's a quiet "
-        "day. Under 110 words. Plain text, no markdown headers, no invented facts."
-    )
-
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
-    resp = client.messages.create(
-        model=MODEL,
-        # Sonnet 5 thinks by default (adaptive), and thinking tokens count against
-        # max_tokens. Keep the budget high enough that reasoning never starves the
-        # actual briefing text (a small budget returned empty briefings).
-        max_tokens=2000,
-        thinking={"type": "adaptive"},
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    briefing = "".join(b.text for b in resp.content if b.type == "text").strip()
 
-    if not briefing:
-        die("Claude returned an empty briefing.")
+    # Try with web search; if the tool is unavailable, fall back to headline-only.
+    text, searches, usage = "", 0, None
+    for use_search in (True, False):
+        try:
+            text, searches, usage = call_model(client, context, use_search)
+            if text:
+                break
+        except Exception as e:
+            print(f"    ({'with' if use_search else 'no'} search failed: {str(e)[:120]})")
+            continue
 
+    obj = extract_json(text)
+    if not obj:
+        die("Claude returned no parseable briefing JSON.")
+    intro, sections = clean_sections(obj)
+    if not sections:
+        die("Briefing had no valid sport sections.")
+
+    content = to_plaintext(intro, sections)
     today = date.today().isoformat()
-    sb.table("daily_briefings").upsert({"date": today, "content": briefing}, on_conflict="date").execute()
+    sb.table("daily_briefings").upsert(
+        {"date": today, "content": content, "sections": {"intro": intro, "sections": sections}},
+        on_conflict="date",
+    ).execute()
 
-    print(f"Daily Briefing ({today}) — {MODEL}\n" + "-" * 60)
-    print(briefing)
+    print(f"Daily Briefing ({today}) — {MODEL}, {searches} searches\n" + "-" * 60)
+    print(intro)
+    for sec in sections:
+        print(f"\n{SPORT_NAME[sec['sport']].upper()}")
+        for it in sec["items"]:
+            print(f"  • {it['topic']}: {it['body']}")
     print("-" * 60)
-    print(f"\n[OK] Briefing stored. (tokens: {resp.usage.input_tokens} in / {resp.usage.output_tokens} out)")
+    if usage:
+        print(f"\n[OK] Briefing stored. (tokens: {usage.input_tokens} in / {usage.output_tokens} out)")
 
 
 if __name__ == "__main__":

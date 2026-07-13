@@ -17,6 +17,7 @@ import { Card, RidgeMark, SectionLabel, Sparkline, TrendTag, Wordmark } from '@/
 import { Brand, Elevation, Font, Gradients, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
+import { Briefing } from '@/lib/types';
 
 const c = surfaces(true);
 
@@ -39,7 +40,6 @@ type Snapshot = {
   drivers: Driver[] | null;
 };
 type Overall = { date: string; score: number; summary: string | null };
-type Briefing = { date: string; content: string };
 type Rec = { w: number; l: number; season: number };
 
 function todayLabel() {
@@ -193,13 +193,38 @@ export default function PulseScreen() {
         <Sparkline data={overallSeries} color={Brand.gold} width={140} height={68} />
       </LinearGradient>
 
-      {/* Daily briefing */}
+      {/* Daily briefing — per-sport sections when available, else plain text */}
       {briefing && (
         <Card style={styles.briefing}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <SectionLabel>Daily Briefing</SectionLabel>
           </View>
-          <Text style={styles.briefingBody}>{briefing.content}</Text>
+          {briefing.sections?.sections?.length ? (
+            <>
+              {briefing.sections.intro ? (
+                <Text style={styles.briefingIntro}>{briefing.sections.intro}</Text>
+              ) : null}
+              {briefing.sections.sections.map((sec) => (
+                <View key={sec.sport} style={styles.briefSport}>
+                  <View style={styles.briefSportHead}>
+                    <Text style={{ fontSize: 15 }}>{SPORT_EMOJI[sec.sport] ?? '•'}</Text>
+                    <Text style={styles.briefSportName}>{SPORT_NAME[sec.sport] ?? sec.sport}</Text>
+                  </View>
+                  {sec.items.map((it, i) => (
+                    <View key={i} style={styles.briefItem}>
+                      <View style={styles.briefBullet} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.briefTopic}>{it.topic}</Text>
+                        <Text style={styles.briefBody}>{it.body}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </>
+          ) : (
+            <Text style={styles.briefingBody}>{briefing.content}</Text>
+          )}
         </Card>
       )}
 
@@ -244,14 +269,16 @@ export default function PulseScreen() {
                 <View style={styles.driverRow}>
                   {s.drivers.slice(0, 2).map((d, i) => {
                     const pos = (d.delta ?? 0) >= 0;
-                    const isNews = d.kind === 'news' || d.kind === 'rank';
+                    // Ranking is a neutral status chip; everything else (incl. news)
+                    // is colored by its signed delta — so bad news reads red.
+                    const neutral = d.kind === 'rank';
                     return (
                       <View
                         key={i}
                         style={[
                           styles.driverChip,
                           {
-                            backgroundColor: isNews
+                            backgroundColor: neutral
                               ? c.surface2
                               : pos
                                 ? Brand.greenTint
@@ -262,7 +289,7 @@ export default function PulseScreen() {
                           style={{
                             fontFamily: Font.bodyBold,
                             fontSize: 10,
-                            color: isNews ? c.textSecondary : pos ? Brand.green : Brand.red,
+                            color: neutral ? c.textSecondary : pos ? Brand.green : Brand.red,
                           }}>
                           {d.label}
                         </Text>
@@ -332,6 +359,14 @@ const styles = StyleSheet.create({
   heroOutOf: { fontSize: 13, color: c.blueLabel },
   briefing: { padding: 18, marginTop: 14 },
   briefingBody: { fontFamily: Font.body, fontSize: 14, lineHeight: 21, color: c.textSecondary, marginTop: 8 },
+  briefingIntro: { fontFamily: Font.bodyMed, fontSize: 14, lineHeight: 21, color: c.text, marginTop: 10 },
+  briefSport: { marginTop: 16 },
+  briefSportHead: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 8 },
+  briefSportName: { fontFamily: Font.display, fontSize: 14, color: Brand.gold, letterSpacing: 0.2 },
+  briefItem: { flexDirection: 'row', gap: 9, marginBottom: 10 },
+  briefBullet: { width: 5, height: 5, borderRadius: 3, backgroundColor: Brand.gold, marginTop: 7 },
+  briefTopic: { fontFamily: Font.bodyBold, fontSize: 13.5, color: c.text, marginBottom: 2 },
+  briefBody: { fontFamily: Font.body, fontSize: 13, lineHeight: 19, color: c.textSecondary },
   sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 22, marginBottom: 10 },
   sectionTitle: { fontFamily: Font.display, fontSize: 18, color: c.text, letterSpacing: -0.3 },
   sportCard: {

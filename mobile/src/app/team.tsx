@@ -145,6 +145,7 @@ type RosterItem = Player & {
   fromSchool?: string | null;
   moveCategory?: string | null;
   note?: string | null;
+  alert?: string | null;
 };
 
 function normName(n: string): string {
@@ -182,6 +183,7 @@ function synthFromMove(m: RosterMove, sport: string): RosterItem {
     fromSchool: m.other_school,
     moveCategory: m.category,
     note: m.notes,
+    alert: m.alert,
   };
 }
 
@@ -419,7 +421,7 @@ function RosterSection({
     incoming = inMoves.map((m) => {
       const rp = rosterByName.get(normName(m.player_name));
       return rp
-        ? { ...rp, incoming: true, fromSchool: m.other_school, moveCategory: m.category, note: m.notes }
+        ? { ...rp, incoming: true, fromSchool: m.other_school, moveCategory: m.category, note: m.notes, alert: m.alert }
         : synthFromMove(m, sport);
     });
   }
@@ -478,6 +480,12 @@ function RosterRow({ player, c, onPick }: { player: RosterItem; c: ReturnType<ty
           {meta}
           {player.incoming && player.fromSchool ? `  ·  from ${player.fromSchool}` : ''}
         </Text>
+        {player.alert ? (
+          <View style={styles.alertPill}>
+            <Ionicons name="warning-outline" size={11} color={Brand.gold} />
+            <Text style={styles.alertText} numberOfLines={3}>{player.alert}</Text>
+          </View>
+        ) : null}
       </View>
       {player.incoming ? (
         <View style={[styles.incTag, { borderColor: Brand.win }]}>
@@ -620,6 +628,12 @@ function DepthPositionCard({
                   <Text style={[styles.depthNoteLine, { color: c.textSecondary }]} numberOfLines={2}>
                     {p.note}
                   </Text>
+                ) : null}
+                {p.alert ? (
+                  <View style={styles.alertPill}>
+                    <Ionicons name="warning-outline" size={11} color={Brand.gold} />
+                    <Text style={styles.alertText} numberOfLines={3}>{p.alert}</Text>
+                  </View>
                 ) : null}
               </View>
               {isProj && <Text style={styles.projTag}>proj. start</Text>}
@@ -898,6 +912,19 @@ const styles = StyleSheet.create({
   depthRankText: { fontSize: 12, fontFamily: Font.bodyBold },
   depthName: { fontSize: 14, fontFamily: Font.bodySemi },
   depthNoteLine: { fontSize: 11, marginTop: 2, lineHeight: 15, fontFamily: Font.body },
+  alertPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
+    marginTop: 6,
+    backgroundColor: Brand.goldTint,
+    borderWidth: 1,
+    borderColor: Brand.goldBorder,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  alertText: { flex: 1, fontSize: 11, lineHeight: 15, color: Brand.gold, fontFamily: Font.bodySemi },
   projTag: { color: Brand.gold, fontSize: 10, fontFamily: Font.bodyBold },
   statusBadge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
   statusText: { color: '#fff', fontSize: 10, fontFamily: Font.bodyBold },

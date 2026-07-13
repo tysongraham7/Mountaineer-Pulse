@@ -9,7 +9,7 @@
     "player_name": "Armani Guzman",
     "class_year": "",
     "status": "active",
-    "note": "Returning starter — pending MLB Draft"
+    "note": "Returning starter — announced return to WVU"
   },
   {
     "sport_id": "baseball",
@@ -105,7 +105,8 @@
     "player_name": "Owen Henne",
     "class_year": "",
     "status": "active",
-    "note": "Transfer (Seton Hill) — .401; SS spot fluid (Henne/Robaugh)"
+    "note": "Transfer (Seton Hill) — .401; SS spot fluid (Henne/Robaugh)",
+    "alert": "Drafted by StL Cardinals — likely to sign pro & leave WVU; has until Jul 27 to decide"
   },
   {
     "sport_id": "baseball",

@@ -160,9 +160,12 @@ create policy "public read overall" on pulse_overall   for select using (true);
 create table if not exists daily_briefings (
   id           bigserial primary key,
   date         date not null unique,
-  content      text not null,
+  content      text not null,             -- plain-text fallback (assembled from sections)
+  sections     jsonb,                     -- [{sport, items:[{topic, body}]}] per-sport briefing
   generated_at timestamptz default now()
 );
+
+alter table daily_briefings add column if not exists sections jsonb;
 
 alter table daily_briefings enable row level security;
 create policy "public read briefings" on daily_briefings for select using (true);
@@ -175,13 +178,21 @@ create policy "public read briefings" on daily_briefings for select using (true)
 -- ONLY kind allowed to bump the Pulse score (routine notes show but don't move it).
 -- ---------------------------------------------------------------------------
 create table if not exists daily_sport_notes (
-  id         text primary key,            -- sport|date
+  id         text primary key,            -- sport|date  (curated events use sport|date|c)
   sport_id   text references sports(id),
   date       date not null,
   note       text not null,
-  hype       boolean not null default false,  -- true = big news, feeds the Pulse bump
+  hype       boolean not null default false,  -- true = notable (legacy marker)
+  pulse_delta int not null default 0,      -- SIGNED Pulse move this note contributes.
+                                           -- AI daily notes: small nudges (-2..+2).
+                                           -- Curated big events (Henne draft): exact,
+                                           -- hand-set (e.g. -4), id suffixed |c. Non-
+                                           -- decaying: it holds until a later note offsets
+                                           -- it (e.g. a +4 note the day a player returns).
   created_at timestamptz default now()
 );
+
+alter table daily_sport_notes add column if not exists pulse_delta int not null default 0;
 
 create index if not exists daily_sport_notes_idx on daily_sport_notes (sport_id, date);
 
@@ -207,8 +218,11 @@ create table if not exists roster_moves (
   source_url   text,
   notes        text,
   impact       text,                      -- 'high' = marquee add (5-star/high-major), weighs more in the Pulse
+  alert        text,                      -- short amber notice on the player's card (e.g. Henne likely to sign pro)
   created_at   timestamptz default now()
 );
+
+alter table roster_moves add column if not exists alert text;
 
 alter table roster_moves enable row level security;
 create policy "public read moves" on roster_moves for select using (true);
@@ -230,8 +244,11 @@ create table if not exists depth_chart (
   class_year  text,
   status      text default 'active',      -- active | questionable | doubtful | out
   note        text,
+  alert       text,                       -- short amber notice on the depth card (e.g. Henne likely to sign pro)
   updated_at  timestamptz default now()
 );
+
+alter table depth_chart add column if not exists alert text;
 
 alter table depth_chart enable row level security;
 create policy "public read depth" on depth_chart for select using (true);

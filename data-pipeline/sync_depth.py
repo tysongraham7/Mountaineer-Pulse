@@ -65,6 +65,7 @@ def main() -> None:
             "class_year": e.get("class_year") or None,
             "status": status,
             "note": e.get("note") or None,
+            "alert": e.get("alert") or None,
         })
 
     if rows:

@@ -18,7 +18,7 @@ from datetime import date, datetime
 from dotenv import load_dotenv
 from supabase import create_client
 
-from pulse_model import (is_postseason, national_rank, news_hype, pulse_score,
+from pulse_model import (is_postseason, national_rank, news_delta, pulse_score,
                          trend_of, wvu_won)
 
 load_dotenv()
@@ -65,11 +65,11 @@ def main() -> None:
         for m in moves:
             m["_d"] = to_date(m["move_date"])
 
-        note_rows = sb.table("daily_sport_notes").select("date,hype").eq("sport_id", sport).execute().data
-        # Every note day gets a chart point (so the line's note is hoverable); only
-        # BIG news (hype=true) actually bumps the Pulse score.
+        note_rows = sb.table("daily_sport_notes").select("date,pulse_delta").eq("sport_id", sport).execute().data
+        # Every note day gets a chart point (so the line's note is hoverable); the
+        # SIGNED pulse_delta of each note moves the score (up or down) and holds.
         note_dates = [d for d in (to_date(r["date"]) for r in note_rows) if d]
-        hype_dates = [d for d in (to_date(r["date"]) for r in note_rows if r.get("hype")) if d]
+        note_deltas = [(to_date(r["date"]), r.get("pulse_delta") or 0) for r in note_rows if to_date(r["date"])]
 
         rank = national_rank(sport)  # constant caliber across the season (blended in)
 
@@ -89,8 +89,8 @@ def main() -> None:
             post_games = [g for g in games_to if is_postseason(sport, g["_d"])]
             post_wins = sum(1 for g in post_games if wvu_won(g))
             post_losses = len(post_games) - post_wins
-            hype = news_hype(hype_dates, d)
-            score = pulse_score(sport, w, l, rank, reg, moves_to, post_wins, post_losses, hype)
+            news = news_delta(note_deltas, d)
+            score = pulse_score(sport, w, l, rank, reg, moves_to, post_wins, post_losses, news)
             rows.append({"sport_id": sport, "date": d.isoformat(), "score": score, "trend": trend_of(reg)})
 
         # Rebuild from scratch so stale points (old/redated moves) don't linger.

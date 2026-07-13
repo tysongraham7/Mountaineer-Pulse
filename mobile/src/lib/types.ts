@@ -43,6 +43,7 @@ export type DepthEntry = {
   class_year: string | null;
   status: string | null; // active | questionable | doubtful | out
   note: string | null;
+  alert: string | null; // short amber notice (e.g. drafted, likely to leave)
 };
 
 export type RosterMove = {
@@ -59,6 +60,19 @@ export type RosterMove = {
   source_name: string | null;
   source_url: string | null;
   notes: string | null;
+  impact: string | null; // 'high' = marquee
+  alert: string | null; // short amber notice (e.g. drafted, likely to leave)
+};
+
+// Per-sport daily briefing (research-backed). `sections` is the structured form;
+// `content` is a plain-text fallback for older clients.
+export type BriefingItem = { topic: string; body: string };
+export type BriefingSection = { sport: string; items: BriefingItem[] };
+export type BriefingSections = { intro: string; sections: BriefingSection[] };
+export type Briefing = {
+  date: string;
+  content: string;
+  sections: BriefingSections | null;
 };
 
 export type PlayerStat = {
