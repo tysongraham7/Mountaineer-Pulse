@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
   depthNote: { fontSize: 11, fontStyle: 'italic', marginTop: 10, marginBottom: 6, color: c.textMuted, fontFamily: Font.body },
   unitLabel: { color: Brand.gold, fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 14, marginBottom: 8 },
   depthCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 8 },
-  depthPos: { width: 40, fontSize: 15, fontFamily: Font.black, color: Brand.gold, paddingTop: 2 },
+  depthPos: { width: 54, fontSize: 13, fontFamily: Font.black, color: Brand.gold, paddingTop: 3 },
   depthPlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
   depthRank: { width: 20, height: 20, borderRadius: 6, alignItems: 'center', justifyContent: 'center' },
   depthRankText: { fontSize: 12, fontFamily: Font.bodyBold },
