@@ -68,6 +68,12 @@ IMPACT_MULT = 1.7  # a marquee move (impact="high") weighs more — a 5-star add
 # still shows on the graph, but a full reload doesn't pin an elite team at 99.
 SPORT_ROSTER_MULT = {"football": 1.0, "mbb": 1.8, "baseball": 0.7}
 
+# Founder-tuned baseline offset applied to a sport's WHOLE line (every point).
+# Baseball +9 lifts the CWS-caliber program so its World Series peak reads ~95.
+# NOTE: this stacks on the anchor, so when a sport is back IN season and ranked,
+# revisit it — a ranked anchor + this offset can push toward the 99 cap.
+SPORT_BASELINE = {"baseball": 9.0}
+
 
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
@@ -172,5 +178,6 @@ def trend_of(reg: list) -> str:
 
 def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, news=0.0) -> int:
     raw = (anchor_score(sport, w, l, rank) + form_adj(reg)
-           + roster_delta(moves, sport) + surge(post_wins, post_losses) + news)
+           + roster_delta(moves, sport) + surge(post_wins, post_losses) + news
+           + SPORT_BASELINE.get(sport, 0.0))
     return int(round(clamp(raw, 5, 99)))
