@@ -117,7 +117,11 @@ def main() -> None:
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=700,
+        # Sonnet 5 thinks by default (adaptive), and thinking tokens count against
+        # max_tokens. Keep the budget high enough that reasoning never starves the
+        # actual briefing text (a small budget returned empty briefings).
+        max_tokens=2000,
+        thinking={"type": "adaptive"},
         system=system,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -133,8 +137,6 @@ def main() -> None:
     print(briefing)
     print("-" * 60)
     print(f"\n[OK] Briefing stored. (tokens: {resp.usage.input_tokens} in / {resp.usage.output_tokens} out)")
-
-    generate_sport_notes(client, sb, today)
 
 
 if __name__ == "__main__":
