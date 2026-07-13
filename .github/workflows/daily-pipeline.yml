@@ -29,44 +29,65 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # --- Data collection: one flaky external API must not blank the whole app.
+      # continue-on-error lets the run push through to the Pulse + briefing below
+      # on whatever data succeeded. A failed sync shows a yellow warning in the
+      # Actions tab (glance there occasionally) but doesn't abort the day.
       - name: Football data (CFBD)
         run: python sync_football.py
+        continue-on-error: true
 
       - name: Basketball + Baseball data (ESPN)
         run: python sync_espn.py
+        continue-on-error: true
 
       - name: Rosters (wvusports.com)
         run: python sync_rosters.py
+        continue-on-error: true
 
       - name: News feed (Google News)
         run: python sync_news.py
+        continue-on-error: true
 
       - name: Roster movement (curated)
         run: python sync_moves.py
+        continue-on-error: true
 
       - name: Football transfers (CFBD portal)
         run: python sync_transfers.py
+        continue-on-error: true
 
       - name: Football player stats (CFBD)
         run: python sync_player_stats.py
+        continue-on-error: true
 
       - name: Baseball player stats (NCAA API)
         run: python sync_baseball.py
+        continue-on-error: true
 
       - name: Basketball player stats (CollegeBasketballData)
         run: python sync_basketball.py
+        continue-on-error: true
 
       - name: Depth chart
         run: python sync_depth.py
+        continue-on-error: true
 
+      # --- Output layer: these must succeed. If one hard-fails, GitHub emails you.
+      # `if: ${{ !cancelled() }}` guarantees they still run even if a sync above
+      # errored, so the app always gets a fresh Pulse + briefing.
       - name: Per-sport news notes (feeds Pulse note + hype)
+        if: ${{ !cancelled() }}
         run: python sync_sport_notes.py
 
       - name: Backfill Pulse history (chart reflects games + moves)
+        if: ${{ !cancelled() }}
         run: python backfill_pulse.py
 
       - name: Compute Mountaineer Pulse
+        if: ${{ !cancelled() }}
         run: python compute_pulse.py
 
       - name: Daily AI Briefing
+        if: ${{ !cancelled() }}
         run: python generate_briefing.py
