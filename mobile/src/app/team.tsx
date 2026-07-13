@@ -880,8 +880,8 @@ const styles = StyleSheet.create({
   incTagText: { fontSize: 10, fontFamily: Font.bodyBold },
   // depth chart
   depthNote: { fontSize: 11, fontStyle: 'italic', marginTop: 10, marginBottom: 6, color: c.textMuted, fontFamily: Font.body },
-  unitLabel: { color: Brand.gold, fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 18, marginBottom: 4 },
-  groupLabel: { fontFamily: Font.display, fontSize: 18, color: c.text, letterSpacing: -0.3, marginTop: 16, marginBottom: 8 },
+  unitLabel: { color: Brand.gold, fontSize: 21, fontFamily: Font.display, letterSpacing: 0.3, marginTop: 24, marginBottom: 4 },
+  groupLabel: { fontFamily: Font.display, fontSize: 16, color: c.text, letterSpacing: -0.2, marginTop: 16, marginBottom: 8 },
   depthCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 8 },
   depthPos: { width: 54, fontSize: 13, fontFamily: Font.black, color: Brand.gold, paddingTop: 3 },
   depthPlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
