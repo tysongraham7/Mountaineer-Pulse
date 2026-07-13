@@ -15,7 +15,7 @@ Score = anchor (national standing) + form (recent games) + roster (moves) + surg
   * roster  - portal/recruiting/eligibility moves, weighted & capped (+/-24).
   * surge   - NET postseason result (wins - losses), so a deep run that ends in a
               loss pulls the score back instead of only ratcheting up.
-  * hype    - a decaying bump for notable news (an honor, a big commit, a ranking).
+  * hype    - a small, HELD bump (+2 each, capped +4) for really-good news; no fade.
 """
 
 import requests
@@ -121,23 +121,19 @@ def surge(post_wins: int, post_losses: int) -> float:
     return clamp((post_wins - post_losses) * 1.5, -10.0, 12.0)
 
 
-# Hype: a notable news item (an honor, a big commit, a ranking) gives a temporary
-# bump that fades over a few days — the buzz, not a permanent caliber change.
-NEWS_BUMP = 3.0
-NEWS_DECAY_DAYS = 6
-NEWS_HYPE_CAP = 8.0
+# Hype: a really-good-news day (a major honor, a top-25 ranking, a marquee win)
+# nudges the score up a little and it HOLDS — no fade-down, so there's never a
+# "hype drop". Small and bounded so news never dominates the tangible factors.
+NEWS_BUMP = 2.0
+NEWS_HYPE_CAP = 4.0
 
 
 def news_hype(note_dates: list, as_of) -> float:
-    """Sum the decaying bump of each notable news day up to `as_of` (both dates)."""
-    total = 0.0
-    for nd in note_dates:
-        if nd is None:
-            continue
-        age = (as_of - nd).days
-        if 0 <= age < NEWS_DECAY_DAYS:
-            total += NEWS_BUMP * (1.0 - age / NEWS_DECAY_DAYS)
-    return min(total, NEWS_HYPE_CAP)
+    """Small, NON-decaying bump for really-good-news days up to `as_of`. Each such
+    day adds NEWS_BUMP and it stays; the score only comes off it when a real event
+    (a loss, a departure) moves the other components. Capped so it can't run away."""
+    n = sum(1 for nd in note_dates if nd is not None and nd <= as_of)
+    return min(n * NEWS_BUMP, NEWS_HYPE_CAP)
 
 
 def trend_of(reg: list) -> str:
