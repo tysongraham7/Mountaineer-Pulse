@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SectionLabel, Segmented } from '@/components/ui';
+import { SectionLabel, Segmented, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 import { Game } from '@/lib/types';
@@ -22,7 +22,6 @@ const FILTERS = [
   { key: 'mbb', label: 'Basketball' },
   { key: 'baseball', label: 'Baseball' },
 ];
-const SPORT_EMOJI: Record<string, string> = { football: '🏈', mbb: '🏀', baseball: '⚾' };
 const RESULTS_LIMIT = 60;
 
 function formatDate(iso: string | null): string {
@@ -119,11 +118,10 @@ export default function ScoresScreen() {
 
 function GameCard({ game, showTag }: { game: Game; showTag: boolean }) {
   const p = fromWvuView(game);
-  const emoji = SPORT_EMOJI[game.sport_id] ?? '•';
   return (
     <View style={styles.card}>
       <View style={styles.tile}>
-        <Text style={{ fontSize: 17 }}>{emoji}</Text>
+        <SportIcon sport={game.sport_id} size={20} color={Brand.gold} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.matchup} numberOfLines={1}>

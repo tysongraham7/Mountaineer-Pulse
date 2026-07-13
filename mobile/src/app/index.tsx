@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PulseDetail } from '@/components/pulse-detail';
-import { Card, RidgeMark, SectionLabel, Sparkline, TrendTag, Wordmark } from '@/components/ui';
+import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
@@ -25,7 +25,6 @@ const SPORT_NAME: Record<string, string> = {
   mbb: "Men's Basketball",
   baseball: 'Baseball',
 };
-const SPORT_EMOJI: Record<string, string> = { football: '🏈', mbb: '🏀', baseball: '⚾' };
 const SPORT_ORDER = ['football', 'mbb', 'baseball'];
 
 type Driver = { label: string; delta?: number; kind: string };
@@ -166,7 +165,7 @@ export default function PulseScreen() {
               {briefing.sections.sections.map((sec) => (
                 <View key={sec.sport} style={styles.briefSport}>
                   <View style={styles.briefSportHead}>
-                    <Text style={{ fontSize: 15 }}>{SPORT_EMOJI[sec.sport] ?? '•'}</Text>
+                    <SportIcon sport={sec.sport} size={15} color={Brand.gold} />
                     <Text style={styles.briefSportName}>{SPORT_NAME[sec.sport] ?? sec.sport}</Text>
                   </View>
                   {sec.items.map((it, i) => (
@@ -216,7 +215,7 @@ export default function PulseScreen() {
                   ? { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }
                   : { backgroundColor: 'rgba(159,180,206,0.07)', borderColor: 'rgba(159,180,206,0.14)' },
               ]}>
-              <Text style={{ fontSize: 19 }}>{SPORT_EMOJI[sport]}</Text>
+              <SportIcon sport={sport} size={22} color={goldTile ? Brand.gold : c.blueLabel} />
             </View>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

@@ -2,16 +2,16 @@ import Constants from 'expo-constants';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { RidgeMark, SectionLabel } from '@/components/ui';
+import { RidgeMark, SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
 
 const c = surfaces(true);
 
 const SPORTS = [
-  { id: 'football', name: 'Football', emoji: '🏈', gold: true },
-  { id: 'mbb', name: "Men's Basketball", emoji: '🏀', gold: false },
-  { id: 'baseball', name: 'Baseball', emoji: '⚾', gold: true },
+  { id: 'football', name: 'Football', gold: true },
+  { id: 'mbb', name: "Men's Basketball", gold: false },
+  { id: 'baseball', name: 'Baseball', gold: true },
 ];
 
 export default function YouScreen() {
@@ -44,7 +44,7 @@ export default function YouScreen() {
                     ? { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }
                     : { backgroundColor: 'rgba(159,180,206,0.07)', borderColor: 'rgba(159,180,206,0.14)' },
                 ]}>
-                <Text style={{ fontSize: 16 }}>{s.emoji}</Text>
+                <SportIcon sport={s.id} size={18} color={s.gold ? Brand.gold : c.blueLabel} />
               </View>
               <Text style={styles.rowLabel}>{s.name}</Text>
               <Text style={{ fontSize: 17, color: on ? Brand.gold : '#3A4658' }}>{on ? '★' : '☆'}</Text>

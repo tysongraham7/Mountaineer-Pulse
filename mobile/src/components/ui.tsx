@@ -1,5 +1,6 @@
 // Shared 2C design-system primitives, so every screen composes the same
 // section labels, segmented controls, sparklines, chips and logo mark.
+import { Ionicons } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Svg, { Path, Polyline } from 'react-native-svg';
@@ -7,6 +8,26 @@ import Svg, { Path, Polyline } from 'react-native-svg';
 import { Brand, Font, surfaces } from '@/constants/brand';
 
 const c = surfaces(true);
+
+// Professional per-sport icons (Ionicons, tintable) — one source of truth so
+// every tile across the app shows the same mark. Replaces the old emoji.
+const SPORT_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  football: 'american-football',
+  mbb: 'basketball',
+  baseball: 'baseball',
+};
+
+export function SportIcon({
+  sport,
+  size = 18,
+  color = Brand.gold,
+}: {
+  sport: string;
+  size?: number;
+  color?: string;
+}) {
+  return <Ionicons name={SPORT_ICON[sport] ?? 'ellipse'} size={size} color={color} />;
+}
 
 // The ridge-pulse brand mark (swaps for the Flying WV once cleared).
 // `boxed` (default) draws the dashed logo tile for headers; `boxed={false}` renders
