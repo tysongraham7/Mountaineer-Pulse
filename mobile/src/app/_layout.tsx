@@ -17,6 +17,7 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Text, View } from 'react-native';
 
+import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { FavoritesProvider } from '@/lib/favorites';
 
@@ -65,7 +66,7 @@ export default function RootLayout() {
             name="index"
             options={{
               title: 'Pulse',
-              tabBarIcon: ({ color, size }) => <Ionicons name="pulse" size={size} color={color} />,
+              tabBarIcon: ({ color, size }) => <RidgeMark size={size + 3} color={color} boxed={false} />,
             }}
           />
           <Tabs.Screen

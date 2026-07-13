@@ -9,14 +9,35 @@ import { Brand, Font, surfaces } from '@/constants/brand';
 const c = surfaces(true);
 
 // The ridge-pulse brand mark (swaps for the Flying WV once cleared).
-export function RidgeMark({ size = 34 }: { size?: number }) {
-  const w = size;
-  const h = Math.round(size * 0.6);
+// `boxed` (default) draws the dashed logo tile for headers; `boxed={false}` renders
+// just the waveform glyph — used as the Pulse tab icon, tinted by the tab color.
+export function RidgeMark({
+  size = 34,
+  color = Brand.gold,
+  boxed = true,
+}: {
+  size?: number;
+  color?: string;
+  boxed?: boolean;
+}) {
+  const wave = (glyphW: number, sw: number) => (
+    <Svg width={glyphW} height={glyphW * 0.6} viewBox="0 0 24 14">
+      <Path
+        d="M1,12 L6,4 L9,9 L12,2 L14,12 L17,7 L23,7"
+        fill="none"
+        stroke={color}
+        strokeWidth={sw}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+  if (!boxed) return wave(size, 2.4);
   return (
     <View
       style={{
-        width: w,
-        height: w,
+        width: size,
+        height: size,
         borderRadius: Math.round(size * 0.26),
         borderWidth: 1.5,
         borderColor: 'rgba(234,170,0,0.5)',
@@ -24,16 +45,7 @@ export function RidgeMark({ size = 34 }: { size?: number }) {
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-      <Svg width={h} height={h * 0.6} viewBox="0 0 24 14">
-        <Path
-          d="M1,12 L6,4 L9,9 L12,2 L14,12 L17,7 L23,7"
-          fill="none"
-          stroke={Brand.gold}
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </Svg>
+      {wave(Math.round(size * 0.6), 1.8)}
     </View>
   );
 }
