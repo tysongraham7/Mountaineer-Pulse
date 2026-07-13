@@ -522,6 +522,36 @@
   },
   {
     "sport_id": "baseball",
+    "player_name": "Dawson Montesa",
+    "position": "RHP",
+    "class_year": "Jr",
+    "direction": "out",
+    "category": "draft",
+    "status": "drafted",
+    "other_school": "St. Louis Cardinals",
+    "move_date": "2026-07-12",
+    "source_name": "WVU Athletics",
+    "source_url": "",
+    "notes": "Day 1 MLB Draft pick (No. 72 overall); weekend rotation arm gone early",
+    "impact": "high"
+  },
+  {
+    "sport_id": "baseball",
+    "player_name": "Maxx Yehl",
+    "position": "RHP",
+    "class_year": "Jr",
+    "direction": "out",
+    "category": "draft",
+    "status": "drafted",
+    "other_school": "MLB",
+    "move_date": "2026-07-12",
+    "source_name": "WVU Athletics",
+    "source_url": "",
+    "notes": "3rd-round MLB Draft pick; rotation starter leaving early",
+    "impact": "high"
+  },
+  {
+    "sport_id": "baseball",
     "player_name": "Ian Korn",
     "position": "RHP",
     "class_year": "Sr",
@@ -532,7 +562,8 @@
     "move_date": "2026-06-23",
     "source_name": "CollegeNetWorth",
     "source_url": "",
-    "notes": ""
+    "notes": "Drafted by the Giants; rotation starter",
+    "impact": "high"
   },
   {
     "sport_id": "baseball",
@@ -616,7 +647,8 @@
     "move_date": "2026-06-23",
     "source_name": "CollegeNetWorth",
     "source_url": "",
-    "notes": ""
+    "notes": "Drafted (8th round); everyday outfielder",
+    "impact": "high"
   },
   {
     "sport_id": "baseball",

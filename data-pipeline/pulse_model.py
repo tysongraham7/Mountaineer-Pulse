@@ -52,10 +52,15 @@ CAT_WEIGHT = {
     ("transfer", "in"): 1.0, ("transfer", "out"): -0.4,
     ("juco", "in"): 0.8,
     ("recruit", "in"): 0.7, ("hs", "in"): 0.7,
-    ("graduation", "out"): -0.2, ("eligibility", "out"): -0.2, ("draft", "out"): -0.25,
+    # Losing a PROVEN player (a graduating/eligibility-exhausted starter, or an
+    # underclassman leaving early for the pro draft) is a real subtraction — heavier
+    # than a portal-out (often depth). Draft-outs weigh most: you only lose your best
+    # players that way. Transfer-out stays modest so a high-portal-churn football
+    # roster isn't over-penalized (its departures are almost all transfers).
+    ("graduation", "out"): -0.6, ("eligibility", "out"): -0.6, ("draft", "out"): -1.0,
 }
 ROSTER_CAP = 24.0  # max +/- the roster component can swing the score
-IMPACT_MULT = 1.7  # a marquee addition (impact="high") weighs more than a depth piece
+IMPACT_MULT = 1.7  # a marquee move (impact="high") weighs more — a 5-star add OR a drafted/star loss
 
 # Per-sport roster-move weighting. Basketball (~13-15 players, 5 starters) weighs
 # each move MORE than football (85). Baseball reloads a huge chunk of its roster
@@ -124,8 +129,8 @@ def roster_delta(moves: list, sport: str = "football") -> float:
     total = 0.0
     for m in moves:
         w = CAT_WEIGHT.get((m.get("category") or "transfer", m.get("direction")), 0.0)
-        if m.get("impact") == "high" and m.get("direction") == "in":
-            w *= IMPACT_MULT  # a 5-star / high-major starter moves the needle more
+        if m.get("impact") == "high":
+            w *= IMPACT_MULT  # a marquee add OR a marquee/drafted loss moves the needle more
         total += w
     total *= SPORT_ROSTER_MULT.get(sport, 1.0)
     return clamp(total, -ROSTER_CAP, ROSTER_CAP)
