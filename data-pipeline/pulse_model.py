@@ -54,6 +54,12 @@ CAT_WEIGHT = {
 }
 ROSTER_CAP = 24.0  # max +/- the roster component can swing the score
 
+# Per-sport roster-move weighting. Basketball (~13-15 players, 5 starters) weighs
+# each move MORE than football (85). Baseball reloads a huge chunk of its roster
+# every year (JUCO + portal + HS), so each move is weighted lighter — the class
+# still shows on the graph, but a full reload doesn't pin an elite team at 99.
+SPORT_ROSTER_MULT = {"football": 1.0, "mbb": 1.8, "baseball": 0.7}
+
 
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
@@ -109,9 +115,10 @@ def form_adj(reg: list) -> float:
     return clamp((recent - season) * 24.0, -6.0, 6.0)
 
 
-def roster_delta(moves: list) -> float:
-    """moves: dicts with 'direction' and 'category'. Weighted & capped."""
+def roster_delta(moves: list, sport: str = "football") -> float:
+    """moves: dicts with 'direction' and 'category'. Weighted, sport-scaled & capped."""
     d = sum(CAT_WEIGHT.get((m.get("category") or "transfer", m.get("direction")), 0.0) for m in moves)
+    d *= SPORT_ROSTER_MULT.get(sport, 1.0)
     return clamp(d, -ROSTER_CAP, ROSTER_CAP)
 
 
@@ -148,5 +155,5 @@ def trend_of(reg: list) -> str:
 
 def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, hype=0.0) -> int:
     raw = (anchor_score(sport, w, l, rank) + form_adj(reg)
-           + roster_delta(moves) + surge(post_wins, post_losses) + hype)
+           + roster_delta(moves, sport) + surge(post_wins, post_losses) + hype)
     return int(round(clamp(raw, 5, 99)))
