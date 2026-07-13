@@ -101,6 +101,20 @@ const STATUS_META: Record<string, { label: string; color: string }> = {
   out: { label: 'OUT', color: Brand.loss },
 };
 
+// Football depth: individual positions roll up into a big position-group label.
+const FB_GROUP: Record<string, string> = {
+  QB: 'Quarterbacks',
+  RB: 'Running Backs', FB: 'Running Backs',
+  SE: 'Receivers', FL: 'Receivers', SLOT: 'Receivers',
+  TE: 'Tight Ends',
+  LT: 'Offensive Line', LG: 'Offensive Line', C: 'Offensive Line', RG: 'Offensive Line', RT: 'Offensive Line',
+  DE: 'Defensive Line', DT: 'Defensive Line', NT: 'Defensive Line', BAN: 'Defensive Line',
+  MIKE: 'Linebackers', OLB: 'Linebackers',
+  CB1: 'Cornerbacks', CB2: 'Cornerbacks',
+  FS: 'Safety', SS: 'Safety', NKL: 'Safety',
+  PK: 'Specialists', P: 'Specialists', LS: 'Specialists',
+};
+
 const CATEGORY_LABEL: Record<string, string> = {
   transfer: 'Transfer',
   juco: 'JUCO',
@@ -529,12 +543,23 @@ function DepthChartSection({
           slots.get(key)!.push(e);
         }
         const slotList = [...slots.entries()].sort((a, b) => a[0] - b[0]);
+        // Insert a big position-group header (Running Backs, Receivers, …) whenever
+        // the group changes. Positions with no group (basketball/baseball) stay flat.
+        let lastGroup: string | undefined;
         return (
           <View key={unit || 'x'}>
             {unit ? <Text style={styles.unitLabel}>{unit.toUpperCase()}</Text> : null}
-            {slotList.map(([order, ps]) => (
-              <DepthPositionCard key={order} position={ps[0].position} players={ps} c={c} />
-            ))}
+            {slotList.map(([order, ps]) => {
+              const group = FB_GROUP[ps[0].position];
+              const header = group && group !== lastGroup;
+              if (group) lastGroup = group;
+              return (
+                <View key={order}>
+                  {header ? <Text style={styles.groupLabel}>{group}</Text> : null}
+                  <DepthPositionCard position={ps[0].position} players={ps} c={c} />
+                </View>
+              );
+            })}
           </View>
         );
       })}
@@ -855,7 +880,8 @@ const styles = StyleSheet.create({
   incTagText: { fontSize: 10, fontFamily: Font.bodyBold },
   // depth chart
   depthNote: { fontSize: 11, fontStyle: 'italic', marginTop: 10, marginBottom: 6, color: c.textMuted, fontFamily: Font.body },
-  unitLabel: { color: Brand.gold, fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 14, marginBottom: 8 },
+  unitLabel: { color: Brand.gold, fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 18, marginBottom: 4 },
+  groupLabel: { fontFamily: Font.display, fontSize: 18, color: c.text, letterSpacing: -0.3, marginTop: 16, marginBottom: 8 },
   depthCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 8 },
   depthPos: { width: 54, fontSize: 13, fontFamily: Font.black, color: Brand.gold, paddingTop: 3 },
   depthPlayerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
