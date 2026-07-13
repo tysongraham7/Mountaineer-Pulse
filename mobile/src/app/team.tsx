@@ -142,6 +142,7 @@ const ROSTER_SEASON_LABELS: Record<string, { projected: string; last: string }> 
 // A projected-incoming player synthesized from a roster move (no photo/jersey yet).
 type RosterItem = Player & {
   incoming?: boolean;
+  departed?: boolean;
   fromSchool?: string | null;
   moveCategory?: string | null;
   note?: string | null;
@@ -402,28 +403,29 @@ function RosterSection({
   showHeader: boolean;
 }) {
   const projLabel = ROSTER_SEASON_LABELS[sport]?.projected ?? '';
+  const lastLabel = ROSTER_SEASON_LABELS[sport]?.last ?? '';
+  // The scraped roster is already the UPCOMING season, so a TRUE freshman on it is a
+  // brand-new arrival (this year's HS class), not a last-year player. Redshirt freshmen
+  // (R-Fr.) were on last year's team. After stripping spaces/dots/hyphens a true freshman
+  // starts with "fr" while "R-Fr." becomes "rfr" — so startsWith('fr') separates them.
+  const isNewFreshman = (p: Player) => {
+    const cd = (p.class_display || '').toLowerCase().replace(/[\s.\-]/g, '');
+    return cd.startsWith('fr');
+  };
+  const inMoves = moves.filter((m) => m.direction === 'in');
+  const incomingNames = new Set(inMoves.map((m) => normName(m.player_name)));
   let returning: Player[] = players;
   let incoming: RosterItem[] = [];
+  let departed: RosterItem[] = [];
   if (projected) {
-    const departed = new Set(
+    const departedSet = new Set(
       moves.filter((m) => m.direction === 'out').map((m) => normName(m.player_name)),
     );
-    const inMoves = moves.filter((m) => m.direction === 'in');
-    const incomingNames = new Set(inMoves.map((m) => normName(m.player_name)));
-    // The scraped roster is already the UPCOMING season, so a TRUE freshman on it is
-    // a brand-new arrival (this year's HS class), not a returner. Redshirt freshmen
-    // (R-Fr.) were on last year's team, so they still count as returning. After
-    // stripping spaces/dots/hyphens, a true freshman starts with "fr" while "R-Fr."
-    // becomes "rfr" (starts with "r") — so a simple startsWith('fr') separates them.
-    const isNewFreshman = (p: Player) => {
-      const cd = (p.class_display || '').toLowerCase().replace(/[\s.\-]/g, '');
-      return cd.startsWith('fr');
-    };
     // Returning = current roster minus departures, minus curated incoming, minus this
     // year's true freshmen (they belong in Incoming).
     returning = players.filter((p) => {
       const k = normName(playerFullName(p));
-      return !departed.has(k) && !incomingNames.has(k) && !isNewFreshman(p);
+      return !departedSet.has(k) && !incomingNames.has(k) && !isNewFreshman(p);
     });
     // Incoming: curated moves (reuse the scraped record for photo/jersey when it
     // exists, else synth) PLUS the true-freshman class that isn't already curated.
@@ -437,28 +439,41 @@ function RosterSection({
     const freshmenIncoming: RosterItem[] = players
       .filter((p) => {
         const k = normName(playerFullName(p));
-        return isNewFreshman(p) && !departed.has(k) && !incomingNames.has(k);
+        return isNewFreshman(p) && !departedSet.has(k) && !incomingNames.has(k);
       })
       .map((p) => ({ ...p, incoming: true, fromSchool: null, moveCategory: 'hs', note: null, alert: null }));
     incoming = [...curatedIncoming, ...freshmenIncoming];
+  } else {
+    // LAST season's team: the scrape is the upcoming roster, so strip this year's
+    // newcomers (incoming transfers + true freshmen), then add back the players who
+    // have since left (out-moves) — together that's who suited up last season.
+    returning = players.filter((p) => {
+      const k = normName(playerFullName(p));
+      return !incomingNames.has(k) && !isNewFreshman(p);
+    });
+    const returningNames = new Set(returning.map((p) => normName(playerFullName(p))));
+    departed = moves
+      .filter((m) => m.direction === 'out' && !returningNames.has(normName(m.player_name)))
+      .map((m) => ({ ...synthFromMove(m, sport), incoming: false, departed: true, moveCategory: m.category }));
   }
   const sorted = [...returning].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
   const incSorted = [...incoming].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  const depSorted = [...departed].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
 
   return (
     <>
       {showHeader && <SectionTitle text={SPORT_LABEL[sport]} color={c.text} />}
-      {sorted.length === 0 && incSorted.length === 0 ? (
+      {sorted.length === 0 && incSorted.length === 0 && depSorted.length === 0 ? (
         <Text style={[styles.empty, { color: c.textSecondary }]}>
           {sport === 'baseball' ? 'Baseball roster isn’t available yet.' : 'No roster loaded.'}
         </Text>
       ) : (
         <>
-          {projected && (
-            <Text style={[styles.rosterNote, { color: c.textSecondary }]}>
-              Projected {projLabel} · {sorted.length} returning + {incSorted.length} incoming
-            </Text>
-          )}
+          <Text style={[styles.rosterNote, { color: c.textSecondary }]}>
+            {projected
+              ? `Projected ${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
+              : `${lastLabel} roster · ${sorted.length} returning + ${depSorted.length} departed`}
+          </Text>
           {sorted.map((p) => (
             <RosterRow key={p.id} player={p} c={c} onPick={onPick} />
           ))}
@@ -466,6 +481,14 @@ function RosterSection({
             <>
               <Text style={[styles.incomingLabel, { color: Brand.gold }]}>INCOMING FOR {projLabel}</Text>
               {incSorted.map((p) => (
+                <RosterRow key={p.id} player={p} c={c} onPick={onPick} />
+              ))}
+            </>
+          )}
+          {depSorted.length > 0 && (
+            <>
+              <Text style={[styles.incomingLabel, { color: Brand.loss }]}>DEPARTED AFTER {lastLabel}</Text>
+              {depSorted.map((p) => (
                 <RosterRow key={p.id} player={p} c={c} onPick={onPick} />
               ))}
             </>
@@ -508,6 +531,12 @@ function RosterRow({ player, c, onPick }: { player: RosterItem; c: ReturnType<ty
         <View style={[styles.incTag, { borderColor: Brand.win }]}>
           <Text style={[styles.incTagText, { color: Brand.win }]}>
             {(player.moveCategory && CATEGORY_LABEL[player.moveCategory]) || 'New'}
+          </Text>
+        </View>
+      ) : player.departed ? (
+        <View style={[styles.incTag, { borderColor: Brand.loss }]}>
+          <Text style={[styles.incTagText, { color: Brand.loss }]}>
+            {(player.moveCategory && CATEGORY_LABEL[player.moveCategory]) || 'Left'}
           </Text>
         </View>
       ) : (
