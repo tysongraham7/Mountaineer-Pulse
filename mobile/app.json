@@ -6,15 +6,19 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mountaineerpulse",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#060B16",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.tysongraham.mountaineerpulse",
+      "supportsTablet": false,
+      "userInterfaceStyle": "dark"
     },
     "android": {
+      "package": "com.tysongraham.mountaineerpulse",
+      "userInterfaceStyle": "dark",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#002855",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
@@ -28,9 +32,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#060B16",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 160
         }
       ],
       "expo-font"
