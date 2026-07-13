@@ -543,14 +543,22 @@ function DepthChartSection({
           slots.get(key)!.push(e);
         }
         const slotList = [...slots.entries()].sort((a, b) => a[0] - b[0]);
-        // Insert a big position-group header (Running Backs, Receivers, …) whenever
-        // the group changes. Positions with no group (basketball/baseball) stay flat.
+        // The big position-group headers (Offensive Line, Specialists, …) are a
+        // FOOTBALL-only concept. Basketball/baseball positions (C, P) must not get
+        // filed under them, so only football rolls positions up into groups.
+        const isFootball = sport === 'football';
+        // Football keeps its big Offense/Defense/Special Teams unit banners.
+        // Other sports: show the unit as a small section label, and drop the
+        // redundant "Projected Lineup" one (the italic note above already says it).
+        const showUnit = !!unit && (isFootball || unit.toLowerCase() !== 'projected lineup');
         let lastGroup: string | undefined;
         return (
           <View key={unit || 'x'}>
-            {unit ? <Text style={styles.unitLabel}>{unit.toUpperCase()}</Text> : null}
+            {showUnit ? (
+              <Text style={isFootball ? styles.unitLabel : styles.unitLabelSm}>{unit.toUpperCase()}</Text>
+            ) : null}
             {slotList.map(([order, ps]) => {
-              const group = FB_GROUP[ps[0].position];
+              const group = isFootball ? FB_GROUP[ps[0].position] : undefined;
               const header = group && group !== lastGroup;
               if (group) lastGroup = group;
               return (
@@ -881,6 +889,7 @@ const styles = StyleSheet.create({
   // depth chart
   depthNote: { fontSize: 11, fontStyle: 'italic', marginTop: 10, marginBottom: 6, color: c.textMuted, fontFamily: Font.body },
   unitLabel: { color: Brand.gold, fontSize: 21, fontFamily: Font.display, letterSpacing: 0.3, marginTop: 24, marginBottom: 4 },
+  unitLabelSm: { color: Brand.gold, fontSize: 13, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 20, marginBottom: 6 },
   groupLabel: { fontFamily: Font.display, fontSize: 16, color: c.text, letterSpacing: -0.2, marginTop: 16, marginBottom: 8 },
   depthCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, borderWidth: 1, borderRadius: 16, padding: 14, marginBottom: 8 },
   depthPos: { width: 54, fontSize: 13, fontFamily: Font.black, color: Brand.gold, paddingTop: 3 },
