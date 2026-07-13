@@ -28,7 +28,8 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 from pulse_model import is_postseason as post_by_date
-from pulse_model import clamp, national_rank, news_delta, pulse_score, surge, trend_of, wvu_won
+from pulse_model import (SEASON_RANK, clamp, national_rank, news_delta, pulse_score,
+                         surge, trend_of, wvu_won)
 
 load_dotenv()
 
@@ -123,7 +124,14 @@ def main() -> None:
         w = sum(1 for g in season_games if wvu_won(g))
         l = len(season_games) - w
 
-        rank = national_rank(sport)
+        # A sport with a SEASON_RANK held its ranked caliber all year — use it (held FLAT)
+        # for SCORING so today's number matches the chart. For DISPLAY (the "#N" chip) use
+        # the live poll only, so we never claim a live ranking the team doesn't currently
+        # have in the offseason.
+        live_rank = national_rank(sport)
+        score_rank = SEASON_RANK.get(sport) or live_rank
+        ranked_flat = sport in SEASON_RANK
+        rank = live_rank
         cws = sport == "baseball" and made_cws(season_games)
 
         # Roster movement, by category. Incoming class = transfer/recruit/juco/hs;
@@ -148,7 +156,8 @@ def main() -> None:
         post_games = [g for g in season_games if is_postseason(sport, g)]
         post_wins = sum(1 for g in post_games if wvu_won(g))
         post_losses = len(post_games) - post_wins
-        score = pulse_score(sport, w, l, rank, reg, moves, post_wins, post_losses, news)
+        score = pulse_score(sport, w, l, score_rank, reg, moves, post_wins, post_losses,
+                            news, ranked_flat=ranked_flat)
 
         # Anti-spike guard: the line may only make a big move on a day with a REAL
         # event — a game, a dated roster move, or a news note TODAY. On a "quiet" day

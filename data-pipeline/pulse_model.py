@@ -69,10 +69,36 @@ IMPACT_MULT = 1.7  # a marquee move (impact="high") weighs more — a 5-star add
 SPORT_ROSTER_MULT = {"football": 1.0, "mbb": 1.8, "baseball": 0.7}
 
 # Founder-tuned baseline offset applied to a sport's WHOLE line (every point).
-# Baseball +9 lifts the CWS-caliber program so its World Series peak reads ~95.
-# NOTE: this stacks on the anchor, so when a sport is back IN season and ranked,
-# revisit it — a ranked anchor + this offset can push toward the 99 cap.
-SPORT_BASELINE = {"baseball": 9.0}
+# Baseball is lifted so a ranked CWS program floors in the low-to-mid 80s in the
+# regular season and peaks ~96 during the World Series run.
+# NOTE: this stacks on the anchor, so when baseball is back IN season and ranked
+# live, revisit this + SEASON_RANK below — together they can push toward the 99 cap.
+SPORT_BASELINE = {"baseball": 12.0}
+
+# Per-sport surge (postseason) scaling. Baseball is dialed down so its CWS run adds
+# a controlled amount over the regular-season floor (peak ~96) — but kept strong
+# enough that the postseason reliably tops a hot regular-season week.
+SPORT_SURGE_SCALE = {"baseball": 0.6}
+
+# Per-sport INCOMING roster scaling. Baseball's next-season class is unproven future
+# talent, so it's weighted lightly — it shouldn't inflate the current CWS peak, and
+# it shouldn't prop the offseason back up after the proven core departs. Departures
+# (this season's losses) keep their full weight, so the roster line trends DOWN in the
+# offseason as the core leaves.
+SPORT_INCOMING_SCALE = {"baseball": 0.4}
+
+# In-season national rank per sport for the latest COMPLETED season, used for dates
+# within that season so the model credits a team that was ranked all year (the live
+# ESPN poll is gone in the offseason). Backfill applies it to in-season dates only;
+# offseason dates fall back to the live rank (which regresses the score, as intended).
+# Revisit each year — this is the 2026 baseball season's representative ranking.
+SEASON_RANK = {"baseball": 8}
+
+# ".500 prior" blended into win%, so tiny early-season samples don't swing wildly
+# (a 2-0 start shouldn't read like a 100% juggernaut). Sized as a FRACTION of each
+# sport's season length so it calms the first few weeks but is negligible by season's
+# end — and doesn't over-shrink a short-season sport's final record (football, 12 gm).
+ANCHOR_PRIOR_FRAC = 0.12
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -105,16 +131,22 @@ def national_rank(sport: str):
     return None
 
 
-def anchor_score(sport: str, w: int, l: int, rank) -> float:
+def anchor_score(sport: str, w: int, l: int, rank, flat: bool = False) -> float:
+    # #1 -> 81, #25 -> 61. Kept well below the cap so form/roster/surge have headroom.
+    ranked = (81.0 - (rank - 1) * (20.0 / 24.0)) if rank else None
+    # `flat`: hold the ranked caliber LEVEL across the season (used for a team that was
+    # ranked all year). W/L still moves the score through form_adj — this just stops the
+    # anchor from ramping up over the season, so the regular season floors at one level.
+    if rank and flat:
+        return ranked
     total = w + l
-    winpct = (w / total) if total else 0.5
-    record = 32.0 + winpct * 46.0  # 0% -> 32, 50% -> 55, 100% -> 78
+    # Shrink win% toward .500 with a season-length-proportional prior, so early-season
+    # small samples are calm; the prior's weight fades as games accumulate.
+    prior = FULL_SEASON.get(sport, 20) * ANCHOR_PRIOR_FRAC
+    winpct = (w + prior * 0.5) / (total + prior)
+    record = 32.0 + winpct * 46.0  # ~.500 -> 55, strong -> upper-70s
     if not rank:
         return record
-    # #1 -> 81, #25 -> 61. Kept well below the cap so form/roster/surge have headroom
-    # to move the score — a ranked team lands in the 90s with room to rise AND fall,
-    # instead of pinning at 99 for months where losses/outbound transfers can't show.
-    ranked = 81.0 - (rank - 1) * (20.0 / 24.0)
     # Blend toward the ranking as the season fills in (p: 0 early -> 1 by season end).
     p = clamp(total / FULL_SEASON.get(sport, 20), 0.0, 1.0)
     return record * (1 - p) + ranked * p
@@ -132,11 +164,14 @@ def form_adj(reg: list) -> float:
 def roster_delta(moves: list, sport: str = "football") -> float:
     """moves: dicts with 'direction'/'category' (+ optional 'impact'). Weighted by
     category, boosted for marquee additions, sport-scaled & capped."""
+    in_scale = SPORT_INCOMING_SCALE.get(sport, 1.0)
     total = 0.0
     for m in moves:
         w = CAT_WEIGHT.get((m.get("category") or "transfer", m.get("direction")), 0.0)
         if m.get("impact") == "high":
             w *= IMPACT_MULT  # a marquee add OR a marquee/drafted loss moves the needle more
+        if m.get("direction") == "in":
+            w *= in_scale     # unproven incoming class weighs less for some sports (baseball)
         total += w
     total *= SPORT_ROSTER_MULT.get(sport, 1.0)
     return clamp(total, -ROSTER_CAP, ROSTER_CAP)
@@ -176,8 +211,10 @@ def trend_of(reg: list) -> str:
     return "up" if diff > 0.12 else ("down" if diff < -0.12 else "neutral")
 
 
-def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, news=0.0) -> int:
-    raw = (anchor_score(sport, w, l, rank) + form_adj(reg)
-           + roster_delta(moves, sport) + surge(post_wins, post_losses) + news
+def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, news=0.0,
+                ranked_flat=False) -> int:
+    raw = (anchor_score(sport, w, l, rank, flat=ranked_flat) + form_adj(reg)
+           + roster_delta(moves, sport)
+           + surge(post_wins, post_losses) * SPORT_SURGE_SCALE.get(sport, 1.0) + news
            + SPORT_BASELINE.get(sport, 0.0))
     return int(round(clamp(raw, 5, 99)))

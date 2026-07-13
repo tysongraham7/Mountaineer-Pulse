@@ -18,8 +18,8 @@ from datetime import date, datetime
 from dotenv import load_dotenv
 from supabase import create_client
 
-from pulse_model import (is_postseason, national_rank, news_delta, pulse_score,
-                         trend_of, wvu_won)
+from pulse_model import (SEASON_RANK, is_postseason, national_rank, news_delta,
+                         pulse_score, trend_of, wvu_won)
 
 load_dotenv()
 
@@ -71,7 +71,12 @@ def main() -> None:
         note_dates = [d for d in (to_date(r["date"]) for r in note_rows) if d]
         note_deltas = [(to_date(r["date"]), r.get("pulse_delta") or 0) for r in note_rows if to_date(r["date"])]
 
-        rank = national_rank(sport)  # constant caliber across the season (blended in)
+        # A sport with a SEASON_RANK was ranked all year: hold that caliber FLAT across
+        # its whole latest season (regular season floors at one level; the CWS surge and
+        # roster departures move it from there). Otherwise use the live poll.
+        season_rank = SEASON_RANK.get(sport)
+        base_rank = season_rank if season_rank else national_rank(sport)
+        flat = bool(season_rank)
 
         # A point at every game date + dated move date + news day.
         event_dates = sorted({g["_d"] for g in games} | {m["_d"] for m in moves if m["_d"]} | set(note_dates))
@@ -90,7 +95,8 @@ def main() -> None:
             post_wins = sum(1 for g in post_games if wvu_won(g))
             post_losses = len(post_games) - post_wins
             news = news_delta(note_deltas, d)
-            score = pulse_score(sport, w, l, rank, reg, moves_to, post_wins, post_losses, news)
+            score = pulse_score(sport, w, l, base_rank, reg, moves_to, post_wins, post_losses,
+                                news, ranked_flat=flat)
             rows.append({"sport_id": sport, "date": d.isoformat(), "score": score, "trend": trend_of(reg)})
 
         # Rebuild from scratch so stale points (old/redated moves) don't linger.
