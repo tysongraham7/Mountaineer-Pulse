@@ -410,20 +410,37 @@ function RosterSection({
     );
     const inMoves = moves.filter((m) => m.direction === 'in');
     const incomingNames = new Set(inMoves.map((m) => normName(m.player_name)));
-    // Returning = current roster minus departures minus anyone counted as incoming
-    // (the scrape may already list new arrivals — don't show them in both sections).
+    // The scraped roster is already the UPCOMING season, so a TRUE freshman on it is
+    // a brand-new arrival (this year's HS class), not a returner. Redshirt freshmen
+    // (R-Fr.) were on last year's team, so they still count as returning. After
+    // stripping spaces/dots/hyphens, a true freshman starts with "fr" while "R-Fr."
+    // becomes "rfr" (starts with "r") — so a simple startsWith('fr') separates them.
+    const isNewFreshman = (p: Player) => {
+      const cd = (p.class_display || '').toLowerCase().replace(/[\s.\-]/g, '');
+      return cd.startsWith('fr');
+    };
+    // Returning = current roster minus departures, minus curated incoming, minus this
+    // year's true freshmen (they belong in Incoming).
     returning = players.filter((p) => {
       const k = normName(playerFullName(p));
-      return !departed.has(k) && !incomingNames.has(k);
+      return !departed.has(k) && !incomingNames.has(k) && !isNewFreshman(p);
     });
-    // Incoming: reuse the scraped roster record (photo/jersey) when it exists, else synth.
+    // Incoming: curated moves (reuse the scraped record for photo/jersey when it
+    // exists, else synth) PLUS the true-freshman class that isn't already curated.
     const rosterByName = new Map(players.map((p) => [normName(playerFullName(p)), p]));
-    incoming = inMoves.map((m) => {
+    const curatedIncoming: RosterItem[] = inMoves.map((m) => {
       const rp = rosterByName.get(normName(m.player_name));
       return rp
         ? { ...rp, incoming: true, fromSchool: m.other_school, moveCategory: m.category, note: m.notes, alert: m.alert }
         : synthFromMove(m, sport);
     });
+    const freshmenIncoming: RosterItem[] = players
+      .filter((p) => {
+        const k = normName(playerFullName(p));
+        return isNewFreshman(p) && !departed.has(k) && !incomingNames.has(k);
+      })
+      .map((p) => ({ ...p, incoming: true, fromSchool: null, moveCategory: 'hs', note: null, alert: null }));
+    incoming = [...curatedIncoming, ...freshmenIncoming];
   }
   const sorted = [...returning].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
   const incSorted = [...incoming].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
