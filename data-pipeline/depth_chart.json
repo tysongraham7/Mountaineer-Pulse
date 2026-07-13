@@ -531,7 +531,7 @@
     "player_name": "Miles Sadler",
     "class_year": "Fr.",
     "status": "active",
-    "note": "5-star signee — projected starter"
+    "note": "5-star signee"
   },
   {
     "sport_id": "mbb",
@@ -541,9 +541,9 @@
     "pos_order": 1,
     "rank": 2,
     "player_name": "Martin Somerville",
-    "class_year": "",
+    "class_year": "Jr.",
     "status": "active",
-    "note": ""
+    "note": "8.4 PPG at Florida State"
   },
   {
     "sport_id": "mbb",
@@ -553,9 +553,9 @@
     "pos_order": 1,
     "rank": 3,
     "player_name": "Amir Jenkins",
-    "class_year": "",
+    "class_year": "So.",
     "status": "active",
-    "note": ""
+    "note": "Returning guard"
   },
   {
     "sport_id": "mbb",
@@ -565,9 +565,9 @@
     "pos_order": 2,
     "rank": 1,
     "player_name": "Finley Bizjack",
-    "class_year": "",
+    "class_year": "Sr.",
     "status": "active",
-    "note": ""
+    "note": "17.0 PPG at Butler"
   },
   {
     "sport_id": "mbb",
@@ -577,9 +577,9 @@
     "pos_order": 2,
     "rank": 2,
     "player_name": "Joson Sanon",
-    "class_year": "",
+    "class_year": "Jr.",
     "status": "active",
-    "note": ""
+    "note": "Former 5-star · 7.9 PPG at St. John's"
   },
   {
     "sport_id": "mbb",
@@ -591,7 +591,7 @@
     "player_name": "Keonte Greybear",
     "class_year": "Fr.",
     "status": "active",
-    "note": ""
+    "note": "Top-25 signee"
   },
   {
     "sport_id": "mbb",
@@ -601,9 +601,9 @@
     "pos_order": 3,
     "rank": 1,
     "player_name": "Joson Sanon",
-    "class_year": "",
+    "class_year": "Jr.",
     "status": "active",
-    "note": "St. John's transfer"
+    "note": "Former 5-star · 7.9 PPG at St. John's"
   },
   {
     "sport_id": "mbb",
@@ -613,9 +613,9 @@
     "pos_order": 3,
     "rank": 2,
     "player_name": "Seydou Traore",
-    "class_year": "",
+    "class_year": "Sr.",
     "status": "active",
-    "note": ""
+    "note": "9.0 PPG, 3.4 RPG at Utah"
   },
   {
     "sport_id": "mbb",
@@ -625,9 +625,9 @@
     "pos_order": 3,
     "rank": 3,
     "player_name": "Evans Barning Jr.",
-    "class_year": "",
+    "class_year": "So.",
     "status": "active",
-    "note": ""
+    "note": "Returning forward"
   },
   {
     "sport_id": "mbb",
@@ -637,9 +637,9 @@
     "pos_order": 4,
     "rank": 1,
     "player_name": "Javan Buchanan",
-    "class_year": "",
+    "class_year": "Sr.",
     "status": "active",
-    "note": ""
+    "note": "5.0 RPG at Boise State"
   },
   {
     "sport_id": "mbb",
@@ -649,9 +649,9 @@
     "pos_order": 4,
     "rank": 2,
     "player_name": "Seydou Traore",
-    "class_year": "",
+    "class_year": "Sr.",
     "status": "active",
-    "note": ""
+    "note": "9.0 PPG, 3.4 RPG at Utah"
   },
   {
     "sport_id": "mbb",
@@ -663,7 +663,7 @@
     "player_name": "Aliou Dioum",
     "class_year": "Fr.",
     "status": "active",
-    "note": ""
+    "note": "2026 signee (Bella Vista Prep)"
   },
   {
     "sport_id": "mbb",
@@ -673,9 +673,9 @@
     "pos_order": 5,
     "rank": 1,
     "player_name": "Mouhamed Sylla",
-    "class_year": "",
+    "class_year": "So.",
     "status": "active",
-    "note": "Georgia Tech transfer"
+    "note": "9.6 PPG, 7.2 RPG at Georgia Tech"
   },
   {
     "sport_id": "mbb",
@@ -699,6 +699,6 @@
     "player_name": "Aliou Dioum",
     "class_year": "Fr.",
     "status": "active",
-    "note": ""
+    "note": "2026 signee (Bella Vista Prep)"
   }
 ]
