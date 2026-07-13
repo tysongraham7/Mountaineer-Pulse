@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PulseDetail } from '@/components/pulse-detail';
 import { Card, RidgeMark, SectionLabel, Sparkline, TrendTag, Wordmark } from '@/components/ui';
-import { Brand, Elevation, Font, Gradients, surfaces } from '@/constants/brand';
+import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
 import { Briefing } from '@/lib/types';
@@ -39,7 +38,6 @@ type Snapshot = {
   explanation: string | null;
   drivers: Driver[] | null;
 };
-type Overall = { date: string; score: number; summary: string | null };
 type Rec = { w: number; l: number; season: number };
 
 function todayLabel() {
@@ -52,9 +50,6 @@ function todayLabel() {
 
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
-  const [overall, setOverall] = useState<Overall | null>(null);
-  const [overallSeries, setOverallSeries] = useState<number[]>([]);
-  const [overallDelta, setOverallDelta] = useState(0);
   const [snaps, setSnaps] = useState<Record<string, Snapshot>>({});
   const [series, setSeries] = useState<Record<string, number[]>>({});
   const [records, setRecords] = useState<Record<string, Rec>>({});
@@ -68,8 +63,7 @@ export default function PulseScreen() {
   );
 
   const load = useCallback(async () => {
-    const [overallRes, snapRes, briefingRes, gamesRes] = await Promise.all([
-      supabase.from('pulse_overall').select('*').order('date', { ascending: true }),
+    const [snapRes, briefingRes, gamesRes] = await Promise.all([
       supabase.from('pulse_snapshots').select('*').order('date', { ascending: true }),
       supabase.from('daily_briefings').select('*').order('date', { ascending: false }).limit(1),
       supabase
@@ -78,12 +72,6 @@ export default function PulseScreen() {
         .eq('status', 'final'),
     ]);
 
-    const overalls = (overallRes.data ?? []) as Overall[];
-    setOverall(overalls.length ? overalls[overalls.length - 1] : null);
-    const oseries = overalls.map((o) => o.score);
-    setOverallSeries(oseries.slice(-16));
-    // Day-over-day change (today vs the prior point). Drives whether an arrow shows.
-    setOverallDelta(oseries.length >= 2 ? oseries[oseries.length - 1] - oseries[oseries.length - 2] : 0);
     setBriefing((briefingRes.data?.[0] as Briefing) ?? null);
 
     const latest: Record<string, Snapshot> = {};
@@ -136,8 +124,6 @@ export default function PulseScreen() {
     );
   }
 
-  const trendColor = overallDelta > 0 ? Brand.green : overallDelta < 0 ? Brand.red : c.textSecondary;
-
   const body = (
     <ScrollView
       style={{ backgroundColor: c.bg }}
@@ -165,33 +151,6 @@ export default function PulseScreen() {
           <Ionicons name="notifications-outline" size={17} color={c.textSecondary} />
         </View>
       </View>
-
-      {/* Overall pulse hero */}
-      <LinearGradient
-        colors={Gradients.hero}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={[styles.hero, Elevation.hero]}>
-        <View style={{ flex: 1 }}>
-          <SectionLabel tone="muted" style={{ color: c.blueLabel } as never}>
-            OVERALL PROGRAM PULSE
-          </SectionLabel>
-          <View style={styles.heroScoreRow}>
-            <Text style={styles.heroScore}>{overall ? overall.score : '—'}</Text>
-            <Text style={styles.heroOutOf}>/ 100</Text>
-          </View>
-          {overallDelta !== 0 && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-              <Text style={{ fontFamily: Font.bodyBold, fontSize: 12, color: trendColor }}>
-                {overallDelta > 0 ? '▲ +' : '▼ −'}
-                {Math.abs(overallDelta)}
-              </Text>
-              <Text style={{ color: c.blueLabel, fontSize: 12 }}>since yesterday</Text>
-            </View>
-          )}
-        </View>
-        <Sparkline data={overallSeries} color={Brand.gold} width={140} height={68} />
-      </LinearGradient>
 
       {/* Daily briefing — per-sport sections when available, else plain text */}
       {briefing && (
@@ -345,19 +304,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hero: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(234,170,0,0.18)',
-    padding: 18,
-    marginTop: 8,
-  },
-  heroScoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 },
-  heroScore: { fontFamily: Font.black, fontSize: 56, lineHeight: 58, color: Brand.gold, letterSpacing: -1.5 },
-  heroOutOf: { fontSize: 13, color: c.blueLabel },
-  briefing: { padding: 18, marginTop: 14 },
+  briefing: { padding: 18, marginTop: 16 },
   briefingBody: { fontFamily: Font.body, fontSize: 14, lineHeight: 21, color: c.textSecondary, marginTop: 8 },
   briefingIntro: { fontFamily: Font.bodyMed, fontSize: 14, lineHeight: 21, color: c.text, marginTop: 10 },
   briefSport: { marginTop: 16 },

@@ -35,7 +35,6 @@ load_dotenv()
 SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
-WEIGHTS = {"football": 0.5, "mbb": 0.3, "baseball": 0.2}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
 ESPN_PATH = {
     "football": "football/college-football",
@@ -108,7 +107,6 @@ def main() -> None:
     sb = create_client(SB_URL, SB_KEY)
     today = date.today().isoformat()
 
-    scored: dict[str, int] = {}
     print("Computing Mountaineer Pulse (v2: national-standing-first)...\n")
 
     for sport in ("football", "mbb", "baseball"):
@@ -169,7 +167,6 @@ def main() -> None:
                 score = int(round(clamp(score, prev[0]["score"] - 2, prev[0]["score"] + 2)))
 
         trend = trend_of(reg)
-        scored[sport] = score
 
         # Transparent breakdown of what's moving the score.
         drivers = []
@@ -205,14 +202,6 @@ def main() -> None:
         print(f"  {name:<18} {score:>3}/100  [{arrow}]  {w}-{l} ({latest_season})  rank {rk}  "
               f"T+{transfers_in}/-{transfers_out} R+{recruits} D-{departures}{'  CWS' if cws else ''}")
         print(f"      {explanation}")
-
-    if scored:
-        wsum = sum(WEIGHTS[s] for s in scored)
-        overall = int(round(sum(scored[s] * WEIGHTS[s] for s in scored) / wsum))
-        best = max(scored, key=scored.get)
-        summary = f"WVU athletics sits at {overall}/100, led by {SPORT_NAME[best]}."
-        sb.table("pulse_overall").upsert({"date": today, "score": overall, "summary": summary}).execute()
-        print(f"\n  OVERALL: {overall}/100 — {summary}")
 
     print("\n[OK] Mountaineer Pulse computed and stored.")
 
