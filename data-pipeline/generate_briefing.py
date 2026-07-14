@@ -32,9 +32,26 @@ SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 MODEL = "claude-sonnet-5"
-WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 5}
+WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 12}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
 SPORT_ORDER = ["football", "mbb", "baseball"]
+
+# Sonnet-5 pricing per 1M tokens (intro pricing through 2026-08-31): $2 in / $10 out,
+# cache write $2.50, cache read $0.20; web search $0.01/use. Used only for the cost readout.
+PRICE = {"in": 2.0, "out": 10.0, "cache_w": 2.5, "cache_r": 0.20, "search": 0.01}
+
+# Search budget: web search is the cost driver, but it's also what gives the briefing its real
+# detail. Generous on a busy news day, self-limiting on a quiet one. Prompt caching (below) makes
+# even a heavy day land near ~$0.50 by re-reading the stable context at ~10% instead of full price.
+SEARCH_BUDGET = (
+    "\n\nSEARCH BUDGET: web search is the costly part, so spend it well. FIRST make sure you've "
+    "captured the biggest genuinely-new item in EACH sport that has one — do NOT tunnel every search "
+    "into a single sport while another sport has real news (e.g. fall-camp/roster news on the football "
+    "side while baseball has draft news). THEN add real depth (draft round & pick, slot/bonus money, "
+    "snap counts, ERA/stats, honors) on the 1-2 most significant stories. For minor items, write from "
+    "the DATA you already have instead of searching. Aim for roughly 8-12 searches on a busy news day "
+    "and fewer on a quiet one. Once each sport's notable news is covered, STOP searching and write JSON."
+)
 
 
 def die(msg: str) -> None:
@@ -93,6 +110,23 @@ def build_context(sb) -> str:
     return "\n".join(lines)
 
 
+def recent_briefings(sb, today: str, n: int = 3) -> str:
+    """The last few days' briefings, so Claude leads with what's NEW instead of
+    re-summarizing an ongoing story (e.g. a multi-day MLB Draft cycle). Without this
+    the generator has no memory and reproduces near-identical briefings on quiet days."""
+    rows = (
+        sb.table("daily_briefings").select("date,content")
+        .lt("date", today).order("date", desc=True).limit(n).execute().data
+    )
+    rows = [r for r in rows if (r.get("content") or "").strip()]
+    if not rows:
+        return ""
+    parts = ["=== WHAT YOU ALREADY TOLD USERS (recent briefings — do NOT repeat these) ==="]
+    for r in rows:
+        parts.append(f"\n[{r['date']}]\n{r['content'].strip()}")
+    return "\n".join(parts)
+
+
 SYSTEM = (
     "You write the daily briefing for Mountaineer Pulse, a West Virginia University sports app. "
     "Voice: sharp, factual, a plugged-in WVU fan. Never hype, never filler.\n\n"
@@ -111,7 +145,14 @@ SYSTEM = (
     "away (e.g. class of 2027 or later high-schoolers). Incoming college transfers for the upcoming "
     "season ARE current.\n"
     "5. Significance filter: include only items a fan would care about. Do NOT pad. If a sport has no "
-    "genuine news, omit its section entirely.\n\n"
+    "genuine news, omit its section entirely.\n"
+    "6. FRESHNESS — this is what keeps the briefing alive: you are given the last few days' briefings "
+    "under 'WHAT YOU ALREADY TOLD USERS'. Do NOT re-report what you already covered. Lead with what is "
+    "genuinely NEW since then. Only revisit an ongoing story if there is a REAL update (a decision made, "
+    "a signing finalized, a game played) and frame it AS the update ('Henne still hasn't signed — "
+    "deadline July 27', 'now official'), never a re-summary. If a sport has had no new development since "
+    "the last briefing, either omit it or give it a single line naming the one thing still worth "
+    "watching. A quiet day should read as a quiet day, not a rerun.\n\n"
     "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
     "{\n"
     '  "intro": "<one short, warm greeting line>",\n'
@@ -135,21 +176,37 @@ def extract_json(text: str):
         return None
 
 
-def call_model(client, context: str, use_search: bool):
+def call_model(client, context: str, recent: str, use_search: bool):
+    data_block = f"DATA:\n{context}"
+    if recent:
+        data_block += f"\n\n{recent}"
+    instruction = (
+        "Research the genuinely NEW items with web search, then output the briefing JSON. Lead with "
+        "what has changed since the recent briefings above — do not repeat them; a slow day should read "
+        f"as a slow day. Today is {date.today().isoformat()}."
+    ) + (SEARCH_BUDGET if use_search else "")
+    # Prompt caching: the SYSTEM prompt and the large, stable DATA block are cached, so the web-search
+    # loop re-reads them at ~10% price each turn instead of reprocessing at full price. This is what
+    # keeps a busy, multi-search day near ~$0.50 instead of ~$1+.
+    system_blocks = [{"type": "text", "text": SYSTEM, "cache_control": {"type": "ephemeral"}}]
+    user_content = [
+        {"type": "text", "text": data_block, "cache_control": {"type": "ephemeral"}},
+        {"type": "text", "text": instruction},
+    ]
     kwargs = dict(
         model=MODEL,
-        max_tokens=4500,
+        max_tokens=8000,
         thinking={"type": "adaptive"},
-        system=SYSTEM,
-        messages=[{"role": "user", "content":
-                   f"DATA:\n{context}\n\nResearch the notable items with web search, then output the "
-                   f"briefing JSON. Today is {date.today().isoformat()}."}],
+        system=system_blocks,
+        messages=[{"role": "user", "content": user_content}],
     )
     if use_search:
         kwargs["tools"] = [WEB_SEARCH_TOOL]
     resp = client.messages.create(**kwargs)
     text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
     searches = sum(1 for b in resp.content if getattr(b, "type", "") == "server_tool_use")
+    if resp.stop_reason == "max_tokens":
+        print(f"    (warning: hit max_tokens; output may be truncated — text {len(text)} chars)")
     return text, searches, resp.usage
 
 
@@ -162,9 +219,16 @@ def to_plaintext(intro: str, sections: list) -> str:
     return "\n".join(parts).strip()
 
 
+def strip_tags(s: str) -> str:
+    """web_search wraps sourced facts in <cite index="..">..</cite> tags. Keep the text,
+    drop the tags, so the app never shows raw markup. Also collapses any doubled spaces left behind."""
+    s = re.sub(r"</?cite[^>]*>", "", s or "")
+    return re.sub(r"\s{2,}", " ", s).strip()
+
+
 def clean_sections(obj) -> tuple[str, list]:
     """Validate + normalize the model's JSON into (intro, sections)."""
-    intro = str(obj.get("intro", "")).strip()
+    intro = strip_tags(str(obj.get("intro", "")))
     out = []
     raw = obj.get("sections", []) if isinstance(obj, dict) else []
     by_sport = {s.get("sport"): s for s in raw if isinstance(s, dict)}
@@ -174,8 +238,8 @@ def clean_sections(obj) -> tuple[str, list]:
             continue
         items = []
         for it in sec.get("items", []):
-            topic = str(it.get("topic", "")).strip()
-            body = str(it.get("body", "")).strip()
+            topic = strip_tags(str(it.get("topic", "")))
+            body = strip_tags(str(it.get("body", "")))
             if topic and body:
                 items.append({"topic": topic, "body": body})
         if items:
@@ -192,14 +256,16 @@ def main() -> None:
     import anthropic
 
     sb = create_client(SB_URL, SB_KEY)
+    today = date.today().isoformat()
     context = build_context(sb)
+    recent = recent_briefings(sb, today)
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 
     # Try with web search; if the tool is unavailable, fall back to headline-only.
     text, searches, usage = "", 0, None
     for use_search in (True, False):
         try:
-            text, searches, usage = call_model(client, context, use_search)
+            text, searches, usage = call_model(client, context, recent, use_search)
             if text:
                 break
         except Exception as e:
@@ -208,13 +274,13 @@ def main() -> None:
 
     obj = extract_json(text)
     if not obj:
+        print(f"    (raw text was {len(text)} chars; tail: ...{text[-300:]!r})")
         die("Claude returned no parseable briefing JSON.")
     intro, sections = clean_sections(obj)
     if not sections:
         die("Briefing had no valid sport sections.")
 
     content = to_plaintext(intro, sections)
-    today = date.today().isoformat()
     sb.table("daily_briefings").upsert(
         {"date": today, "content": content, "sections": {"intro": intro, "sections": sections}},
         on_conflict="date",
@@ -228,7 +294,12 @@ def main() -> None:
             print(f"  • {it['topic']}: {it['body']}")
     print("-" * 60)
     if usage:
-        print(f"\n[OK] Briefing stored. (tokens: {usage.input_tokens} in / {usage.output_tokens} out)")
+        cw = getattr(usage, "cache_creation_input_tokens", 0) or 0
+        cr = getattr(usage, "cache_read_input_tokens", 0) or 0
+        est = (usage.input_tokens / 1e6 * PRICE["in"] + usage.output_tokens / 1e6 * PRICE["out"]
+               + cw / 1e6 * PRICE["cache_w"] + cr / 1e6 * PRICE["cache_r"] + searches * PRICE["search"])
+        print(f"\n[OK] Briefing stored. {searches} searches | tokens: in {usage.input_tokens} / "
+              f"cache-read {cr} / out {usage.output_tokens} | est. cost ~${est:.3f}")
 
 
 if __name__ == "__main__":
