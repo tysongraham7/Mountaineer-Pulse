@@ -23,10 +23,10 @@ const SPORT_OPTS = [
 ];
 
 const RANGES: { label: string; stepDays: number; count: number; word: string }[] = [
-  { label: '1M', stepDays: 2, count: 15, word: 'past month' },
-  { label: '3M', stepDays: 7, count: 13, word: 'past 3 months' },
-  { label: '6M', stepDays: 14, count: 13, word: 'past 6 months' },
-  { label: '1Y', stepDays: 30, count: 12, word: 'past year' },
+  { label: '1M', stepDays: 1, count: 30, word: 'past month' },
+  { label: '3M', stepDays: 3, count: 30, word: 'past 3 months' },
+  { label: '6M', stepDays: 7, count: 26, word: 'past 6 months' },
+  { label: '1Y', stepDays: 14, count: 26, word: 'past year' },
 ];
 
 type Driver = { label: string; delta?: number; kind: string };
