@@ -30,7 +30,7 @@ const RANGES: { label: string; stepDays: number; count: number; word: string }[]
 ];
 
 type Driver = { label: string; delta?: number; kind: string };
-type PulseEvent = { kind: 'win' | 'loss' | 'in' | 'out'; label: string };
+type PulseEvent = { kind: 'win' | 'loss' | 'in' | 'out' | 'pending'; label: string };
 
 function fullDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -124,6 +124,12 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
       }
       for (const m of moves) {
         if (!inWin(m.move_date)) continue;
+        // A drafted player whose stay-or-go decision is still pending — not a confirmed
+        // departure. Shown in an amber "pending" box (vs. a red OUT) with its alert text.
+        if (m.category === 'draft-pending') {
+          evs.push({ kind: 'pending', label: `${m.player_name} — ${m.alert || 'drafted, decision pending'}` });
+          continue;
+        }
         const isIn = m.direction === 'in';
         const school = m.other_school ? ` ${isIn ? 'from' : 'to'} ${m.other_school}` : '';
         evs.push({ kind: isIn ? 'in' : 'out', label: `${m.player_name}${school}` });
@@ -215,15 +221,18 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
                   {activeEvents.length > 0 && (
                     <View style={{ marginTop: 10, gap: 4 }}>
                       {activeEvents.slice(0, 6).map((e, i) => {
+                        const pending = e.kind === 'pending';
                         const good = e.kind === 'win' || e.kind === 'in';
+                        const tagBg = pending ? Brand.goldTint : good ? Brand.greenTint : Brand.redTint;
+                        const tagColor = pending ? Brand.gold : good ? Brand.green : Brand.red;
+                        const tagText = e.kind === 'in' ? '↓ IN' : e.kind === 'out' ? '↑ OUT'
+                          : pending ? 'DRAFT?' : good ? 'W' : 'L';
                         return (
-                          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <View style={[styles.evTag, { backgroundColor: good ? Brand.greenTint : Brand.redTint }]}>
-                              <Text style={{ fontSize: 10, fontFamily: Font.bodyBold, color: good ? Brand.green : Brand.red }}>
-                                {e.kind === 'in' ? '↓ IN' : e.kind === 'out' ? '↑ OUT' : good ? 'W' : 'L'}
-                              </Text>
+                          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                            <View style={[styles.evTag, { backgroundColor: tagBg }]}>
+                              <Text style={{ fontSize: 10, fontFamily: Font.bodyBold, color: tagColor }}>{tagText}</Text>
                             </View>
-                            <Text style={styles.evLabel} numberOfLines={1}>{e.label}</Text>
+                            <Text style={styles.evLabel} numberOfLines={pending ? 2 : 1}>{e.label}</Text>
                           </View>
                         );
                       })}

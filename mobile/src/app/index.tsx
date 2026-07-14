@@ -47,10 +47,32 @@ function todayLabel() {
   });
 }
 
+// Resample a sport's dated snapshots into ~30 daily points over the past month
+// (carry-forward on quiet days), so the preview sparkline is a consistent 1-month timeline.
+const DAY = 86400000;
+function monthSeries(snaps: { date: string; score: number }[]): number[] {
+  if (!snaps.length) return [];
+  const parsed = snaps.map((s) => ({ t: new Date(s.date).getTime(), score: s.score }));
+  const anchor = parsed[parsed.length - 1].t;
+  const out: number[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const st = anchor - i * DAY;
+    let score: number | null = null;
+    for (let j = parsed.length - 1; j >= 0; j--) {
+      if (parsed[j].t <= st) {
+        score = parsed[j].score;
+        break;
+      }
+    }
+    if (score != null) out.push(score);
+  }
+  return out;
+}
+
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
   const [snaps, setSnaps] = useState<Record<string, Snapshot>>({});
-  const [series, setSeries] = useState<Record<string, number[]>>({});
+  const [series, setSeries] = useState<Record<string, { date: string; score: number }[]>>({});
   const [records, setRecords] = useState<Record<string, Rec>>({});
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,12 +96,11 @@ export default function PulseScreen() {
     setBriefing((briefingRes.data?.[0] as Briefing) ?? null);
 
     const latest: Record<string, Snapshot> = {};
-    const ser: Record<string, number[]> = {};
+    const ser: Record<string, { date: string; score: number }[]> = {};
     for (const s of (snapRes.data ?? []) as Snapshot[]) {
       latest[s.sport_id] = s; // ascending → ends on newest
-      (ser[s.sport_id] = ser[s.sport_id] || []).push(s.score);
+      (ser[s.sport_id] = ser[s.sport_id] || []).push({ date: s.date, score: s.score });
     }
-    for (const k of Object.keys(ser)) ser[k] = ser[k].slice(-16);
     setSnaps(latest);
     setSeries(ser);
 
@@ -198,7 +219,7 @@ export default function PulseScreen() {
         if (rec) meta.push(`${rec.w}–${rec.l} · ${rec.season}`);
         if (s?.ranking) meta.push(`#${s.ranking}`);
         const scoreColor = (s?.score ?? 0) >= 60 ? Brand.gold : c.text;
-        const sser = series[sport] ?? [];
+        const sser = monthSeries(series[sport] ?? []);
         // Day-over-day change (today vs the prior point) — arrow shows only if it moved.
         const sdelta = sser.length >= 2 ? sser[sser.length - 1] - sser[sser.length - 2] : 0;
         const lineColor = sdelta > 0 ? Brand.green : sdelta < 0 ? Brand.red : c.textSecondary;

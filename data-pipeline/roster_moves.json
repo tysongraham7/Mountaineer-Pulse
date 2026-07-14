@@ -1000,5 +1000,27 @@
     "source_name": "WVU Athletics",
     "source_url": "",
     "notes": "7'1 center, Class of 2026 (Bella Vista Prep, via Cameroon)"
+  },
+  {
+    "sport_id": "baseball",
+    "player_name": "Owen Henne",
+    "position": "INF",
+    "direction": "out",
+    "category": "draft-pending",
+    "move_date": "2026-07-12",
+    "impact": null,
+    "other_school": "St. Louis Cardinals",
+    "alert": "Drafted by the Cardinals (6th rd) — awaiting his decision; has until Jul 27 to sign pro or return to WVU"
+  },
+  {
+    "sport_id": "baseball",
+    "player_name": "Kyle Casteel",
+    "position": "RHP",
+    "direction": "out",
+    "category": "draft-pending",
+    "move_date": "2026-07-14",
+    "impact": null,
+    "other_school": "Chicago White Sox",
+    "alert": "Drafted by the White Sox (11th rd, 315th) — awaiting his sign-or-enroll decision"
   }
 ]

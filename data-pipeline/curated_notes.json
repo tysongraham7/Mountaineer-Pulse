@@ -1,8 +1,20 @@
 [
   {
     "sport_id": "baseball",
+    "date": "2026-07-12",
+    "note": "Owen Henne (INF), a top portal signee, was drafted by the Cardinals (6th rd) — awaiting his decision (deadline Jul 27).",
+    "delta": -3
+  },
+  {
+    "sport_id": "baseball",
     "date": "2026-07-13",
-    "note": "Owen Henne (INF), a top portal signee, was drafted by the Cardinals (6th rd) and is expected to sign pro — a real hit to the 2027 infield.",
-    "delta": -4
+    "note": "Armani Guzman withdrew from the MLB Draft and announced his return to WVU — a big lift for the 2027 infield.",
+    "delta": 3
+  },
+  {
+    "sport_id": "baseball",
+    "date": "2026-07-14",
+    "note": "Kyle Casteel (RHP), an incoming signee, was drafted by the White Sox (11th rd) — awaiting his sign-or-enroll decision.",
+    "delta": -2
   }
 ]

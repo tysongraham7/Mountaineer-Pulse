@@ -419,7 +419,8 @@ function RosterSection({
   let departed: RosterItem[] = [];
   if (projected) {
     const departedSet = new Set(
-      moves.filter((m) => m.direction === 'out').map((m) => normName(m.player_name)),
+      // 'draft-pending' = drafted but decision not final — still on the roster, not departed.
+      moves.filter((m) => m.direction === 'out' && m.category !== 'draft-pending').map((m) => normName(m.player_name)),
     );
     // Returning = current roster minus departures, minus curated incoming, minus this
     // year's true freshmen (they belong in Incoming).
@@ -453,7 +454,7 @@ function RosterSection({
     });
     const returningNames = new Set(returning.map((p) => normName(playerFullName(p))));
     departed = moves
-      .filter((m) => m.direction === 'out' && !returningNames.has(normName(m.player_name)))
+      .filter((m) => m.direction === 'out' && m.category !== 'draft-pending' && !returningNames.has(normName(m.player_name)))
       .map((m) => ({ ...synthFromMove(m, sport), incoming: false, departed: true, moveCategory: m.category }));
   }
   const sorted = [...returning].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
