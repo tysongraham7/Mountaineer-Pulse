@@ -61,6 +61,13 @@ NOTE_SYSTEM = (
     "4. Rumors ('reportedly', 'could', 'targets', 'linked', 'trending', 'source') may be framed "
     "as discussion but NEVER stated as fact — prefer confirmed news.\n"
     "5. If there is genuinely no relevant WVU {sport} headline, the note is NONE.\n"
+    "6. PLAUSIBILITY & SEASON CHECK (today's date is given below): ignore any headline that is "
+    "implausible for the current calendar or clearly garbled/clickbait. WVU seasons: football "
+    "~Aug–Jan, men's basketball ~Nov–Apr, baseball ~Feb–Jun. A headline implying a game, a matchup "
+    "'Saturday', or a past 'win/loss/blowout' when THIS sport is out of season is nonsense — OMIT it. "
+    "(Offseason SCHEDULING news is fine — 'in talks to play', 'will play X on [a future date]' — but a "
+    "past-tense RESULT or an imminent game that cannot be happening now is not.) If a headline reads as "
+    "nonsensical, self-contradictory, or too-good-to-be-true clickbait, OMIT it rather than repeat it.\n"
     "Then set \"delta\": a SIGNED integer for how this news moves the program's Pulse. Be "
     "CONSERVATIVE — most days are 0. Use small values only, never large swings:\n"
     "  +2 = MAJOR good news raising national standing (national/conference honor, top-25 ranking, "
@@ -168,7 +175,7 @@ def main() -> None:
             model="claude-haiku-4-5", max_tokens=120,
             system=NOTE_SYSTEM.format(sport=SPORT_NAME[sport]),
             messages=[{"role": "user", "content":
-                       f"Today's WVU headlines (some may not be about {SPORT_NAME[sport]}):\n"
+                       f"Today is {today}. WVU headlines (some may not be about {SPORT_NAME[sport]}):\n"
                        f"{headlines}\n\nWrite the JSON note for WVU {SPORT_NAME[sport]}."}],
         )
         raw = "".join(b.text for b in resp.content if b.type == "text")
