@@ -22,7 +22,7 @@ Run:  python compute_pulse.py
 
 import os
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -45,6 +45,10 @@ ESPN_PATH = {
 # Games on/after (month, day) are treated as postseason for the TREND calc.
 POSTSEASON_CUTOFF = {"football": (12, 1), "mbb": (3, 12), "baseball": (5, 20)}
 UA = {"User-Agent": "Mozilla/5.0"}
+# The home-screen driver CHIPS (transfers, recruits, departures, news, CWS) are scoped to this
+# recent window so they read as "what's moving the score now" — not season-old churn like a
+# January portal class. The SCORE itself stays full-season; only these display chips are windowed.
+DRIVER_WINDOW_DAYS = 14
 
 
 def die(msg: str) -> None:
@@ -139,10 +143,15 @@ def main() -> None:
         # count, matching the chart — an undated move can't cause an unexplained bump.
         all_moves = sb.table("roster_moves").select("direction,category,move_date,impact").eq("sport_id", sport).execute().data
         moves = [m for m in all_moves if m.get("move_date")]
-        transfers_in = sum(1 for m in moves if m["direction"] == "in" and m.get("category") == "transfer")
-        transfers_out = sum(1 for m in moves if m["direction"] == "out" and m.get("category") == "transfer")
-        recruits = sum(1 for m in moves if m["direction"] == "in" and m.get("category") in ("recruit", "juco", "hs"))
-        departures = sum(1 for m in moves if m["direction"] == "out" and m.get("category") in ("graduation", "eligibility", "draft"))
+        # Driver chips are windowed to the last DRIVER_WINDOW_DAYS (see note above). rmoves = the
+        # moves that actually happened recently; the full `moves` list still feeds the score below.
+        win_start = date.today() - timedelta(days=DRIVER_WINDOW_DAYS)
+        win_cut = win_start.isoformat()
+        rmoves = [m for m in moves if (m.get("move_date") or "")[:10] >= win_cut]
+        transfers_in = sum(1 for m in rmoves if m["direction"] == "in" and m.get("category") == "transfer")
+        transfers_out = sum(1 for m in rmoves if m["direction"] == "out" and m.get("category") == "transfer")
+        recruits = sum(1 for m in rmoves if m["direction"] == "in" and m.get("category") in ("recruit", "juco", "hs"))
+        departures = sum(1 for m in rmoves if m["direction"] == "out" and m.get("category") in ("graduation", "eligibility", "draft"))
         transfers_delta = (transfers_in - transfers_out) * 1.5
         recruits_delta = recruits * 0.8
         departures_delta = departures * -0.4
@@ -150,7 +159,13 @@ def main() -> None:
         note_rows = sb.table("daily_sport_notes").select("date,pulse_delta").eq("sport_id", sport).execute().data
         note_dates = [date.fromisoformat(r["date"][:10]) for r in note_rows]  # any note = a real event
         note_deltas = [(date.fromisoformat(r["date"][:10]), r.get("pulse_delta") or 0) for r in note_rows]
-        news = news_delta(note_deltas, date.today())
+        news = news_delta(note_deltas, date.today())                                   # full — drives the SCORE
+        recent_news = news_delta([(nd, dl) for (nd, dl) in note_deltas if nd >= win_start], date.today())  # chip
+        cws_recent = cws and any(
+            ("charles schwab" in (g.get("venue") or "").lower() or "omaha" in (g.get("venue") or "").lower())
+            and (g.get("start_date") or "")[:10] >= win_cut
+            for g in season_games
+        )
 
         reg = [1 if wvu_won(g) else 0 for g in season_games if not is_postseason(sport, g)]
         post_games = [g for g in season_games if is_postseason(sport, g)]
@@ -185,10 +200,10 @@ def main() -> None:
         drivers = []
         if rank:
             drivers.append({"label": f"#{rank} nationally", "kind": "rank"})
-        if round(news) != 0:
-            label = "News buzz" if news > 0 else "Recent news"
-            drivers.append({"label": label, "delta": round(news), "kind": "news"})
-        if cws:
+        if round(recent_news) != 0:
+            label = "News buzz" if recent_news > 0 else "Recent news"
+            drivers.append({"label": label, "delta": round(recent_news), "kind": "news"})
+        if cws_recent:
             drivers.append({"label": "CWS run", "delta": round(surge(post_wins, post_losses)), "kind": "post"})
         if transfers_in or transfers_out:
             drivers.append({"label": f"Transfers +{transfers_in}/-{transfers_out}",
