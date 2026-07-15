@@ -11,7 +11,10 @@
     "ios": {
       "bundleIdentifier": "com.tysongraham.mountaineerpulse",
       "supportsTablet": false,
-      "userInterfaceStyle": "dark"
+      "userInterfaceStyle": "dark",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.tysongraham.mountaineerpulse",
