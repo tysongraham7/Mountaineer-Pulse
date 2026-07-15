@@ -20,13 +20,14 @@ export default function YouScreen() {
   const version = Constants.expoConfig?.version ?? '2.0.0';
 
   return (
-    <ScrollView
-      style={{ backgroundColor: c.bg }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+      {/* Header — pinned above the scroll (stays put like the Team tab) */}
       <View style={styles.header}>
         <Text style={styles.title}>You</Text>
       </View>
-
+      <ScrollView
+        style={{ backgroundColor: c.bg }}
+        contentContainerStyle={styles.content}>
       <SectionLabel style={{ marginTop: 8, marginBottom: 4 } as never}>Favorite Sports</SectionLabel>
       <Text style={styles.hint}>Starred teams move to the top of your Pulse.</Text>
       <View style={styles.card}>
@@ -77,7 +78,8 @@ export default function YouScreen() {
         <RidgeMark size={30} />
         <Text style={styles.footerText}>Mountaineer Pulse v{version} · Made in Morgantown</Text>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -94,7 +96,7 @@ function ComingRow({ label, first, last }: { label: string; first?: boolean; las
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 40 },
-  header: { paddingVertical: 8 },
+  header: { paddingHorizontal: 20, paddingVertical: 8 },
   title: { fontFamily: Font.display, fontSize: 24, color: c.text, letterSpacing: -0.4 },
   hint: { fontSize: 12, color: c.textMuted, marginBottom: 8, fontFamily: Font.body },
   card: {

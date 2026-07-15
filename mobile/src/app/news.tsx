@@ -81,26 +81,29 @@ export default function NewsScreen() {
   const updated = items[0] ? relativeTime(items[0].published_at) : '';
 
   return (
-    <ScrollView
-      style={{ backgroundColor: c.bg }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            load();
-          }}
-          tintColor={Brand.gold}
-        />
-      }>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+      {/* Header + sport filter — pinned above the scroll (stays put like the Team tab) */}
       <View style={styles.header}>
         <Text style={styles.title}>News</Text>
         {updated ? <Text style={styles.headerMeta}>Updated {updated} ago</Text> : null}
       </View>
+      <View style={styles.filterBar}>
+        <Segmented options={FILTERS} value={filter} onChange={setFilter} />
+      </View>
 
-      <Segmented options={FILTERS} value={filter} onChange={setFilter} />
-
+      <ScrollView
+        style={{ backgroundColor: c.bg }}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              load();
+            }}
+            tintColor={Brand.gold}
+          />
+        }>
       <View style={{ marginTop: 16, gap: 8 }}>
         {visible.length === 0 && (
           <Text style={styles.empty}>No headlines in this filter yet.</Text>
@@ -124,14 +127,16 @@ export default function NewsScreen() {
           </Pressable>
         ))}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingVertical: 8 },
+  header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 8 },
+  filterBar: { paddingHorizontal: 20, marginBottom: 4 },
   title: { fontFamily: Font.display, fontSize: 24, color: c.text, letterSpacing: -0.4 },
   headerMeta: { fontFamily: Font.body, fontSize: 12, color: c.textMuted },
   empty: { textAlign: 'center', marginTop: 24, fontSize: 14, color: c.textSecondary, fontFamily: Font.body },

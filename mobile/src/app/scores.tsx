@@ -81,21 +81,23 @@ export default function ScoresScreen() {
   const results = visible.filter((g) => g.status === 'final').reverse().slice(0, RESULTS_LIMIT);
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+      {/* Header + sport filter — pinned above the scroll (stays put like the Team tab) */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Scores</Text>
+        <Text style={styles.headerMeta}>
+          {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+        </Text>
+      </View>
+      <View style={styles.filterBar}>
+        <Segmented options={FILTERS} value={filter} onChange={setFilter} />
+      </View>
+
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
+        contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Brand.gold} />
         }>
-        <View style={styles.header}>
-          <Text style={styles.title}>Scores</Text>
-          <Text style={styles.headerMeta}>
-            {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-          </Text>
-        </View>
-
-        <Segmented options={FILTERS} value={filter} onChange={setFilter} />
-
         {upcoming.length > 0 && (
           <>
             <SectionLabel style={styles.sectionLabel as never}>Upcoming</SectionLabel>
@@ -148,7 +150,8 @@ function labelOf(id: string) {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
-  header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingVertical: 8 },
+  header: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 8 },
+  filterBar: { paddingHorizontal: 20, marginBottom: 4 },
   title: { fontFamily: Font.display, fontSize: 24, color: c.text, letterSpacing: -0.4 },
   headerMeta: { fontFamily: Font.body, fontSize: 12, color: c.textMuted },
   sectionLabel: { marginTop: 20, marginBottom: 8 },

@@ -145,20 +145,8 @@ export default function PulseScreen() {
   }
 
   const body = (
-    <ScrollView
-      style={{ backgroundColor: c.bg }}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            load();
-          }}
-          tintColor={Brand.gold}
-        />
-      }>
-      {/* Header */}
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+      {/* Header — pinned above the scroll (stays put like the Team tab) */}
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <RidgeMark size={34} />
@@ -172,6 +160,19 @@ export default function PulseScreen() {
         </View>
       </View>
 
+      <ScrollView
+        style={{ backgroundColor: c.bg }}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              load();
+            }}
+            tintColor={Brand.gold}
+          />
+        }>
       {/* Daily briefing — per-sport sections when available, else plain text */}
       {briefing && (
         <Card style={styles.briefing}>
@@ -292,7 +293,8 @@ export default function PulseScreen() {
       })}
 
       <Text style={styles.footer}>Tap a program to see its Pulse over time, day by day.</Text>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 
   return (
@@ -310,6 +312,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
     paddingVertical: 8,
     marginBottom: 6,
   },
