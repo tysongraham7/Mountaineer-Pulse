@@ -85,7 +85,7 @@ Let's go, Mountaineers.
 **4+** (no objectionable content; links to third-party news sites)
 
 ## URLs
-- **Support URL:** a simple page or `mailto:tysongraham7@gmail.com` (Apple accepts a contact page)
+- **Support URL:** a simple page or `mailto:mountaineerpulse@gmail.com` (Apple accepts a contact page)
 - **Marketing URL:** optional
 - **Privacy Policy URL:** host `docs/privacy.html` (see below) — required
 
