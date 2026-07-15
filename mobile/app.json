@@ -51,6 +51,12 @@
         "projectId": "98cf430a-90b9-4d07-b268-3d2404a71d46"
       }
     },
-    "owner": "tysongraham7"
+    "owner": "tysongraham7",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/98cf430a-90b9-4d07-b268-3d2404a71d46"
+    }
   }
 }
