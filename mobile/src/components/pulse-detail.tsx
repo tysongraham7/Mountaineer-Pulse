@@ -219,7 +219,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
                   <View style={[styles.deltaTag, { backgroundColor: deltaColor + '22' }]}>
                     <Text style={{ fontFamily: Font.bodyBold, fontSize: 13, color: deltaColor }}>
-                      {rangeDelta > 0 ? '▲ +' : rangeDelta < 0 ? '▼ ' : '▶ '}
+                      {rangeDelta > 0 ? '▲ +' : rangeDelta < 0 ? '▼ ' : ''}
                       {rangeDelta}
                     </Text>
                   </View>

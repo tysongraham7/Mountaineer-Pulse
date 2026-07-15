@@ -91,7 +91,7 @@ export function PulseChart({
   const prevScore = ai > 0 ? data[ai - 1].score : data[ai].score;
   const dir = data[ai].score > prevScore ? 'up' : data[ai].score < prevScore ? 'down' : 'flat';
   const arrowColor = dir === 'up' ? Brand.green : dir === 'down' ? Brand.red : c.textSecondary;
-  const arrow = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '▶';
+  const arrow = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '';
   const ttW = 96;
   const ttLeft = clamp(ax - ttW / 2, 2, W - ttW - 2);
   const ttTop = ay - 54 > 2 ? ay - 54 : ay + 14;
@@ -143,7 +143,8 @@ export function PulseChart({
       <View pointerEvents="none" style={[styles.tooltip, { left: ttLeft, top: ttTop, width: ttW }]}>
         <Text style={styles.ttDate}>{tooltipDate(data[ai].date)}</Text>
         <Text style={styles.ttScore}>
-          {data[ai].score} <Text style={{ color: arrowColor, fontSize: 11 }}>{arrow}</Text>
+          {data[ai].score}
+          {arrow ? <Text style={{ color: arrowColor, fontSize: 11 }}> {arrow}</Text> : null}
         </Text>
       </View>
     </View>
