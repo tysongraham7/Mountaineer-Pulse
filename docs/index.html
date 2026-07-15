@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mountaineer Pulse — WVU sports, one heartbeat</title>
+<meta name="description" content="An independent fan app for West Virginia University sports: scores, rosters, roster movement, a daily briefing, and a live Pulse score for every program." />
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#141a24; --muted:#5b6675;
+    --navy:#002855; --gold:#9a7400; --line:#e5e8ee; --tint:#fbf6e8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#060B16; --card:#0D1524; --ink:#EFF2F7; --muted:#8E9AAC;
+           --navy:#9FB4CE; --gold:#EAAA00; --line:rgba(159,180,206,.14); --tint:rgba(234,170,0,.08); }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;-webkit-text-size-adjust:100%}
+  .wrap{max-width:720px;margin:0 auto;padding:40px 22px 72px}
+
+  .brand{display:flex;align-items:center;gap:10px}
+  .mark{width:30px;height:30px;border-radius:8px;border:1.5px dashed var(--gold);
+    display:flex;align-items:center;justify-content:center}
+  .mark svg{width:18px;height:11px}
+  .brand b{font-size:15px;letter-spacing:-.2px}
+  .brand b span{color:var(--gold)}
+
+  .hero{margin:34px 0 8px}
+  .hero h1{font-size:38px;line-height:1.05;letter-spacing:-1px;margin:0 0 10px;text-wrap:balance}
+  .hero h1 span{color:var(--gold)}
+  .tag{font-size:17px;color:var(--muted);max-width:52ch;margin:0}
+  .pulse-line{margin:22px 0 4px}
+  .pulse-line svg{display:block;width:100%;height:34px}
+  .badge{display:inline-flex;align-items:center;gap:8px;margin-top:8px;
+    background:var(--tint);border:1px solid var(--line);border-radius:999px;
+    padding:7px 14px;font-size:13px;font-weight:600;color:var(--gold);letter-spacing:.02em}
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--gold)}
+
+  h2{font-size:16px;letter-spacing:.2px;margin:36px 0 12px;color:var(--navy)}
+  .feats{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+  .feat{display:flex;gap:12px;align-items:flex-start;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .feat .fi{flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:var(--tint);
+    display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .feat .fi svg{width:16px;height:16px;stroke:var(--gold);fill:none;stroke-width:1.8;
+    stroke-linecap:round;stroke-linejoin:round}
+  .feat b{font-size:15px}
+  .feat p{margin:2px 0 0;font-size:13.5px;color:var(--muted)}
+
+  .links{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 0}
+  .btn{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-size:14px;font-weight:600;
+    padding:11px 16px;border-radius:10px;border:1px solid var(--line)}
+  .btn.primary{background:var(--gold);color:#0b1220;border-color:var(--gold)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn:hover{filter:brightness(1.03)}
+
+  .callout{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin:30px 0 0;color:var(--muted);font-size:14px}
+  .callout strong{color:var(--ink)}
+  footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
+    color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
+  footer a{color:var(--muted);text-decoration:none}
+  footer a:hover{text-decoration:underline;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <span class="mark"><svg viewBox="0 0 24 14" fill="none"><path d="M1,12 L6,4 L9,9 L12,2 L14,12 L17,7 L23,7" stroke="#EAAA00" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <b>MOUNTAINEER <span>PULSE</span></b>
+  </div>
+
+  <div class="hero">
+    <h1>Every WVU program,<br><span>one heartbeat.</span></h1>
+    <p class="tag">Scores, rosters, roster movement, and a plugged-in daily briefing for West Virginia University football, men’s basketball, and baseball — plus a live Pulse score that rises and falls with every win, loss, and roster move.</p>
+    <div class="pulse-line" aria-hidden="true">
+      <svg viewBox="0 0 720 34" preserveAspectRatio="none">
+        <polyline points="0,22 150,22 190,22 214,10 236,30 258,5 280,22 360,22 386,22 410,16 432,22 720,22"
+          fill="none" stroke="#EAAA00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="badge"><span class="dot"></span> Coming soon to iPhone</span>
+  </div>
+
+  <h2>What it does</h2>
+  <ul class="feats">
+    <li class="feat">
+      <span class="fi"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg></span>
+      <div><b>Daily Briefing</b><p>A sharp, fan’s-eye recap each morning — draft news, commitments, previews, results — written from the actual headlines.</p></div>
+    </li>
+    <li class="feat">
+      <span class="fi"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 5-8 4 5"/></svg></span>
+      <div><b>The Pulse</b><p>A single score for each program that moves with wins, losses, rankings, and roster movement — the health of the team at a glance.</p></div>
+    </li>
+    <li class="feat">
+      <span class="fi"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/></svg></span>
+      <div><b>Rosters &amp; movement</b><p>Depth charts, incoming transfers and signees, departures, and the players whose stay-or-go decisions are still up in the air.</p></div>
+    </li>
+    <li class="feat">
+      <span class="fi"><svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z"/></svg></span>
+      <div><b>Scores &amp; schedule</b><p>Every result and upcoming game, so you always know where the Mountaineers stand.</p></div>
+    </li>
+  </ul>
+
+  <div class="links">
+    <a class="btn primary" href="mailto:mountaineerpulse@gmail.com">Get in touch</a>
+    <a class="btn ghost" href="privacy.html">Privacy Policy</a>
+  </div>
+
+  <div class="callout">
+    <strong>Not affiliated with WVU.</strong> Mountaineer Pulse is an independent, unofficial fan
+    application. It is not affiliated with, endorsed, sponsored by, or officially connected to West
+    Virginia University or its athletics department. All team names, logos, and trademarks are the
+    property of their respective owners, and all data is drawn from publicly available sources.
+  </div>
+
+  <footer>
+    <span>© 2026 Mountaineer Pulse · An independent fan project</span>
+    <a href="privacy.html">Privacy</a>
+    <a href="mailto:mountaineerpulse@gmail.com">mountaineerpulse@gmail.com</a>
+  </footer>
+</div>
+</body>
+</html>
