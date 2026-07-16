@@ -11,13 +11,15 @@ import {
   InstrumentSans_700Bold,
   useFonts,
 } from '@expo-google-fonts/instrument-sans';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { Onboarding } from '@/components/onboarding';
 import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { FavoritesProvider } from '@/lib/favorites';
@@ -40,6 +42,16 @@ export default function RootLayout() {
   // Show notification banners even when the app is open. Set once, at the root.
   useEffect(() => {
     configureNotificationHandler();
+  }, []);
+
+  // First-run onboarding: show once, then remember it's done.
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  useEffect(() => {
+    AsyncStorage.getItem('mp-onboarded').then((v) => setShowOnboarding(!v));
+  }, []);
+  const finishOnboarding = useCallback(() => {
+    AsyncStorage.setItem('mp-onboarded', '1').catch(() => {});
+    setShowOnboarding(false);
   }, []);
 
   // Instrument Sans becomes the app-wide default; screens opt into Archivo for
@@ -109,6 +121,7 @@ export default function RootLayout() {
             }}
           />
         </Tabs>
+        <Onboarding visible={showOnboarding} onDone={finishOnboarding} />
       </ThemeProvider>
     </FavoritesProvider>
   );
