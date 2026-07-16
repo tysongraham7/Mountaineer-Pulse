@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReportModal } from '@/components/report-modal';
 import { SectionLabel } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
@@ -73,6 +74,7 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (!player) return;
@@ -236,9 +238,23 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
                         : 'No stats on record yet.'}
                 </Text>
               )}
+
+              <Pressable style={styles.reportBtn} onPress={() => setReportOpen(true)} hitSlop={8}>
+                <Ionicons name="flag-outline" size={13} color={c.textMuted} />
+                <Text style={styles.reportText}>Report incorrect info</Text>
+              </Pressable>
             </View>
           </ScrollView>
         )}
+        <ReportModal
+          visible={reportOpen}
+          onClose={() => setReportOpen(false)}
+          context={{
+            screen: 'player',
+            sport: player?.sport_id,
+            player: player ? fullName(player) : undefined,
+          }}
+        />
       </View>
     </Modal>
   );
@@ -269,4 +285,6 @@ const styles = StyleSheet.create({
   beforeSchool: { fontSize: 13, color: Brand.gold, fontFamily: Font.displaySemi, marginBottom: 6 },
   beforeLine: { fontSize: 15, color: c.text, lineHeight: 22, fontFamily: Font.body },
   note: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, lineHeight: 18, fontFamily: Font.body },
+  reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24, paddingVertical: 8 },
+  reportText: { fontSize: 12.5, color: c.textMuted, fontFamily: Font.bodyMed },
 });

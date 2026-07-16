@@ -34,13 +34,33 @@ ALTERS = [
         updated_at  timestamptz not null default now()
     );""",
     "alter table push_tokens enable row level security;",
-    # The client (anon key) may register/update ONLY — it cannot read tokens (a leaked Expo
-    # push token lets anyone notify that device). The backend reads them with the secret key,
-    # which bypasses RLS.
+    # The client may register/update ONLY — it cannot read tokens (a leaked Expo push token
+    # lets anyone notify that device). With RLS on and NO select policy, reads are denied to
+    # everyone but the secret key (which bypasses RLS). Policies target `public` (not `anon`):
+    # the sb_publishable_ key resolves to a role matched by `public` but not `anon`, so a
+    # `to anon` policy would silently never apply and every insert would fail RLS.
     "drop policy if exists push_tokens_insert on push_tokens;",
-    "create policy push_tokens_insert on push_tokens for insert to anon with check (true);",
+    "create policy push_tokens_insert on push_tokens for insert to public with check (true);",
     "drop policy if exists push_tokens_update on push_tokens;",
-    "create policy push_tokens_update on push_tokens for update to anon using (true) with check (true);",
+    "create policy push_tokens_update on push_tokens for update to public using (true) with check (true);",
+    # --- In-app error / feedback reports ---
+    """create table if not exists error_reports (
+        id           uuid primary key default gen_random_uuid(),
+        category     text,
+        message      text not null,
+        context      jsonb,
+        app_version  text,
+        platform     text,
+        resolved     boolean not null default false,
+        created_at   timestamptz not null default now()
+    );""",
+    "alter table error_reports enable row level security;",
+    # The client may submit reports ONLY — it cannot read them back (reports may contain other
+    # users' words; nothing in the app lists them). No select policy => reads denied to all but
+    # the secret key (read_reports.py). `to public` (not `to anon`) for the same reason as
+    # push_tokens above: the sb_publishable_ key isn't matched by a `to anon` policy.
+    "drop policy if exists error_reports_insert on error_reports;",
+    "create policy error_reports_insert on error_reports for insert to public with check (true);",
 ]
 
 

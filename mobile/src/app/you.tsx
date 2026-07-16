@@ -1,8 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ReportModal } from '@/components/report-modal';
 import { RidgeMark, SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
@@ -23,6 +25,7 @@ export default function YouScreen() {
 
   const [alertsOn, setAlertsOn] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   useEffect(() => {
     areAlertsEnabled().then(setAlertsOn);
   }, []);
@@ -98,6 +101,18 @@ export default function YouScreen() {
         <ComingRow label="Saved stories" last />
       </View>
 
+      <SectionLabel style={{ marginTop: 22, marginBottom: 4 } as never}>Feedback</SectionLabel>
+      <Text style={styles.hint}>See a wrong stat or something off? Tell us — we read every report.</Text>
+      <View style={styles.card}>
+        <Pressable style={[styles.row, { borderBottomWidth: 0 }]} onPress={() => setReportOpen(true)}>
+          <View style={[styles.tile, { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }]}>
+            <Ionicons name="flag-outline" size={18} color={Brand.gold} />
+          </View>
+          <Text style={styles.rowLabel}>Report an issue</Text>
+          <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+        </Pressable>
+      </View>
+
       <SectionLabel tone="muted" style={{ marginTop: 22, marginBottom: 8 } as never}>About</SectionLabel>
       <View style={styles.card}>
         <View style={[styles.row, { borderBottomWidth: 1 }]}>
@@ -116,6 +131,11 @@ export default function YouScreen() {
         <Text style={styles.footerText}>Mountaineer Pulse v{version} · Made in Morgantown</Text>
       </View>
       </ScrollView>
+      <ReportModal
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        context={{ screen: 'you' }}
+      />
     </View>
   );
 }
