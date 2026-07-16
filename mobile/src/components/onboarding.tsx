@@ -45,7 +45,7 @@ export function Onboarding({ visible, onDone }: { visible: boolean; onDone: () =
                 <RidgeMark size={72} />
               </View>
               <Wordmark size={30} />
-              <Text style={styles.title}>Every WVU program,{'\n'}one heartbeat.</Text>
+              <Text style={styles.title}>WVU sports,{'\n'}one heartbeat.</Text>
               <Text style={styles.sub}>
                 Your daily home for West Virginia football, men's basketball, and baseball — scores,
                 rosters, roster movement, and a morning briefing, all in one place.
