@@ -65,12 +65,25 @@ export async function enableAlerts(): Promise<string | null> {
   const token = await currentToken();
   if (!token) return null;
 
-  await supabase
+  const nowIso = new Date().toISOString();
+  // NOTE: don't use upsert() here. PostgREST upsert emits INSERT ... ON CONFLICT, which
+  // needs a SELECT policy to identify the conflicting row — and push_tokens has none by
+  // design (a readable token table is a spam vector), so any ON CONFLICT write fails RLS.
+  // Instead: plain insert, and on a duplicate-key error (token already registered) fall
+  // back to an update. Both paths use only the insert/update policies we do grant.
+  const ins = await supabase
     .from('push_tokens')
-    .upsert(
-      { token, platform: Platform.OS, enabled: true, updated_at: new Date().toISOString() },
-      { onConflict: 'token' },
-    );
+    .insert({ token, platform: Platform.OS, enabled: true, updated_at: nowIso });
+  if (ins.error) {
+    const upd = await supabase
+      .from('push_tokens')
+      .update({ enabled: true, platform: Platform.OS, updated_at: nowIso })
+      .eq('token', token);
+    if (upd.error) {
+      console.warn('push token registration failed:', upd.error.message);
+      return null;
+    }
+  }
   return token;
 }
 
