@@ -19,6 +19,13 @@ from supabase import create_client
 
 load_dotenv()
 
+# Titles/bodies carry emoji (e.g. the briefing's 🏔️); keep Windows' cp1252
+# console from crashing on the status print after a send already went out.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
