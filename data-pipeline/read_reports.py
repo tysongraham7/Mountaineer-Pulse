@@ -22,6 +22,12 @@ from supabase import create_client
 
 load_dotenv()
 
+# Windows consoles default to cp1252 and choke on the "·" separators below.
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
