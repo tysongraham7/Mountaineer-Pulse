@@ -72,9 +72,7 @@ const LEADERBOARDS_BY_SPORT: Record<string, Board[]> = {
     { title: 'Runs', cat: 'hitting', type: 'R', top: 5 },
     { title: 'Walks', cat: 'hitting', type: 'BB', top: 3 },
     { title: 'ERA', cat: 'pitching', type: 'ERA', top: 5, asc: true, qualCat: 'pitching', qualType: 'IP', qualMin: 20 },
-    { title: 'Strikeouts (P)', cat: 'pitching', type: 'SO', top: 5 },
     { title: 'Wins', cat: 'pitching', type: 'W', top: 3 },
-    { title: 'Saves', cat: 'pitching', type: 'SV', top: 3 },
   ],
   mbb: [
     { title: 'Points / G', cat: 'basketball', type: 'PPG', top: 5 },

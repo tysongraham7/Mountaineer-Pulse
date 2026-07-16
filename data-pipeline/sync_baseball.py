@@ -150,15 +150,20 @@ def main() -> None:
                     bat[key]["SO"] += num(bs.get("strikeouts"))
                 ps = p.get("pitcherStats")
                 if ps:
+                    # Per-game line stats accumulate (H/R/ER/BB are that game's totals).
                     pit_outs[key] += ip_to_outs(ps.get("inningsPitched"))
                     pit[key]["H"] += num(ps.get("hitsAllowed"))
                     pit[key]["R"] += num(ps.get("runsAllowed"))
                     pit[key]["ER"] += num(ps.get("earnedRunsAllowed"))
                     pit[key]["BB"] += num(ps.get("walksAllowed"))
-                    pit[key]["SO"] += num(ps.get("strikeouts"))
-                    pit[key]["W"] += num(ps.get("win"))
-                    pit[key]["L"] += num(ps.get("loss"))
-                    pit[key]["SV"] += num(ps.get("save"))
+                    # W/L/SV are the pitcher's CUMULATIVE season record shown in each box
+                    # score ("(7-2)"), NOT a per-game flag — so summing over-counts wildly
+                    # (a 7-win season summed as 1+2+..+7 ≈ 27). Take the max = the final total.
+                    pit[key]["W"] = max(pit[key]["W"], num(ps.get("win")))
+                    pit[key]["L"] = max(pit[key]["L"], num(ps.get("loss")))
+                    # This feed doesn't reliably report per-game pitcher strikeouts (real starts
+                    # come back SO=0) and its save totals badly undercount (a CWS bullpen summed to
+                    # ~3 team saves), so we don't emit pitching SO or SV — better no stat than a wrong one.
     print(f"aggregated {used} WVU box-score sides")
 
     # ---- Phase 3: roster match + build player_stats rows --------------------
@@ -204,7 +209,7 @@ def main() -> None:
         era = (9 * p["ER"]) / (outs / 3) if outs else 0
         add(pid, "pitching", "ERA", f"{era:.2f}")
         add(pid, "pitching", "IP", ip_disp)
-        for st in ("H", "R", "ER", "BB", "SO", "W", "L", "SV"):
+        for st in ("H", "R", "ER", "BB", "W", "L"):
             add(pid, "pitching", st, int(p[st]))
 
     # Clean slate for baseball, then insert.
