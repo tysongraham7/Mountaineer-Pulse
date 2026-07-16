@@ -40,7 +40,13 @@
           "imageWidth": 160
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#EAA000"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

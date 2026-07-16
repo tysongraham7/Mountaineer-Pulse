@@ -25,6 +25,22 @@ ALTERS = [
     "alter table roster_moves add column if not exists alert text;",
     "alter table depth_chart add column if not exists alert text;",
     "alter table daily_briefings add column if not exists sections jsonb;",
+    # --- Push notifications: device push tokens ---
+    """create table if not exists push_tokens (
+        token       text primary key,
+        platform    text,
+        enabled     boolean not null default true,
+        created_at  timestamptz not null default now(),
+        updated_at  timestamptz not null default now()
+    );""",
+    "alter table push_tokens enable row level security;",
+    # The client (anon key) may register/update ONLY — it cannot read tokens (a leaked Expo
+    # push token lets anyone notify that device). The backend reads them with the secret key,
+    # which bypasses RLS.
+    "drop policy if exists push_tokens_insert on push_tokens;",
+    "create policy push_tokens_insert on push_tokens for insert to anon with check (true);",
+    "drop policy if exists push_tokens_update on push_tokens;",
+    "create policy push_tokens_update on push_tokens for update to anon using (true) with check (true);",
 ]
 
 

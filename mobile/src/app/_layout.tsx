@@ -15,11 +15,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 
 import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { FavoritesProvider } from '@/lib/favorites';
+import { configureNotificationHandler } from '@/lib/notifications';
 
 const c = surfaces(true);
 
@@ -34,6 +36,11 @@ export default function RootLayout() {
     InstrumentSans_600SemiBold,
     InstrumentSans_700Bold,
   });
+
+  // Show notification banners even when the app is open. Set once, at the root.
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
 
   // Instrument Sans becomes the app-wide default; screens opt into Archivo for
   // display type. Applied once, here.

@@ -1,10 +1,12 @@
 import Constants from 'expo-constants';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RidgeMark, SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
+import { areAlertsEnabled, disableAlerts, enableAlerts } from '@/lib/notifications';
 
 const c = surfaces(true);
 
@@ -18,6 +20,31 @@ export default function YouScreen() {
   const insets = useSafeAreaInsets();
   const { favorites, toggle } = useFavorites();
   const version = Constants.expoConfig?.version ?? '2.0.0';
+
+  const [alertsOn, setAlertsOn] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    areAlertsEnabled().then(setAlertsOn);
+  }, []);
+
+  const toggleAlerts = async (next: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    if (next) {
+      const token = await enableAlerts();
+      setAlertsOn(!!token);
+      if (!token) {
+        Alert.alert(
+          'Turn on alerts',
+          'Enable notifications for Mountaineer Pulse in your device Settings to get game and breaking-news alerts.',
+        );
+      }
+    } else {
+      await disableAlerts();
+      setAlertsOn(false);
+    }
+    setBusy(false);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
@@ -57,7 +84,17 @@ export default function YouScreen() {
       <SectionLabel style={{ marginTop: 22, marginBottom: 8 } as never}>Account &amp; Alerts</SectionLabel>
       <View style={styles.card}>
         <ComingRow label="Sign in / create account" first />
-        <ComingRow label="Game & breaking-news alerts" />
+        <View style={[styles.row, { borderBottomWidth: 1 }]}>
+          <Text style={styles.rowLabel}>Game &amp; breaking-news alerts</Text>
+          <Switch
+            value={alertsOn}
+            onValueChange={toggleAlerts}
+            disabled={busy}
+            trackColor={{ true: Brand.gold, false: c.surface2 }}
+            thumbColor="#ffffff"
+            ios_backgroundColor={c.surface2}
+          />
+        </View>
         <ComingRow label="Saved stories" last />
       </View>
 

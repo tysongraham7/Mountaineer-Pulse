@@ -286,6 +286,14 @@ def main() -> None:
         on_conflict="date",
     ).execute()
 
+    # Notify subscribers that the morning briefing is ready (best-effort — never fail the run).
+    try:
+        from send_push import send_push
+        teaser = (intro or "Your morning WVU rundown is ready.").strip()
+        send_push("Your Mountaineer briefing 🏔️", teaser[:160], data={"screen": "pulse"})
+    except Exception as e:
+        print(f"    (push notify skipped: {str(e)[:120]})")
+
     print(f"Daily Briefing ({today}) — {MODEL}, {searches} searches\n" + "-" * 60)
     print(intro)
     for sec in sections:
