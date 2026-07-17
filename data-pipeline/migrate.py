@@ -23,6 +23,9 @@ load_dotenv()
 ALTERS = [
     "alter table daily_sport_notes add column if not exists pulse_delta int not null default 0;",
     "alter table roster_moves add column if not exists alert text;",
+    # A move that's already reflected by a curated daily note carries pulse_neutral=true so the
+    # Pulse math counts the event ONCE (via the note) instead of double-counting it here too.
+    "alter table roster_moves add column if not exists pulse_neutral boolean not null default false;",
     "alter table depth_chart add column if not exists alert text;",
     "alter table daily_briefings add column if not exists sections jsonb;",
     # --- Push notifications: device push tokens ---

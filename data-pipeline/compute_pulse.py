@@ -141,8 +141,10 @@ def main() -> None:
         # Roster movement, by category. Incoming class = transfer/recruit/juco/hs;
         # departures = portal-out plus graduation/eligibility/draft. Only DATED moves
         # count, matching the chart — an undated move can't cause an unexplained bump.
-        all_moves = sb.table("roster_moves").select("direction,category,move_date,impact").eq("sport_id", sport).execute().data
-        moves = [m for m in all_moves if m.get("move_date")]
+        all_moves = sb.table("roster_moves").select("direction,category,move_date,impact,pulse_neutral").eq("sport_id", sport).execute().data
+        # pulse_neutral moves stay in movement/roster/depth for display but are kept out of the
+        # Pulse math — their score effect is carried once by the matching curated note instead.
+        moves = [m for m in all_moves if m.get("move_date") and not m.get("pulse_neutral")]
         # Driver chips are windowed to the last DRIVER_WINDOW_DAYS (see note above). rmoves = the
         # moves that actually happened recently; the full `moves` list still feeds the score below.
         win_start = date.today() - timedelta(days=DRIVER_WINDOW_DAYS)

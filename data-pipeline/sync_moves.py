@@ -82,6 +82,9 @@ def main() -> None:
             "notes": m.get("notes") or None,
             "impact": m.get("impact") or None,
             "alert": m.get("alert") or None,
+            # True = shown in movement/roster/depth but excluded from Pulse math (a curated
+            # note already carries this event's score effect, so don't double-count it).
+            "pulse_neutral": bool(m.get("pulse_neutral", False)),
         })
 
     # Rebuild curated rows so entries removed from the JSON also drop from the DB.

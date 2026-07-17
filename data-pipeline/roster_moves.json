@@ -1011,6 +1011,7 @@
     "other_school": "Chicago White Sox",
     "source_name": "WVU Athletics",
     "notes": "2026 signee who signed pro instead of enrolling — White Sox (11th rd, 315th overall)",
-    "alert": "Signed with the White Sox — will not enroll at WVU"
+    "alert": "Signed with the White Sox — will not enroll at WVU",
+    "pulse_neutral": true
   }
 ]

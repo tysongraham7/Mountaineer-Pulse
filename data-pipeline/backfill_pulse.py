@@ -61,7 +61,10 @@ def main() -> None:
             g["_d"] = to_date(g["start_date"])
         games = [g for g in games if g["_d"]]
 
-        moves = sb.table("roster_moves").select("direction,category,move_date,impact").eq("sport_id", sport).execute().data
+        # pulse_neutral moves are excluded here too — their effect is carried by the curated note,
+        # so counting them in roster_delta would double-count the same event on the chart.
+        moves = [m for m in sb.table("roster_moves").select("direction,category,move_date,impact,pulse_neutral")
+                 .eq("sport_id", sport).execute().data if not m.get("pulse_neutral")]
         for m in moves:
             m["_d"] = to_date(m["move_date"])
 
