@@ -1,10 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, PanResponder, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Polygon, Polyline, Stop, Text as SvgText } from 'react-native-svg';
 
 import { Brand, Font, surfaces } from '@/constants/brand';
 
 const c = surfaces(true);
+
+// SVG elements driven from the UI thread — the line "draws" via strokeDashoffset
+// and the gradient fill fades in underneath it, all without JS-thread jank.
+const APolyline = Animated.createAnimatedComponent(Polyline);
+const APolygon = Animated.createAnimatedComponent(Polygon);
+
+const DRAW_MS = 900; // one orchestrated beat: line draw + score count-up finish together
 
 export type ChartPoint = { date: string; score: number };
 
@@ -46,7 +63,7 @@ export function PulseChart({
   const [active, setActive] = useState<number>(n - 1);
   useEffect(() => {
     setActive(n - 1);
-  }, [n]);
+  }, [data, n]);
   useEffect(() => {
     if (n >= 2) onActiveChange?.(active);
   }, [active, n, onActiveChange]);
@@ -61,6 +78,75 @@ export function PulseChart({
 
   const idxFromX = (px: number) => clamp(Math.round(((px - pad.left) / w) * (n - 1)), 0, n - 1);
 
+  // ---- Draw-in animation ----------------------------------------------------
+  // progress 0→1 reveals the line left-to-right (stroke-dash trick) and fades the
+  // area fill in. Interaction is gated on `drawn`; touching mid-draw completes it
+  // instantly so scrubbing is never blocked.
+  const progress = useSharedValue(0);
+  const ring = useSharedValue(0); // one-time endpoint pulse after the draw lands
+  const [drawn, setDrawn] = useState(false);
+  const drawnRef = useRef(false);
+  drawnRef.current = drawn;
+
+  // Total polyline length so strokeDasharray/offset can hide-then-reveal it.
+  const totalLen = useMemo(() => {
+    if (n < 2) return 1;
+    let L = 0;
+    for (let i = 1; i < n; i++) {
+      L += Math.hypot(x(i) - x(i - 1), y(data[i].score) - y(data[i - 1].score));
+    }
+    return Math.max(1, L);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, W, height]);
+
+  const finishDraw = () => {
+    setDrawn(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  };
+
+  useEffect(() => {
+    if (n < 2) return;
+    setDrawn(false);
+    ring.value = 0;
+    progress.value = 0;
+    progress.value = withTiming(1, { duration: DRAW_MS, easing: Easing.out(Easing.cubic) }, (finished) => {
+      if (finished) {
+        ring.value = withTiming(1, { duration: 650, easing: Easing.out(Easing.quad) });
+        runOnJS(finishDraw)();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  const lineProps = useAnimatedProps(() => ({
+    strokeDashoffset: totalLen * (1 - progress.value),
+  }));
+  const fillProps = useAnimatedProps(() => ({
+    // Fill eases in during the second half of the draw so the line leads the moment.
+    opacity: Math.max(0, (progress.value - 0.35) / 0.65),
+  }));
+  const ringStyle = useAnimatedStyle(() => ({
+    opacity: ring.value === 0 ? 0 : (1 - ring.value) * 0.55,
+    transform: [{ scale: 0.5 + ring.value * 1.5 }],
+  }));
+
+  // ---- Scrub with haptic ticks ---------------------------------------------
+  const lastTick = useRef(-1);
+  const scrubTo = (px: number) => {
+    if (!drawnRef.current) {
+      // A touch mid-draw completes the animation instantly — never fight the user.
+      cancelAnimation(progress);
+      progress.value = 1;
+      setDrawn(true);
+    }
+    const i = idxFromX(px);
+    setActive(i);
+    if (i !== lastTick.current) {
+      lastTick.current = i;
+      Haptics.selectionAsync().catch(() => {}); // per-day tick, the Stocks-app feel
+    }
+  };
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -70,8 +156,8 @@ export function PulseChart({
         onStartShouldSetPanResponderCapture: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: (evt) => setActive(idxFromX(evt.nativeEvent.locationX)),
-        onPanResponderMove: (evt) => setActive(idxFromX(evt.nativeEvent.locationX)),
+        onPanResponderGrant: (evt) => scrubTo(evt.nativeEvent.locationX),
+        onPanResponderMove: (evt) => scrubTo(evt.nativeEvent.locationX),
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }),
     [n, w, pad.left],
@@ -86,6 +172,8 @@ export function PulseChart({
   const ai = clamp(active, 0, n - 1);
   const ax = x(ai);
   const ay = y(data[ai].score);
+  const endX = x(n - 1);
+  const endY = y(data[n - 1].score);
 
   // Floating tooltip (date + score + trend), following the active point.
   const prevScore = ai > 0 ? data[ai - 1].score : data[ai].score;
@@ -95,6 +183,8 @@ export function PulseChart({
   const ttW = 96;
   const ttLeft = clamp(ax - ttW / 2, 2, W - ttW - 2);
   const ttTop = ay - 54 > 2 ? ay - 54 : ay + 14;
+
+  const RING = 20; // endpoint pulse ring radius (RN view overlay, not SVG)
 
   return (
     <View {...panResponder.panHandlers} style={{ width: W, height }}>
@@ -116,14 +206,27 @@ export function PulseChart({
           </SvgText>
         ))}
 
-        {/* area + line */}
-        <Polygon points={area} fill="url(#pulseFill)" />
-        <Polyline points={line} fill="none" stroke={color} strokeWidth={2.5} />
+        {/* area + line — revealed by the draw-in animation */}
+        <APolygon points={area} fill="url(#pulseFill)" animatedProps={fillProps} />
+        <APolyline
+          points={line}
+          fill="none"
+          stroke={color}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={`${totalLen},${totalLen}`}
+          animatedProps={lineProps}
+        />
 
-        {/* active crosshair + hollow dot */}
-        <Line x1={ax} y1={pad.top} x2={ax} y2={pad.top + h} stroke={color} strokeWidth={1} strokeDasharray="3,4" opacity={0.5} />
-        <Circle cx={ax} cy={ay} r={8} fill={color} opacity={0.18} />
-        <Circle cx={ax} cy={ay} r={5} fill="#060B16" stroke={color} strokeWidth={2.5} />
+        {/* active crosshair + hollow dot — after the draw so the reveal stays clean */}
+        {drawn && (
+          <>
+            <Line x1={ax} y1={pad.top} x2={ax} y2={pad.top + h} stroke={color} strokeWidth={1} strokeDasharray="3,4" opacity={0.5} />
+            <Circle cx={ax} cy={ay} r={8} fill={color} opacity={0.18} />
+            <Circle cx={ax} cy={ay} r={5} fill="#060B16" stroke={color} strokeWidth={2.5} />
+          </>
+        )}
 
         {/* x date ticks */}
         {tickIdx.map((i, k) => (
@@ -139,14 +242,34 @@ export function PulseChart({
         ))}
       </Svg>
 
+      {/* one-time endpoint pulse ring, fired the moment the line lands */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          {
+            position: 'absolute',
+            left: endX - RING,
+            top: endY - RING,
+            width: RING * 2,
+            height: RING * 2,
+            borderRadius: RING,
+            borderWidth: 2,
+            borderColor: color,
+          },
+          ringStyle,
+        ]}
+      />
+
       {/* floating tooltip card — matches the 2C design */}
-      <View pointerEvents="none" style={[styles.tooltip, { left: ttLeft, top: ttTop, width: ttW }]}>
-        <Text style={styles.ttDate}>{tooltipDate(data[ai].date)}</Text>
-        <Text style={styles.ttScore}>
-          {data[ai].score}
-          {arrow ? <Text style={{ color: arrowColor, fontSize: 11 }}> {arrow}</Text> : null}
-        </Text>
-      </View>
+      {drawn && (
+        <View pointerEvents="none" style={[styles.tooltip, { left: ttLeft, top: ttTop, width: ttW }]}>
+          <Text style={styles.ttDate}>{tooltipDate(data[ai].date)}</Text>
+          <Text style={styles.ttScore}>
+            {data[ai].score}
+            {arrow ? <Text style={{ color: arrowColor, fontSize: 11 }}> {arrow}</Text> : null}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

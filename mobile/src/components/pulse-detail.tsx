@@ -5,9 +5,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SectionLabel, Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { useCountUp } from '@/lib/count-up';
 import { supabase } from '@/lib/supabase';
 import { Game, RosterMove } from '@/lib/types';
 import { ChartPoint, PulseChart } from './pulse-chart';
+import { PulseExplainer } from './pulse-explainer';
 
 const c = surfaces(true);
 
@@ -59,6 +61,11 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
   const [activeIdx, setActiveIdx] = useState<number>(-1);
   const [rangeIdx, setRangeIdx] = useState<number>(0);
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [showExplainer, setShowExplainer] = useState(false);
+
+  // The big score rolls up in sync with the chart's draw-in (same duration/easing
+  // family) — display only, the real value is untouched. Re-runs per sport.
+  const displayScore = useCountUp(loading ? null : current?.score, 900, curSport ?? '');
 
   useEffect(() => {
     if (sport) setCurSport(sport);
@@ -213,8 +220,13 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
             <Segmented options={SPORT_OPTS} value={curSport ?? 'football'} onChange={setCurSport} />
 
             <View style={{ marginTop: 22 }}>
-              <SectionLabel tone="muted">Pulse Score</SectionLabel>
-              <Text style={styles.bigScore}>{current?.score ?? '—'}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <SectionLabel tone="muted">Pulse Score</SectionLabel>
+                <Pressable onPress={() => setShowExplainer(true)} hitSlop={10}>
+                  <Ionicons name="information-circle-outline" size={15} color={c.textMuted} />
+                </Pressable>
+              </View>
+              <Text style={styles.bigScore}>{displayScore ?? '—'}</Text>
               {n >= 2 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
                   <View style={[styles.deltaTag, { backgroundColor: deltaColor + '22' }]}>
@@ -324,6 +336,12 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
             )}
           </ScrollView>
         )}
+        <PulseExplainer
+          visible={showExplainer}
+          onClose={() => setShowExplainer(false)}
+          sportName={curSport ? SPORT_NAME[curSport] : undefined}
+          drivers={current?.drivers}
+        />
       </View>
     </Modal>
   );
