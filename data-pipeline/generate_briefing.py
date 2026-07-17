@@ -110,10 +110,11 @@ def build_context(sb) -> str:
     return "\n".join(lines)
 
 
-def recent_briefings(sb, today: str, n: int = 3) -> str:
-    """The last few days' briefings, so Claude leads with what's NEW instead of
-    re-summarizing an ongoing story (e.g. a multi-day MLB Draft cycle). Without this
-    the generator has no memory and reproduces near-identical briefings on quiet days."""
+def recent_briefings(sb, today: str, n: int = 7) -> str:
+    """The last week's briefings, so Claude leads with what's NEW instead of re-summarizing
+    an ongoing story (e.g. a multi-day MLB Draft cycle). A week of memory (not 3 days) keeps
+    a story like a player's return from resurfacing days later once web search rediscovers it.
+    Without this the generator has no memory and reproduces near-identical briefings."""
     rows = (
         sb.table("daily_briefings").select("date,content")
         .lt("date", today).order("date", desc=True).limit(n).execute().data
@@ -152,7 +153,9 @@ SYSTEM = (
     "a signing finalized, a game played) and frame it AS the update ('Henne still hasn't signed — "
     "deadline July 27', 'now official'), never a re-summary. If a sport has had no new development since "
     "the last briefing, either omit it or give it a single line naming the one thing still worth "
-    "watching. A quiet day should read as a quiet day, not a rerun.\n\n"
+    "watching. A quiet day should read as a quiet day, not a rerun. And judge freshness by DATE: "
+    "if a development (a commitment, a return, a signing) happened more than ~3 days ago, it is NOT "
+    "new — do not lead with it just because a web search resurfaced it. Today's date is given below.\n\n"
     "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
     "{\n"
     '  "intro": "<one short, warm greeting line>",\n'

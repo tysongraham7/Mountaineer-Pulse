@@ -298,20 +298,6 @@
   },
   {
     "sport_id": "baseball",
-    "player_name": "Kyle Casteel",
-    "position": "RHP",
-    "class_year": "Fr",
-    "direction": "in",
-    "category": "hs",
-    "status": "signed",
-    "other_school": "",
-    "move_date": "2026-06-26",
-    "source_name": "CollegeNetWorth",
-    "source_url": "",
-    "notes": ""
-  },
-  {
-    "sport_id": "baseball",
     "player_name": "Luke Coats",
     "position": "RHP",
     "class_year": "Fr",
@@ -1016,11 +1002,15 @@
     "sport_id": "baseball",
     "player_name": "Kyle Casteel",
     "position": "RHP",
+    "class_year": "Fr",
     "direction": "out",
-    "category": "draft-pending",
-    "move_date": "2026-07-14",
+    "category": "draft",
+    "status": "signed",
+    "move_date": "2026-07-17",
     "impact": null,
     "other_school": "Chicago White Sox",
-    "alert": "Drafted by the White Sox (11th rd, 315th) — awaiting his sign-or-enroll decision"
+    "source_name": "WVU Athletics",
+    "notes": "2026 signee who signed pro instead of enrolling — White Sox (11th rd, 315th overall)",
+    "alert": "Signed with the White Sox — will not enroll at WVU"
   }
 ]

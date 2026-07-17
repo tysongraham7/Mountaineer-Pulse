@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import sys
+import unicodedata
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -21,6 +22,11 @@ SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(HERE, "roster_moves.json")
+
+
+def norm_name(name: str) -> str:
+    s = unicodedata.normalize("NFKD", name or "").encode("ascii", "ignore").decode()
+    return " ".join(s.lower().replace(".", " ").replace("'", "").replace("-", " ").split())
 
 
 def die(msg: str) -> None:
@@ -35,12 +41,29 @@ def main() -> None:
         moves = json.load(f)
 
     sb = create_client(SB_URL, SB_KEY)
+
+    # A player with a CONFIRMED departure can't also be listed as incoming (e.g. a signee who
+    # signs pro instead of enrolling). The 'out' wins; drop any conflicting 'in' so movement,
+    # roster, and depth never show the same player in two places. 'draft-pending' is undecided,
+    # so it doesn't suppress an 'in'.
+    confirmed_out = {
+        (m.get("sport_id"), norm_name(m.get("player_name", "")))
+        for m in moves
+        if m.get("direction", "").strip().lower() == "out"
+        and m.get("category") != "draft-pending"
+        and m.get("player_name", "").strip()
+    }
+
     rows = []
+    suppressed = []
     for m in moves:
         name = m.get("player_name", "").strip()
         direction = m.get("direction", "").strip().lower()
         if not name or direction not in ("in", "out"):
             print(f"  skipping invalid entry: {m}")
+            continue
+        if direction == "in" and (m.get("sport_id"), norm_name(name)) in confirmed_out:
+            suppressed.append(f"{name} ({m.get('sport_id')})")
             continue
         uid = hashlib.md5(f"{m.get('sport_id')}|{name}|{direction}".encode()).hexdigest()
         rows.append({
@@ -71,6 +94,8 @@ def main() -> None:
     ins = sum(1 for r in rows if r["direction"] == "in")
     outs = sum(1 for r in rows if r["direction"] == "out")
     print(f"roster_moves -> upserted {len(rows)} moves  (+{ins} in / -{outs} out)")
+    if suppressed:
+        print(f"   suppressed {len(suppressed)} 'in' (has a confirmed departure): {', '.join(suppressed)}")
     print("\n[OK] Roster movement synced to Supabase.")
 
 
