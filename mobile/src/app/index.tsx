@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,6 +16,7 @@ import { PulseDetail } from '@/components/pulse-detail';
 import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
+import { areAlertsEnabled, disableAlerts, enableAlerts } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { Briefing } from '@/lib/types';
 
@@ -78,7 +80,35 @@ export default function PulseScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [alertsOn, setAlertsOn] = useState(false);
+  const [bellBusy, setBellBusy] = useState(false);
   const { favorites } = useFavorites();
+
+  useEffect(() => {
+    areAlertsEnabled().then(setAlertsOn);
+  }, []);
+
+  // The header bell doubles as a status light: filled/gold = alerts on, outline = off.
+  // Tapping enables (priming the iOS prompt) or turns them back off; if permission was
+  // denied at the OS level, point the user to Settings instead of silently failing.
+  const toggleBell = async () => {
+    if (bellBusy) return;
+    setBellBusy(true);
+    if (alertsOn) {
+      await disableAlerts();
+      setAlertsOn(false);
+    } else {
+      const token = await enableAlerts();
+      setAlertsOn(!!token);
+      if (!token) {
+        Alert.alert(
+          'Turn on alerts',
+          'Enable notifications for Mountaineer Pulse in your device Settings to get the morning briefing and breaking WVU news.',
+        );
+      }
+    }
+    setBellBusy(false);
+  };
   const orderedSports = [...SPORT_ORDER].sort(
     (a, b) => (favorites.includes(b) ? 1 : 0) - (favorites.includes(a) ? 1 : 0),
   );
@@ -155,9 +185,21 @@ export default function PulseScreen() {
             <Text style={styles.headerSub}>{todayLabel()} · Morgantown</Text>
           </View>
         </View>
-        <View style={styles.bell}>
-          <Ionicons name="notifications-outline" size={17} color={c.textSecondary} />
-        </View>
+        <Pressable
+          onPress={toggleBell}
+          disabled={bellBusy}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.bell,
+            alertsOn && { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder },
+            pressed && { opacity: 0.7 },
+          ]}>
+          <Ionicons
+            name={alertsOn ? 'notifications' : 'notifications-outline'}
+            size={17}
+            color={alertsOn ? Brand.gold : c.textSecondary}
+          />
+        </Pressable>
       </View>
 
       <ScrollView

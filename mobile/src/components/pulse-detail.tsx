@@ -208,7 +208,8 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
             <Ionicons name="chevron-back" size={20} color={c.textSecondary} />
           </Pressable>
           <Text style={styles.headerTitle}>{curSport ? SPORT_NAME[curSport] : ''} Pulse</Text>
-          <View style={styles.circleBtn} />
+          {/* Invisible spacer — balances the back button so the title stays centered. */}
+          <View style={{ width: 32, height: 32 }} />
         </View>
 
         {loading ? (
