@@ -1,7 +1,6 @@
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { NewsCardSkeleton, SkeletonList } from '@/components/skeleton';
 import { Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
@@ -66,17 +66,6 @@ export default function NewsScreen() {
     load();
   }, [load]);
 
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <ActivityIndicator size="large" color={Brand.gold} />
-        <Text style={{ color: c.textSecondary, marginTop: 12, fontFamily: Font.bodyMed }}>
-          Loading WVU news…
-        </Text>
-      </View>
-    );
-  }
-
   const visible = filter === 'all' ? items : items.filter((n) => n.sport_id === filter);
   const updated = items[0] ? relativeTime(items[0].published_at) : '';
 
@@ -105,10 +94,15 @@ export default function NewsScreen() {
           />
         }>
       <View style={{ marginTop: 16, gap: 8 }}>
-        {visible.length === 0 && (
+        {loading && (
+          <SkeletonList count={6}>
+            <NewsCardSkeleton />
+          </SkeletonList>
+        )}
+        {!loading && visible.length === 0 && (
           <Text style={styles.empty}>No headlines in this filter yet.</Text>
         )}
-        {visible.map((n) => (
+        {!loading && visible.map((n) => (
           <Pressable
             key={n.id}
             onPress={() => WebBrowser.openBrowserAsync(n.url)}

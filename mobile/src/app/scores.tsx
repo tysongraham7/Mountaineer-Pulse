@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GameCardSkeleton, Skeleton, SkeletonList } from '@/components/skeleton';
 import { SectionLabel, Segmented, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
@@ -61,15 +61,6 @@ export default function ScoresScreen() {
     load();
   }, [load]);
 
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <ActivityIndicator size="large" color={Brand.gold} />
-        <Text style={{ color: c.textSecondary, marginTop: 12, fontFamily: Font.bodyMed }}>Loading…</Text>
-      </View>
-    );
-  }
-
   const visible = filter === 'all' ? games : games.filter((g) => g.sport_id === filter);
   const showTag = filter === 'all';
 
@@ -98,20 +89,31 @@ export default function ScoresScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Brand.gold} />
         }>
-        {upcoming.length > 0 && (
+        {loading ? (
           <>
-            <SectionLabel style={styles.sectionLabel as never}>Upcoming</SectionLabel>
-            {upcoming.map((g) => <GameCard key={g.id} game={g} showTag={showTag} />)}
+            <Skeleton width={72} height={11} radius={4} style={styles.sectionLabel} />
+            <SkeletonList count={5}>
+              <GameCardSkeleton />
+            </SkeletonList>
           </>
-        )}
-        {results.length > 0 && (
+        ) : (
           <>
-            <SectionLabel tone="muted" style={styles.sectionLabel as never}>Final</SectionLabel>
-            {results.map((g) => <GameCard key={g.id} game={g} showTag={showTag} />)}
+            {upcoming.length > 0 && (
+              <>
+                <SectionLabel style={styles.sectionLabel as never}>Upcoming</SectionLabel>
+                {upcoming.map((g) => <GameCard key={g.id} game={g} showTag={showTag} />)}
+              </>
+            )}
+            {results.length > 0 && (
+              <>
+                <SectionLabel tone="muted" style={styles.sectionLabel as never}>Final</SectionLabel>
+                {results.map((g) => <GameCard key={g.id} game={g} showTag={showTag} />)}
+              </>
+            )}
+            {upcoming.length === 0 && results.length === 0 && (
+              <Text style={styles.empty}>No games to show yet.</Text>
+            )}
           </>
-        )}
-        {upcoming.length === 0 && results.length === 0 && (
-          <Text style={styles.empty}>No games to show yet.</Text>
         )}
       </ScrollView>
     </View>

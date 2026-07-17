@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Pressable,
   RefreshControl,
@@ -14,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PlayerProfile } from '@/components/player-profile';
+import { ListRowSkeleton, SkeletonList } from '@/components/skeleton';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 import { DepthEntry, Player, RosterMove } from '@/lib/types';
@@ -220,9 +220,15 @@ export default function TeamScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <ActivityIndicator size="large" color={Brand.gold} />
-        <Text style={{ color: c.textSecondary, marginTop: 12 }}>Loading…</Text>
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+        <View style={styles.screenHeader}>
+          <Text style={styles.screenTitle}>Team</Text>
+        </View>
+        <View style={{ paddingHorizontal: 20, marginTop: 10 }}>
+          <SkeletonList count={8}>
+            <ListRowSkeleton />
+          </SkeletonList>
+        </View>
       </View>
     );
   }
@@ -830,7 +836,13 @@ function LeadersView({ sport, season, c }: { sport: string; season: number | und
     return <Text style={[styles.empty, { color: c.textSecondary }]}>Leaders coming soon for this sport.</Text>;
   }
   if (loading) {
-    return <ActivityIndicator style={{ marginTop: 30 }} color={Brand.gold} />;
+    return (
+      <View style={{ marginTop: 16, gap: 8 }}>
+        <SkeletonList count={6}>
+          <ListRowSkeleton />
+        </SkeletonList>
+      </View>
+    );
   }
 
   // One value map per player, so a board can gate a rate stat by a counting stat.

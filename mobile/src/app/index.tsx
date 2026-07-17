@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Pressable,
   RefreshControl,
@@ -13,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PulseDetail } from '@/components/pulse-detail';
+import { BriefingSkeleton, PulseRowSkeleton, Skeleton } from '@/components/skeleton';
 import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useFavorites } from '@/lib/favorites';
@@ -163,17 +163,6 @@ export default function PulseScreen() {
     load();
   }, [load]);
 
-  if (loading) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <ActivityIndicator size="large" color={Brand.gold} />
-        <Text style={{ color: c.textSecondary, marginTop: 12, fontFamily: Font.bodyMed }}>
-          Taking WVU's pulse…
-        </Text>
-      </View>
-    );
-  }
-
   const body = (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
       {/* Header — pinned above the scroll (stays put like the Team tab) */}
@@ -215,6 +204,22 @@ export default function PulseScreen() {
             tintColor={Brand.gold}
           />
         }>
+      {loading ? (
+        <View>
+          <View style={{ marginTop: 16 }}>
+            <BriefingSkeleton />
+          </View>
+          <View style={styles.sectionRow}>
+            <Skeleton width={150} height={18} radius={5} />
+          </View>
+          <View style={{ gap: 10 }}>
+            <PulseRowSkeleton />
+            <PulseRowSkeleton />
+            <PulseRowSkeleton />
+          </View>
+        </View>
+      ) : (
+        <>
       {/* Daily briefing — per-sport sections when available, else plain text */}
       {briefing && (
         <Card style={styles.briefing}>
@@ -335,6 +340,8 @@ export default function PulseScreen() {
       })}
 
       <Text style={styles.footer}>Tap a program to see its Pulse over time, day by day.</Text>
+        </>
+      )}
       </ScrollView>
     </View>
   );

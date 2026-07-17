@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Skeleton } from '@/components/skeleton';
 import { SectionLabel, Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useCountUp } from '@/lib/count-up';
@@ -225,8 +226,19 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
         </View>
 
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={Brand.gold} />
+          <View style={styles.content}>
+            {/* sport tabs */}
+            <Skeleton width={'100%'} height={38} radius={12} />
+            {/* score block */}
+            <View style={{ marginTop: 22, gap: 10 }}>
+              <Skeleton width={90} height={11} radius={4} />
+              <Skeleton width={150} height={72} radius={14} />
+              <Skeleton width={120} height={22} radius={999} />
+            </View>
+            {/* chart + range + panel */}
+            <Skeleton width={'100%'} height={210} radius={16} style={{ marginTop: 16 }} />
+            <Skeleton width={'100%'} height={38} radius={12} style={{ marginTop: 14 }} />
+            <Skeleton width={'100%'} height={120} radius={18} style={{ marginTop: 16 }} />
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
