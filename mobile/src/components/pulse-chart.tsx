@@ -44,6 +44,8 @@ export function PulseChart({
   height = 210,
   width,
   onActiveChange,
+  runDemo = false,
+  onDemoComplete,
 }: {
   data: ChartPoint[];
   color?: string;
@@ -52,6 +54,8 @@ export function PulseChart({
   height?: number;
   width?: number;
   onActiveChange?: (index: number) => void;
+  runDemo?: boolean;
+  onDemoComplete?: () => void;
 }) {
   const W = width ?? Dimensions.get('window').width - 64;
   const pad = { top: 22, right: 14, bottom: 26, left: 30 };
@@ -64,8 +68,15 @@ export function PulseChart({
   useEffect(() => {
     setActive(n - 1);
   }, [data, n]);
+  // Demo (auto-scrub) machinery — see below. Held here so the callback effect can
+  // suppress onActiveChange while the demo drives `active`, keeping the detail screen's
+  // own state from jumping around during the teaching sweep.
+  const demoTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const demoing = useRef(false);
+  const demoRan = useRef(false);
+
   useEffect(() => {
-    if (n >= 2) onActiveChange?.(active);
+    if (n >= 2 && !demoing.current) onActiveChange?.(active);
   }, [active, n, onActiveChange]);
 
   const scores = data.map((d) => d.score);
@@ -130,9 +141,54 @@ export function PulseChart({
     transform: [{ scale: 0.5 + ring.value * 1.5 }],
   }));
 
+  // ---- One-time "how to scrub" demo ----------------------------------------
+  // The first time a user ever opens a Pulse, the crosshair glides across the chart
+  // and back once so the hidden scrub gesture is discoverable. Drives the chart's own
+  // `active` (so the crosshair + tooltip really move) but suppresses onActiveChange, so
+  // it's purely a visual lesson. Fires after the draw-in; a saved flag (in the parent)
+  // keeps it to once ever, and any touch cancels it so it never blocks the user.
+  const stopDemo = () => {
+    if (demoTimer.current) {
+      clearInterval(demoTimer.current);
+      demoTimer.current = null;
+    }
+    demoing.current = false;
+  };
+  const startDemo = () => {
+    demoing.current = true;
+    const lowIdx = Math.floor((n - 1) * 0.35);
+    const steps = 16;
+    const seq: number[] = [];
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps;
+      const tri = t < 0.5 ? t * 2 : (1 - t) * 2; // n-1 → lowIdx → n-1 (a there-and-back sweep)
+      seq.push(Math.round(n - 1 - tri * (n - 1 - lowIdx)));
+    }
+    let k = 0;
+    demoTimer.current = setInterval(() => {
+      setActive(seq[k]);
+      if (k % 4 === 0) Haptics.selectionAsync().catch(() => {}); // a few soft ticks, not a buzz
+      k += 1;
+      if (k >= seq.length) {
+        stopDemo();
+        setActive(n - 1);
+        onDemoComplete?.();
+      }
+    }, 80);
+  };
+  useEffect(() => {
+    if (runDemo && drawn && !demoRan.current && n >= 2) {
+      demoRan.current = true;
+      startDemo();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runDemo, drawn, n]);
+  useEffect(() => () => stopDemo(), []); // clean up the interval on unmount
+
   // ---- Scrub with haptic ticks ---------------------------------------------
   const lastTick = useRef(-1);
   const scrubTo = (px: number) => {
+    if (demoTimer.current) stopDemo(); // user takes over → cancel the demo immediately
     if (!drawnRef.current) {
       // A touch mid-draw completes the animation instantly — never fight the user.
       cancelAnimation(progress);

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,8 @@ import { ChartPoint, PulseChart } from './pulse-chart';
 import { PulseExplainer } from './pulse-explainer';
 
 const c = surfaces(true);
+
+const SCRUB_DEMO_KEY = 'mp-scrub-demo-seen';
 
 const SPORT_NAME: Record<string, string> = {
   football: 'Football',
@@ -62,10 +65,19 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
   const [rangeIdx, setRangeIdx] = useState<number>(0);
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
+  const [runScrubDemo, setRunScrubDemo] = useState(false);
+  const [everScrubbed, setEverScrubbed] = useState(false);
 
   // The big score rolls up in sync with the chart's draw-in (same duration/easing
   // family) — display only, the real value is untouched. Re-runs per sport.
   const displayScore = useCountUp(loading ? null : current?.score, 900, curSport ?? '');
+
+  // First-ever Pulse open: run the one-time scrub demo. A saved flag keeps it to once.
+  useEffect(() => {
+    AsyncStorage.getItem(SCRUB_DEMO_KEY).then((seen) => {
+      if (!seen) setRunScrubDemo(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (sport) setCurSport(sport);
@@ -246,7 +258,26 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
             {n >= 2 ? (
               <>
                 <View style={{ marginTop: 16 }}>
-                  <PulseChart data={points} textColor={c.textSecondary} gridColor={c.border} onActiveChange={setActiveIdx} />
+                  <PulseChart
+                    data={points}
+                    textColor={c.textSecondary}
+                    gridColor={c.border}
+                    onActiveChange={(i) => {
+                      setActiveIdx(i);
+                      if (i !== n - 1) setEverScrubbed(true); // any real move off the latest point = learned
+                    }}
+                    runDemo={runScrubDemo}
+                    onDemoComplete={() => {
+                      setRunScrubDemo(false);
+                      AsyncStorage.setItem(SCRUB_DEMO_KEY, '1');
+                    }}
+                  />
+                  {!everScrubbed && (
+                    <View style={styles.scrubHint}>
+                      <Ionicons name="hand-left-outline" size={13} color={c.textMuted} />
+                      <Text style={styles.scrubHintText}>Drag across the line to explore any day</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={{ marginTop: 14 }}>
@@ -384,6 +415,14 @@ const styles = StyleSheet.create({
   evLabel: { flex: 1, fontSize: 13, color: c.textSecondary, fontFamily: Font.bodyMed },
   quiet: { fontSize: 13, marginTop: 8, color: c.textMuted, fontFamily: Font.body },
   showAll: { fontFamily: Font.bodyBold, fontSize: 12.5, color: Brand.gold },
+  scrubHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  scrubHintText: { fontFamily: Font.body, fontSize: 12, color: c.textMuted },
   driverCard: {
     backgroundColor: c.card,
     borderWidth: 1,
