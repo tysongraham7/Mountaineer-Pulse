@@ -14,10 +14,11 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import * as Sentry from '@sentry/react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Onboarding } from '@/components/onboarding';
 import { RidgeMark } from '@/components/ui';
@@ -27,7 +28,39 @@ import { configureNotificationHandler } from '@/lib/notifications';
 
 const c = surfaces(true);
 
-export default function RootLayout() {
+// Crash + error monitoring. Initialized as early as possible so anything that throws
+// during startup is still captured. The DSN is write-only and safe to ship (like the
+// Supabase publishable key). Disabled in dev/Expo Go so the free-tier quota is spent on
+// real user crashes, not our own noise; no PII/IP collected.
+Sentry.init({
+  dsn: 'https://e665d1050d42f0f2d7208aef7803984e@o4511758254080000.ingest.us.sentry.io/4511758281736192',
+  enabled: !__DEV__,
+  tracesSampleRate: 0, // crashes/errors only for now — keeps us well within the free tier
+  sendDefaultPii: false,
+});
+
+// Shown instead of a white screen if a render error slips through. The error is already
+// reported to Sentry by the boundary; this just gives the user a way out.
+function CrashFallback({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 14 }}>
+      <RidgeMark size={44} />
+      <Text style={{ fontFamily: Font.display, fontSize: 20, color: c.text, textAlign: 'center' }}>
+        Something went wrong
+      </Text>
+      <Text style={{ fontFamily: Font.body, fontSize: 14, color: c.textSecondary, textAlign: 'center', lineHeight: 20, maxWidth: 300 }}>
+        The team's been notified and we're on it. Tap below to jump back in.
+      </Text>
+      <Pressable
+        onPress={onRetry}
+        style={{ marginTop: 8, backgroundColor: Brand.gold, borderRadius: 14, paddingVertical: 13, paddingHorizontal: 28 }}>
+        <Text style={{ fontFamily: Font.display, fontSize: 15, color: Brand.onGold }}>Try again</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function RootLayout() {
   const [loaded] = useFonts({
     Archivo_600SemiBold,
     Archivo_700Bold,
@@ -63,7 +96,8 @@ export default function RootLayout() {
   if (!loaded) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
 
   return (
-    <FavoritesProvider>
+    <Sentry.ErrorBoundary fallback={({ resetError }) => <CrashFallback onRetry={resetError} />}>
+      <FavoritesProvider>
       <ThemeProvider value={DarkTheme}>
         <StatusBar style="light" />
         <Tabs
@@ -123,6 +157,9 @@ export default function RootLayout() {
         </Tabs>
         <Onboarding visible={showOnboarding} onDone={finishOnboarding} />
       </ThemeProvider>
-    </FavoritesProvider>
+      </FavoritesProvider>
+    </Sentry.ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);
