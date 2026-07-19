@@ -115,7 +115,12 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
     if (snaps.length === 0) return [];
     const { stepDays, count } = RANGES[rangeIdx];
     const parsed = snaps.map((s) => ({ t: new Date(s.date).getTime(), score: s.score }));
-    const anchor = new Date(snaps[snaps.length - 1].date).getTime();
+    // Anchor the last point on TODAY (local date), not the last snapshot — so today's date is
+    // always on the chart. Its value carries forward from the most recent snapshot until the
+    // nightly pipeline writes today's, then it shows today's real number.
+    const now = new Date();
+    const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const anchor = Math.max(new Date(localToday).getTime(), parsed[parsed.length - 1].t);
     const DAY = 86400000;
     const out: ChartPoint[] = [];
     for (let i = count - 1; i >= 0; i--) {

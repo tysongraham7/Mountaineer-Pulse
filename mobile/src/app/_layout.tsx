@@ -18,13 +18,13 @@ import * as Sentry from '@sentry/react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { AppState, Pressable, Text, View } from 'react-native';
 
 import { Onboarding } from '@/components/onboarding';
 import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { FavoritesProvider } from '@/lib/favorites';
-import { configureNotificationHandler } from '@/lib/notifications';
+import { configureNotificationHandler, syncPushRegistration } from '@/lib/notifications';
 
 const c = surfaces(true);
 
@@ -75,6 +75,17 @@ function RootLayout() {
   // Show notification banners even when the app is open. Set once, at the root.
   useEffect(() => {
     configureNotificationHandler();
+  }, []);
+
+  // Keep this device's push token registered whenever the app opens or returns to the
+  // foreground (only if permission is already granted — never prompts). Self-heals the case
+  // where the first token fetch right after granting raced with iOS APNs registration.
+  useEffect(() => {
+    syncPushRegistration();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') syncPushRegistration();
+    });
+    return () => sub.remove();
   }, []);
 
   // First-run onboarding: show once, then remember it's done.
