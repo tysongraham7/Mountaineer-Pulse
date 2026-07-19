@@ -47,7 +47,13 @@
           "color": "#EAA000"
         }
       ],
-      "@sentry/react-native"
+      [
+        "@sentry/react-native",
+        {
+          "organization": "tyson-graham",
+          "project": "mountaineer-pulse"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
