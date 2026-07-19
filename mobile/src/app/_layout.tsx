@@ -23,6 +23,7 @@ import { AppState, Pressable, Text, View } from 'react-native';
 import { Onboarding } from '@/components/onboarding';
 import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { AlertsProvider } from '@/lib/alerts';
 import { FavoritesProvider } from '@/lib/favorites';
 import { configureNotificationHandler, syncPushRegistration } from '@/lib/notifications';
 
@@ -109,6 +110,7 @@ function RootLayout() {
   return (
     <Sentry.ErrorBoundary fallback={({ resetError }) => <CrashFallback onRetry={resetError} />}>
       <FavoritesProvider>
+      <AlertsProvider>
       <ThemeProvider value={DarkTheme}>
         <StatusBar style="light" />
         <Tabs
@@ -168,6 +170,7 @@ function RootLayout() {
         </Tabs>
         <Onboarding visible={showOnboarding} onDone={finishOnboarding} />
       </ThemeProvider>
+      </AlertsProvider>
       </FavoritesProvider>
     </Sentry.ErrorBoundary>
   );

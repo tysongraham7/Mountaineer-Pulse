@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReportModal } from '@/components/report-modal';
 import { RidgeMark, SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { useAlerts } from '@/lib/alerts';
 import { useFavorites } from '@/lib/favorites';
-import { areAlertsEnabled, disableAlerts, enableAlerts } from '@/lib/notifications';
 
 const c = surfaces(true);
 
@@ -23,32 +23,23 @@ export default function YouScreen() {
   const { favorites, toggle } = useFavorites();
   const version = Constants.expoConfig?.version ?? '2.0.0';
 
-  // null until we've read the OS permission, so the Switch mounts already in the right
-  // position instead of visibly sliding from off → on when the status resolves.
-  const [alertsOn, setAlertsOn] = useState<boolean | null>(null);
-  const [busy, setBusy] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
-  useEffect(() => {
-    areAlertsEnabled().then(setAlertsOn);
-  }, []);
+  // Shared alerts state (null until read) — kept in sync with the home bell and onboarding.
+  const { alertsOn, busy, enable, disable } = useAlerts();
 
   const toggleAlerts = async (next: boolean) => {
     if (busy) return;
-    setBusy(true);
     if (next) {
-      const token = await enableAlerts();
-      setAlertsOn(!!token);
-      if (!token) {
+      const on = await enable();
+      if (!on) {
         Alert.alert(
           'Turn on alerts',
           'Enable notifications for Mountaineer Pulse in your device Settings to get game and breaking-news alerts.',
         );
       }
     } else {
-      await disableAlerts();
-      setAlertsOn(false);
+      await disable();
     }
-    setBusy(false);
   };
 
   return (

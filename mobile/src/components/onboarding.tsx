@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RidgeMark, SportIcon, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
-import { enableAlerts } from '@/lib/notifications';
+import { useAlerts } from '@/lib/alerts';
 
 const c = surfaces(true);
 
@@ -20,10 +20,11 @@ export function Onboarding({ visible, onDone }: { visible: boolean; onDone: () =
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const last = step === 2;
+  const { enable: enableAlertsShared } = useAlerts();
 
   const enable = async () => {
     setBusy(true);
-    await enableAlerts(); // fires the iOS permission dialog; result doesn't gate finishing
+    await enableAlertsShared(); // fires the iOS permission dialog; updates the shared alerts state
     setBusy(false);
     onDone();
   };

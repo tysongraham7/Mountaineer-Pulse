@@ -15,8 +15,8 @@ import { PulseDetail } from '@/components/pulse-detail';
 import { BriefingSkeleton, PulseRowSkeleton, Skeleton } from '@/components/skeleton';
 import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { useAlerts } from '@/lib/alerts';
 import { useFavorites } from '@/lib/favorites';
-import { areAlertsEnabled, disableAlerts, enableAlerts } from '@/lib/notifications';
 import { supabase } from '@/lib/supabase';
 import { Briefing } from '@/lib/types';
 
@@ -80,34 +80,25 @@ export default function PulseScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
-  const [alertsOn, setAlertsOn] = useState(false);
-  const [bellBusy, setBellBusy] = useState(false);
   const { favorites } = useFavorites();
-
-  useEffect(() => {
-    areAlertsEnabled().then(setAlertsOn);
-  }, []);
+  const { alertsOn, busy: bellBusy, enable, disable } = useAlerts();
 
   // The header bell doubles as a status light: filled/gold = alerts on, outline = off.
   // Tapping enables (priming the iOS prompt) or turns them back off; if permission was
   // denied at the OS level, point the user to Settings instead of silently failing.
   const toggleBell = async () => {
     if (bellBusy) return;
-    setBellBusy(true);
     if (alertsOn) {
-      await disableAlerts();
-      setAlertsOn(false);
+      await disable();
     } else {
-      const token = await enableAlerts();
-      setAlertsOn(!!token);
-      if (!token) {
+      const on = await enable();
+      if (!on) {
         Alert.alert(
           'Turn on alerts',
           'Enable notifications for Mountaineer Pulse in your device Settings to get the morning briefing and breaking WVU news.',
         );
       }
     }
-    setBellBusy(false);
   };
   const orderedSports = [...SPORT_ORDER].sort(
     (a, b) => (favorites.includes(b) ? 1 : 0) - (favorites.includes(a) ? 1 : 0),

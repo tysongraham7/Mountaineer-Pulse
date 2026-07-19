@@ -1,9 +1,20 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+
+// Persisted user intent — separate from OS permission. Turning alerts OFF must stick even
+// though iOS keeps the permission granted, and the foreground token-sync must not silently
+// re-enable a token the user chose to turn off.
+const ALERTS_PREF = 'mp-alerts-enabled';
+
+async function permissionGranted(): Promise<boolean> {
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === 'granted';
+}
 
 // How notifications behave when the app is in the FOREGROUND (show the banner anyway).
 export function configureNotificationHandler(): void {
@@ -62,23 +73,22 @@ async function saveToken(token: string): Promise<boolean> {
   return true;
 }
 
-/** True if the OS has granted notification permission. */
+/** Effective alerts state: OS permission granted AND the user hasn't turned alerts off in-app. */
 export async function areAlertsEnabled(): Promise<boolean> {
-  const { status } = await Notifications.getPermissionsAsync();
-  return status === 'granted';
+  if (!(await permissionGranted())) return false;
+  return (await AsyncStorage.getItem(ALERTS_PREF)) !== 'false';
 }
 
 /**
- * Self-healing registration: if the OS has ALREADY granted permission, make sure this device's
- * token is registered and enabled. Safe to call on every app launch/foreground — it never prompts
- * and the write is idempotent. This covers the case where the very first token fetch (right after
- * granting) raced with iOS APNs registration and didn't save, so alerts no longer depend on the
- * user re-visiting any particular screen.
+ * Self-healing registration: if the OS has granted permission AND the user hasn't turned alerts
+ * off, make sure this device's token is registered and enabled. Safe to call on every app
+ * launch/foreground — it never prompts and the write is idempotent. Covers the case where the
+ * first token fetch right after granting raced with iOS APNs registration and didn't save.
  */
 export async function syncPushRegistration(): Promise<void> {
   if (!Device.isDevice) return;
-  const { status } = await Notifications.getPermissionsAsync();
-  if (status !== 'granted') return;
+  if (!(await permissionGranted())) return;
+  if ((await AsyncStorage.getItem(ALERTS_PREF)) === 'false') return; // user turned alerts off
   const token = await currentToken();
   if (token) await saveToken(token);
 }
@@ -98,6 +108,10 @@ export async function enableAlerts(): Promise<string | null> {
   }
   if (status !== 'granted') return null;
 
+  // Permission is granted — record the user's intent up front so the bell/switch reflect ON
+  // immediately, even if the token fetch below momentarily races APNs (the sync self-heals it).
+  await AsyncStorage.setItem(ALERTS_PREF, 'true');
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Mountaineer Pulse',
@@ -113,6 +127,7 @@ export async function enableAlerts(): Promise<string | null> {
 
 /** Mark this device's token disabled (best-effort) when the user turns alerts off. */
 export async function disableAlerts(): Promise<void> {
+  await AsyncStorage.setItem(ALERTS_PREF, 'false'); // persist intent so it survives restarts
   const token = await currentToken();
   if (!token) return;
   await supabase
