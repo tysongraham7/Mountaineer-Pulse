@@ -23,7 +23,9 @@ export default function YouScreen() {
   const { favorites, toggle } = useFavorites();
   const version = Constants.expoConfig?.version ?? '2.0.0';
 
-  const [alertsOn, setAlertsOn] = useState(false);
+  // null until we've read the OS permission, so the Switch mounts already in the right
+  // position instead of visibly sliding from off → on when the status resolves.
+  const [alertsOn, setAlertsOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   useEffect(() => {
@@ -89,14 +91,18 @@ export default function YouScreen() {
         <ComingRow label="Sign in / create account" first />
         <View style={[styles.row, { borderBottomWidth: 1 }]}>
           <Text style={styles.rowLabel}>Game &amp; breaking-news alerts</Text>
-          <Switch
-            value={alertsOn}
-            onValueChange={toggleAlerts}
-            disabled={busy}
-            trackColor={{ true: Brand.gold, false: c.surface2 }}
-            thumbColor="#ffffff"
-            ios_backgroundColor={c.surface2}
-          />
+          {alertsOn === null ? (
+            <View style={{ width: 51, height: 31 }} />
+          ) : (
+            <Switch
+              value={alertsOn}
+              onValueChange={toggleAlerts}
+              disabled={busy}
+              trackColor={{ true: Brand.gold, false: c.surface2 }}
+              thumbColor="#ffffff"
+              ios_backgroundColor={c.surface2}
+            />
+          )}
         </View>
         <ComingRow label="Saved stories" last />
       </View>
