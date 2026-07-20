@@ -122,11 +122,25 @@ def build_name_index(sb):
     return full, last
 
 
+# Strong, unambiguous per-sport markers used to detect a SECOND sport even when a player is
+# already named — so a multi-sport roundup (a MAILBAG that names a hoops player but also asks
+# about "QB1" and "Bowl hopes") is caught as football+basketball and left unlabeled. Kept tight
+# and rarely-metaphorical, unlike the broad fallback list, so it doesn't split routine stories.
+STRONG_SPORT = {
+    "football": ("quarterback", "qb1", "qb2", "touchdown", "gridiron", "bowl game",
+                 "bowl hopes", "bowl eligible", "bowl bid", "fall camp", "spring game"),
+    "baseball": ("home run", "no-hitter", "grand slam", "shutout", "bullpen", "rbi", "world series"),
+    "mbb": ("point guard", "three-pointer", "double-double", "buzzer-beater", "final four"),
+}
+
+
 def sports_in(headline: str, full: dict, last: dict) -> set[str]:
-    """Every distinct sport a headline implicates. Named players/coaches are the specific
-    signal and are used first; only if NO one is named do we fall back to sport keywords
-    (so a football player's headline that mentions a 'home run' stays football)."""
+    """Every distinct sport a headline implicates. Named players/coaches are the specific signal;
+    STRONG_SPORT markers add a second sport even alongside a name (catching multi-sport roundups);
+    the broad keyword list is a single-sport fallback only when nobody is named and no strong
+    marker fires (so a routine 'baseball recruiting class' isn't split by a football keyword)."""
     h = f" {norm(headline)} "
+    hl = f" {headline.lower()} "
     found: set[str] = set()
     consumed: set[str] = set()  # tokens already explained by a full-name match
     for name, sport in full.items():
@@ -139,11 +153,14 @@ def sports_in(headline: str, full: dict, last: dict) -> set[str]:
         # otherwise the collision fakes a second sport and the story gets left unlabeled.
         if f" {ln} " in h and ln not in consumed:
             found.add(sport)
+    for sport, words in STRONG_SPORT.items():
+        if any(w in hl for w in words):
+            found.add(sport)
     if not found:
-        hl = f" {headline.lower()} "
-        for sport, words in SPORT_KEYWORDS:
+        for sport, words in SPORT_KEYWORDS:  # first match wins — a single fallback sport
             if any(w in hl for w in words):
                 found.add(sport)
+                break
     return found
 
 
