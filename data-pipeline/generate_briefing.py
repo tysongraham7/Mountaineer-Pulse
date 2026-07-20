@@ -84,17 +84,32 @@ def build_context(sb) -> str:
         lines += general
 
     moves = (
-        sb.table("roster_moves").select("player_name,position,direction,category,sport_id,other_school,alert")
+        sb.table("roster_moves").select("player_name,position,direction,category,sport_id,other_school,alert,move_date")
         .order("move_date", desc=True).execute().data
     )
     if moves:
+        # A move older than this is history, not news — tag it so the freshness rule can see
+        # its age. Without a date on the line, the model had no way to tell a move that
+        # happened today from one three weeks ago, so a web search could resurface an old
+        # signing (e.g. Casteel) and re-report it as if new.
+        FRESH_DAYS = 4
+        today_d = date.today()
         lines.append("\n=== CONFIRMED ROSTER MOVES (the ONLY source of truth for who is in/out) ===")
         for m in moves:
             d = "IN" if m["direction"] == "in" else "OUT"
             pos = f" {m['position']}" if m.get("position") else ""
             sch = f" ({'from' if d == 'IN' else 'to'} {m['other_school']})" if m.get("other_school") else ""
             alert = f"  ** NOTE: {m['alert']}" if m.get("alert") else ""
-            lines.append(f"- {d}: {m['player_name']}{pos}{sch} [{SPORT_NAME.get(m['sport_id'], m['sport_id'])}]{alert}")
+            md = (m.get("move_date") or "")[:10]
+            when = ""
+            if md:
+                try:
+                    age = (today_d - date.fromisoformat(md)).days
+                    when = (f"  (dated {md})" if age <= FRESH_DAYS
+                            else f"  (dated {md} — {age}d ago, already reported; background only, do NOT lead with this)")
+                except ValueError:
+                    when = ""
+            lines.append(f"- {d}: {m['player_name']}{pos}{sch} [{SPORT_NAME.get(m['sport_id'], m['sport_id'])}]{alert}{when}")
 
     snaps = sb.table("pulse_snapshots").select("*").order("date", desc=True).execute().data
     seen, pulse_lines = set(), []

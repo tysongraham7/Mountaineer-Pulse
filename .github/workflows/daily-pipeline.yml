@@ -45,16 +45,19 @@ jobs:
         run: python sync_rosters.py
         continue-on-error: true
 
-      - name: News feed (Google News)
-        run: python sync_news.py
-        continue-on-error: true
-
       - name: Roster movement (curated)
         run: python sync_moves.py
         continue-on-error: true
 
       - name: Football transfers (CFBD portal)
         run: python sync_transfers.py
+        continue-on-error: true
+
+      # News is classified AFTER moves/transfers so a headline about a brand-new addition
+      # (e.g. an incoming transfer) is tagged to the right sport and de-duped against that
+      # player on the SAME run — not a day late.
+      - name: News feed (Google News)
+        run: python sync_news.py
         continue-on-error: true
 
       - name: Football player stats (CFBD)

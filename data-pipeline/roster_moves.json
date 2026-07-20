@@ -1013,5 +1013,19 @@
     "notes": "2026 signee who signed pro instead of enrolling — White Sox (11th rd, 315th overall)",
     "alert": "Signed with the White Sox — will not enroll at WVU",
     "pulse_neutral": true
+  },
+  {
+    "sport_id": "baseball",
+    "player_name": "Ryan Brown",
+    "position": "RHP",
+    "class_year": "",
+    "direction": "in",
+    "category": "transfer",
+    "status": "committed",
+    "other_school": "Queens",
+    "move_date": "2026-07-19",
+    "source_name": "On3",
+    "source_url": "",
+    "notes": "Two-way transfer, former A-Sun Preseason Freshman of the Year. Missed 2026 recovering from Tommy John surgery; expected back on the mound for 2027."
   }
 ]

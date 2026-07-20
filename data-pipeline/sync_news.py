@@ -18,6 +18,7 @@ import re
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 
 import requests
@@ -121,21 +122,44 @@ def build_name_index(sb):
     return full, last
 
 
-def classify(headline: str, full: dict, last: dict) -> str | None:
+def sports_in(headline: str, full: dict, last: dict) -> set[str]:
+    """Every distinct sport a headline implicates. Named players/coaches are the specific
+    signal and are used first; only if NO one is named do we fall back to sport keywords
+    (so a football player's headline that mentions a 'home run' stays football)."""
     h = f" {norm(headline)} "
-    # Name-first: a named player/coach is the most specific signal.
+    found: set[str] = set()
     for name, sport in full.items():
         if f" {name} " in h:
-            return sport
+            found.add(sport)
     for ln, sport in last.items():
         if f" {ln} " in h:
-            return sport
-    # Fallback: sport keywords.
-    hl = f" {headline.lower()} "
-    for sport, words in SPORT_KEYWORDS:
-        if any(w in hl for w in words):
-            return sport
-    return None
+            found.add(sport)
+    if not found:
+        hl = f" {headline.lower()} "
+        for sport, words in SPORT_KEYWORDS:
+            if any(w in hl for w in words):
+                found.add(sport)
+    return found
+
+
+def classify(headline: str, full: dict, last: dict) -> str | None:
+    """One sport, or None. A headline that implicates TWO+ sports (e.g. a football and a
+    baseball player in the same story) is left UNLABELED rather than forced into one — it
+    still shows under the 'All' news filter, just not mis-filed under a single sport."""
+    found = sports_in(headline, full, last)
+    return next(iter(found)) if len(found) == 1 else None
+
+
+def primary_player(headline: str, full: dict) -> str | None:
+    """The tracked WVU player named in a headline (longest full-name match wins), used to
+    collapse many articles about one player's saga down to the latest. None if nobody tracked
+    is named."""
+    h = f" {norm(headline)} "
+    best: str | None = None
+    for name in full:
+        if f" {name} " in h and (best is None or len(name) > len(best)):
+            best = name
+    return best
 
 
 def main() -> None:
@@ -192,6 +216,27 @@ def main() -> None:
     if rows:
         sb.table("news_items").upsert(rows).execute()
 
+    # De-dupe same-player sagas: several outlets cover one player's story across days
+    # ("X decides" -> "X signs"), which made the same name show two or three times in the
+    # feed. Keep only the MOST-RECENT item per (sport, tracked player) inside a rolling
+    # window, so the feed shows the latest word on a story instead of a pile-up. Only
+    # collapses players we actually track (roster/moves/stats/depth), so untracked names
+    # are never touched.
+    DEDUP_WINDOW_DAYS = 21
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=DEDUP_WINDOW_DAYS)).isoformat()
+    recent = (sb.table("news_items").select("id,sport_id,headline,published_at")
+              .gte("published_at", cutoff).order("published_at", desc=True).execute().data or [])
+    groups: dict[tuple[str, str], list] = {}
+    for r in recent:
+        sp, pl = r.get("sport_id"), primary_player(r.get("headline") or "", full)
+        if sp and pl:
+            groups.setdefault((sp, pl), []).append(r)  # already newest-first
+    removed_dupes = 0
+    for items in groups.values():
+        for old in items[1:]:  # keep [0] (newest), drop the rest
+            sb.table("news_items").delete().eq("id", old["id"]).execute()
+            removed_dupes += 1
+
     by_sport: dict[str, int] = {}
     for r in rows:
         key = r["sport_id"] or "general"
@@ -200,6 +245,8 @@ def main() -> None:
     print(f"news_items -> upserted {len(rows)} headlines")
     for k, v in sorted(by_sport.items()):
         print(f"   {k:<10} {v}")
+    if removed_dupes:
+        print(f"   collapsed {removed_dupes} same-player duplicate(s) to the latest")
     print("\n[OK] News synced to Supabase.")
 
 
