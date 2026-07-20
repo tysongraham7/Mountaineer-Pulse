@@ -80,6 +80,13 @@ NOTE_SYSTEM = (
     "a major injury to a star, a stunning off-field loss to the roster).\n"
     "NEVER assign a negative delta for a normal game LOSS — game results already move the Pulse "
     "elsewhere; delta is for roster/off-field program news only. Be strict and default to 0.\n"
+    "7. NO REPEATS — this is critical: you are shown 'ALREADY REPORTED' notes from recent days. If "
+    "today's biggest item is the SAME event you already reported (e.g. a signing/draft/commitment you "
+    "noted days ago, just re-worded by another outlet), do NOT report it again and do NOT apply another "
+    "delta — its Pulse hit was already counted. Only write a note for a genuinely NEW development. If a "
+    "prior note was a POSSIBILITY ('drafted, awaiting decision') and today it's CONFIRMED ('signed'), "
+    "that IS new — report the confirmation, but with a SMALL delta (±1), since the possibility was "
+    "already partly priced in. If there is no new development, the note is NONE.\n"
     "Reply as compact JSON on ONE line: "
     "{{\"note\": \"<one factual sentence, max 18 words, or NONE>\", \"delta\": <integer -2..2>}}"
 )
@@ -107,6 +114,21 @@ def parse_note(raw: str):
             pass
     # Fallback: treat the whole reply as the note, no Pulse move.
     return raw, 0
+
+
+def recent_notes(sb, sport: str, today: str, days: int = 7) -> str:
+    """The last week's notes for this sport, so the model leads with what's NEW instead of
+    re-reporting (and re-penalizing) a story it already covered. Without this memory the daily
+    note re-wrote the same signing for days, stacking a fresh delta each time."""
+    since = (date.fromisoformat(today) - timedelta(days=days)).isoformat()
+    rows = (sb.table("daily_sport_notes").select("date,note")
+            .eq("sport_id", sport).gte("date", since).lt("date", today)
+            .order("date", desc=True).execute().data or [])
+    rows = [r for r in rows if (r.get("note") or "").strip()]
+    if not rows:
+        return ""
+    lines = "\n".join(f"- [{r['date']}] {r['note']}" for r in rows)
+    return f"\nALREADY REPORTED (recent notes — do NOT repeat these or re-apply their delta):\n{lines}"
 
 
 def seed_curated(sb, today: str) -> None:
@@ -159,6 +181,10 @@ def main() -> None:
         elif not sid:
             general.append(n["headline"])
 
+    # Seed curated events FIRST, so the daily-note memory (recent_notes) already includes any
+    # hand-set event and the AI won't re-report the same story with a second delta.
+    seed_curated(sb, today)
+
     print("Per-sport notes:")
     for sport in ("football", "mbb", "baseball"):
         # This sport's own headlines first, then the day's general WVU headlines
@@ -171,12 +197,13 @@ def main() -> None:
             continue
 
         headlines = "\n".join(f"- {h}" for h in candidates[:18])
+        already = recent_notes(sb, sport, today)
         resp = client.messages.create(
             model="claude-haiku-4-5", max_tokens=120,
             system=NOTE_SYSTEM.format(sport=SPORT_NAME[sport]),
             messages=[{"role": "user", "content":
                        f"Today is {today}. WVU headlines (some may not be about {SPORT_NAME[sport]}):\n"
-                       f"{headlines}\n\nWrite the JSON note for WVU {SPORT_NAME[sport]}."}],
+                       f"{headlines}\n{already}\n\nWrite the JSON note for WVU {SPORT_NAME[sport]}."}],
         )
         raw = "".join(b.text for b in resp.content if b.type == "text")
         note, delta = parse_note(raw)
@@ -191,7 +218,6 @@ def main() -> None:
         tag = f"[{'+' if delta > 0 else ''}{delta}] " if delta else ""
         print(f"  {SPORT_NAME[sport]}: {tag}{note}")
 
-    seed_curated(sb, today)
     print("\n[OK] Per-sport notes synced.")
 
 

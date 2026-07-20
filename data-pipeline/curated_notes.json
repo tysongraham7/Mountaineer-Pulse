@@ -14,7 +14,13 @@
   {
     "sport_id": "baseball",
     "date": "2026-07-14",
-    "note": "Kyle Casteel (RHP), an incoming signee, was drafted by the White Sox (11th rd) — awaiting his sign-or-enroll decision.",
-    "delta": -2
+    "note": "Kyle Casteel (RHP), an incoming signee, was drafted by the White Sox (11th rd) — a possible loss to the 2026 class if he signs pro.",
+    "delta": -1
+  },
+  {
+    "sport_id": "baseball",
+    "date": "2026-07-17",
+    "note": "Kyle Casteel signed with the White Sox (11th rd), forgoing his WVU career — the possible loss is now confirmed.",
+    "delta": -1
   }
 ]
