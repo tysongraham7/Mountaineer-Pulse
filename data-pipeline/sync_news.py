@@ -128,11 +128,16 @@ def sports_in(headline: str, full: dict, last: dict) -> set[str]:
     (so a football player's headline that mentions a 'home run' stays football)."""
     h = f" {norm(headline)} "
     found: set[str] = set()
+    consumed: set[str] = set()  # tokens already explained by a full-name match
     for name, sport in full.items():
         if f" {name} " in h:
             found.add(sport)
+            consumed.update(name.split())
     for ln, sport in last.items():
-        if f" {ln} " in h:
+        # Skip a surname that's really the first name of a full name we already matched
+        # (e.g. "Ryan" the WVU football surname vs "Ryan Brown" the baseball transfer) —
+        # otherwise the collision fakes a second sport and the story gets left unlabeled.
+        if f" {ln} " in h and ln not in consumed:
             found.add(sport)
     if not found:
         hl = f" {headline.lower()} "
@@ -150,16 +155,28 @@ def classify(headline: str, full: dict, last: dict) -> str | None:
     return next(iter(found)) if len(found) == 1 else None
 
 
-def primary_player(headline: str, full: dict) -> str | None:
-    """The tracked WVU player named in a headline (longest full-name match wins), used to
-    collapse many articles about one player's saga down to the latest. None if nobody tracked
-    is named."""
-    h = f" {norm(headline)} "
-    best: str | None = None
-    for name in full:
-        if f" {name} " in h and (best is None or len(name) > len(best)):
-            best = name
-    return best
+# Words too generic to signal "same story" — every WVU headline has them, so they'd make
+# unrelated stories look similar. Sport words included so similarity keys on the actual news.
+STORY_STOP = {
+    "the", "a", "an", "and", "or", "but", "for", "to", "of", "in", "on", "at", "with", "from",
+    "as", "is", "are", "be", "by", "vs", "his", "her", "its", "new", "how", "why", "what",
+    "who", "will", "has", "have", "after", "over", "into", "out", "up", "off", "wvu", "west",
+    "virginia", "mountaineer", "mountaineers", "football", "baseball", "basketball", "hoops",
+}
+
+
+def story_tokens(headline: str) -> set[str]:
+    """The distinctive words of a headline — lowercased, punctuation-stripped, generic words
+    and 1-2 char tokens dropped. Two articles about the SAME story share most of these."""
+    return {w for w in norm(headline).split() if len(w) >= 3 and w not in STORY_STOP}
+
+
+def near_duplicate(a: set[str], b: set[str], thresh: float = 0.65) -> bool:
+    """True when two headlines are the same story: the smaller token set is mostly contained
+    in the larger (containment handles a short 'X signs' vs a longer 'X signs deal with Y')."""
+    if not a or not b:
+        return False
+    return len(a & b) / min(len(a), len(b)) >= thresh
 
 
 def main() -> None:
@@ -216,26 +233,29 @@ def main() -> None:
     if rows:
         sb.table("news_items").upsert(rows).execute()
 
-    # De-dupe same-player sagas: several outlets cover one player's story across days
-    # ("X decides" -> "X signs"), which made the same name show two or three times in the
-    # feed. Keep only the MOST-RECENT item per (sport, tracked player) inside a rolling
-    # window, so the feed shows the latest word on a story instead of a pile-up. Only
-    # collapses players we actually track (roster/moves/stats/depth), so untracked names
-    # are never touched.
+    # De-dupe near-identical headlines: Google News syndicates the same story from many
+    # outlets ("Estridge signs with Astros" x4), and beat sites re-post the same piece, so the
+    # feed showed the same news three or four times. Within each sport bucket, walk newest-first
+    # and drop any item that's the SAME STORY as one we've already kept (shared distinctive
+    # words). Only near-identical headlines are removed, so genuinely different stories — even
+    # about the same player days apart — are left alone.
     DEDUP_WINDOW_DAYS = 21
     cutoff = (datetime.now(timezone.utc) - timedelta(days=DEDUP_WINDOW_DAYS)).isoformat()
     recent = (sb.table("news_items").select("id,sport_id,headline,published_at")
               .gte("published_at", cutoff).order("published_at", desc=True).execute().data or [])
-    groups: dict[tuple[str, str], list] = {}
+    by_bucket: dict[str, list] = {}
     for r in recent:
-        sp, pl = r.get("sport_id"), primary_player(r.get("headline") or "", full)
-        if sp and pl:
-            groups.setdefault((sp, pl), []).append(r)  # already newest-first
+        by_bucket.setdefault(r.get("sport_id") or "general", []).append(r)  # newest-first
     removed_dupes = 0
-    for items in groups.values():
-        for old in items[1:]:  # keep [0] (newest), drop the rest
-            sb.table("news_items").delete().eq("id", old["id"]).execute()
-            removed_dupes += 1
+    for items in by_bucket.values():
+        kept: list[set[str]] = []
+        for r in items:
+            toks = story_tokens(r.get("headline") or "")
+            if any(near_duplicate(toks, k) for k in kept):
+                sb.table("news_items").delete().eq("id", r["id"]).execute()
+                removed_dupes += 1
+            else:
+                kept.append(toks)
 
     by_sport: dict[str, int] = {}
     for r in rows:
@@ -246,7 +266,7 @@ def main() -> None:
     for k, v in sorted(by_sport.items()):
         print(f"   {k:<10} {v}")
     if removed_dupes:
-        print(f"   collapsed {removed_dupes} same-player duplicate(s) to the latest")
+        print(f"   collapsed {removed_dupes} near-duplicate headline(s) to the latest")
     print("\n[OK] News synced to Supabase.")
 
 
