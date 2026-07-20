@@ -25,13 +25,21 @@ const DRAW_MS = 900; // one orchestrated beat: line draw + score count-up finish
 
 export type ChartPoint = { date: string; score: number };
 
+// Parse a 'YYYY-MM-DD' as a LOCAL calendar date. `new Date('2026-07-20')` parses as UTC
+// midnight, which in a western timezone renders as the PREVIOUS day — so the chart's last
+// point read "Jul 19" instead of today. Building the date from its parts keeps it put.
+function localDate(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function shortDate(iso: string): string {
-  const d = new Date(iso);
+  const d = localDate(iso);
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 function tooltipDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
+  return localDate(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));

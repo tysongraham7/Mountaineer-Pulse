@@ -39,7 +39,10 @@ type Driver = { label: string; delta?: number; kind: string };
 type PulseEvent = { kind: 'win' | 'loss' | 'in' | 'out' | 'pending'; label: string };
 
 function fullDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  // Build from parts so a 'YYYY-MM-DD' isn't parsed as UTC midnight and rolled back a day
+  // in western timezones (which made the latest point read as yesterday).
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function wvuView(g: Game) {
