@@ -80,12 +80,11 @@ SPORT_BASELINE = {"baseball": 12.0}
 # enough that the postseason reliably tops a hot regular-season week.
 SPORT_SURGE_SCALE = {"baseball": 0.6}
 
-# Per-sport INCOMING roster scaling. Baseball's next-season class is unproven future
-# talent, so it's weighted lightly — it shouldn't inflate the current CWS peak, and
-# it shouldn't prop the offseason back up after the proven core departs. Departures
-# (this season's losses) keep their full weight, so the roster line trends DOWN in the
-# offseason as the core leaves.
-SPORT_INCOMING_SCALE = {"baseball": 0.18}
+# Per-sport INCOMING roster scaling. Baseball reloads a big class every year (portal + JUCO +
+# HS), so incoming is discounted — but not so hard that a strong transfer haul reads as nothing.
+# At 0.5 the class meaningfully offsets the departing core (a good portal class lifts the line,
+# a thin one doesn't) while the ROSTER_CAP still keeps a huge reload from pinning the score.
+SPORT_INCOMING_SCALE = {"baseball": 0.5}
 
 # In-season national rank per sport for the latest COMPLETED season, used for dates
 # within that season so the model credits a team that was ranked all year (the live

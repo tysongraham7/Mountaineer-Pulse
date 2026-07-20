@@ -9,7 +9,7 @@ import { SectionLabel, Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useCountUp } from '@/lib/count-up';
 import { supabase } from '@/lib/supabase';
-import { Game, RosterMove } from '@/lib/types';
+import { Briefing, Game, RosterMove } from '@/lib/types';
 import { ChartPoint, PulseChart } from './pulse-chart';
 import { PulseExplainer } from './pulse-explainer';
 
@@ -64,6 +64,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
   const [current, setCurrent] = useState<{ score: number; trend: string; ranking: number | null; drivers: Driver[] | null } | null>(null);
   const [moves, setMoves] = useState<RosterMove[]>([]);
   const [notes, setNotes] = useState<{ date: string; note: string; pulse_delta: number | null }[]>([]);
+  const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState<number>(-1);
   const [rangeIdx, setRangeIdx] = useState<number>(0);
@@ -92,11 +93,12 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
     setLoading(true);
     setActiveIdx(-1);
     (async () => {
-      const [snapRes, moveRes, gameRes, noteRes] = await Promise.all([
+      const [snapRes, moveRes, gameRes, noteRes, briefRes] = await Promise.all([
         supabase.from('pulse_snapshots').select('*').eq('sport_id', curSport).order('date'),
         supabase.from('roster_moves').select('*').eq('sport_id', curSport).order('move_date', { ascending: false }),
         supabase.from('games').select('*').eq('sport_id', curSport).eq('status', 'final'),
         supabase.from('daily_sport_notes').select('date,note,pulse_delta').eq('sport_id', curSport).order('date'),
+        supabase.from('daily_briefings').select('date,content,sections').order('date', { ascending: false }).limit(1),
       ]);
       const s = (snapRes.data ?? []) as { date: string; score: number; trend: string; ranking: number | null; drivers: Driver[] | null }[];
       setSnaps(s.map((x) => ({ date: x.date, score: x.score })));
@@ -105,6 +107,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
       setMoves((moveRes.data ?? []) as RosterMove[]);
       setGames((gameRes.data ?? []) as Game[]);
       setNotes((noteRes.data ?? []) as { date: string; note: string; pulse_delta: number | null }[]);
+      setBriefing((briefRes.data?.[0] as Briefing) ?? null);
       setLoading(false);
     })();
   }, [curSport]);
@@ -188,6 +191,17 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
     });
     return win.length ? win[win.length - 1].note : null;
   })();
+
+  // Today's per-sport briefing, surfaced on the chart's TODAY point. This reuses the same
+  // daily briefing shown on the home tab (that card is untouched) — here we show only this
+  // sport's section, and only when the scrubbed point is actually today.
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayBrief = briefing?.sections?.sections?.find((s) => s.sport === curSport) ?? null;
+  const briefIsForToday = !!(
+    n >= 1 && points[idx] && points[idx].date === todayStr &&
+    briefing?.date?.slice(0, 10) === todayStr && todayBrief && todayBrief.items.length > 0
+  );
 
   // "What's driving the score" — scoped to the VISIBLE range (points[0]..points[last]), so a
   // 1-month view doesn't blame a score on a January portal class. Ranking is a live status and
@@ -320,6 +334,20 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
                     )}
                   </View>
                   {noteForWindow && <Text style={styles.noteLine}>{noteForWindow}</Text>}
+                  {briefIsForToday && (
+                    <View style={{ marginTop: noteForWindow ? 12 : 8 }}>
+                      <Text style={styles.briefTag}>Today's briefing</Text>
+                      {todayBrief!.items.map((it, i) => (
+                        <View key={i} style={styles.briefRow}>
+                          <View style={styles.briefBullet} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.briefTopic}>{it.topic}</Text>
+                            <Text style={styles.briefBody}>{it.body}</Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                   {activeEvents.length > 0 && (
                     <View style={{ marginTop: 10, gap: 4 }}>
                       {(showAllEvents ? activeEvents : activeEvents.slice(0, 6)).map((e, i) => {
@@ -347,7 +375,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
                       )}
                     </View>
                   )}
-                  {!noteForWindow && activeEvents.length === 0 && (
+                  {!noteForWindow && activeEvents.length === 0 && !briefIsForToday && (
                     <Text style={styles.quiet}>No notable change on this date.</Text>
                   )}
                 </View>
@@ -431,6 +459,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   noteLine: { fontFamily: Font.displaySemi, fontSize: 15, lineHeight: 21, color: c.text, marginTop: 8 },
+  briefTag: { fontFamily: Font.bodyBold, fontSize: 10, letterSpacing: 1, color: Brand.gold, textTransform: 'uppercase' },
+  briefRow: { flexDirection: 'row', gap: 9, marginTop: 8 },
+  briefBullet: { width: 5, height: 5, borderRadius: 3, backgroundColor: Brand.gold, marginTop: 6 },
+  briefTopic: { fontFamily: Font.bodyBold, fontSize: 13.5, color: c.text, marginBottom: 2 },
+  briefBody: { fontFamily: Font.body, fontSize: 13, lineHeight: 19, color: c.textSecondary },
   evTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3, minWidth: 30, alignItems: 'center' },
   evLabel: { flex: 1, fontSize: 13, color: c.textSecondary, fontFamily: Font.bodyMed },
   quiet: { fontSize: 13, marginTop: 8, color: c.textMuted, fontFamily: Font.body },
