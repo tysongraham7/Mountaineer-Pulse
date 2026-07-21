@@ -64,6 +64,9 @@ ALTERS = [
     # push_tokens above: the sb_publishable_ key isn't matched by a `to anon` policy.
     "drop policy if exists error_reports_insert on error_reports;",
     "create policy error_reports_insert on error_reports for insert to public with check (true);",
+    # `notified` = has this report already triggered an email alert? Set true after a successful
+    # send (notify_reports.py) so each report emails exactly once. Client can't set it (insert-only).
+    "alter table error_reports add column if not exists notified boolean not null default false;",
     # --- Anonymous, privacy-first usage analytics ---
     # Random per-install id (NOT a device id, no PII), so we can count daily-active users,
     # push opens, and which tabs get used — without identifying anyone. Insert-only for the
