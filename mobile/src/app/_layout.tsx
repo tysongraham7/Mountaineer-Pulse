@@ -15,7 +15,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import * as Sentry from '@sentry/react-native';
-import { Tabs } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import { Tabs, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Pressable, Text, View } from 'react-native';
@@ -23,6 +24,7 @@ import { AppState, Pressable, Text, View } from 'react-native';
 import { Onboarding } from '@/components/onboarding';
 import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { trackAppOpen, trackPushOpen, trackScreen } from '@/lib/analytics';
 import { AlertsProvider } from '@/lib/alerts';
 import { FavoritesProvider } from '@/lib/favorites';
 import { configureNotificationHandler, syncPushRegistration } from '@/lib/notifications';
@@ -61,6 +63,16 @@ function CrashFallback({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+// Logs a screen_view whenever the active tab/route changes. Rendered inside the router so
+// usePathname resolves the current route.
+function AnalyticsTracker() {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (pathname) trackScreen(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function RootLayout() {
   const [loaded] = useFonts({
     Archivo_600SemiBold,
@@ -84,9 +96,22 @@ function RootLayout() {
   useEffect(() => {
     syncPushRegistration();
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') syncPushRegistration();
+      if (s === 'active') {
+        syncPushRegistration();
+        trackAppOpen(); // returning to the foreground (throttled inside)
+      }
     });
     return () => sub.remove();
+  }, []);
+
+  // Anonymous usage analytics: log the cold-start open (flagged when it came from a
+  // notification tap) plus any notification tap while the app is running. Fire-and-forget.
+  useEffect(() => {
+    Notifications.getLastNotificationResponseAsync()
+      .then((resp) => trackAppOpen(!!resp))
+      .catch(() => {});
+    const respSub = Notifications.addNotificationResponseReceivedListener(() => trackPushOpen());
+    return () => respSub.remove();
   }, []);
 
   // First-run onboarding: show once, then remember it's done.
@@ -169,6 +194,7 @@ function RootLayout() {
           />
         </Tabs>
         <Onboarding visible={showOnboarding} onDone={finishOnboarding} />
+        <AnalyticsTracker />
       </ThemeProvider>
       </AlertsProvider>
       </FavoritesProvider>

@@ -64,6 +64,25 @@ ALTERS = [
     # push_tokens above: the sb_publishable_ key isn't matched by a `to anon` policy.
     "drop policy if exists error_reports_insert on error_reports;",
     "create policy error_reports_insert on error_reports for insert to public with check (true);",
+    # --- Anonymous, privacy-first usage analytics ---
+    # Random per-install id (NOT a device id, no PII), so we can count daily-active users,
+    # push opens, and which tabs get used — without identifying anyone. Insert-only for the
+    # client (same model as error_reports/push_tokens): the app writes events but can never
+    # read them back; the founder reads aggregates server-side via read_analytics.py.
+    """create table if not exists analytics_events (
+        id          bigint generated always as identity primary key,
+        anon_id     text not null,
+        event       text not null,        -- 'app_open' | 'screen_view' | 'push_open'
+        screen      text,                 -- route/tab for screen_view
+        platform    text,
+        app_version text,
+        created_at  timestamptz not null default now()
+    );""",
+    "create index if not exists analytics_events_created_idx on analytics_events (created_at desc);",
+    "create index if not exists analytics_events_anon_idx on analytics_events (anon_id);",
+    "alter table analytics_events enable row level security;",
+    "drop policy if exists analytics_insert on analytics_events;",
+    "create policy analytics_insert on analytics_events for insert to public with check (true);",
 ]
 
 
