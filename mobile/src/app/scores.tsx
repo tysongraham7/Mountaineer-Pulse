@@ -8,10 +8,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OfflineNotice } from '@/components/offline-notice';
 import { GameCardSkeleton, Skeleton, SkeletonList } from '@/components/skeleton';
 import { SectionLabel, Segmented, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
+import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { Game } from '@/lib/types';
 
 const c = surfaces(true);
@@ -47,12 +49,18 @@ export default function ScoresScreen() {
   const insets = useSafeAreaInsets();
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('football');
 
   const load = useCallback(async () => {
-    const { data } = await supabase.from('games').select('*').order('start_date', { ascending: true });
-    setGames((data ?? []) as Game[]);
+    const { data, error } = await supabase.from('games').select('*').order('start_date', { ascending: true });
+    if (error) {
+      setLoadError(true);
+    } else {
+      setGames((data ?? []) as Game[]);
+      setLoadError(false);
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -60,6 +68,7 @@ export default function ScoresScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useForegroundRefresh(load);
 
   const visible = filter === 'all' ? games : games.filter((g) => g.sport_id === filter);
   const showTag = filter === 'all';
@@ -96,6 +105,8 @@ export default function ScoresScreen() {
               <GameCardSkeleton />
             </SkeletonList>
           </>
+        ) : loadError && games.length === 0 ? (
+          <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
         ) : (
           <>
             {upcoming.length > 0 && (

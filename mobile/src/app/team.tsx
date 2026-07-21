@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OfflineNotice } from '@/components/offline-notice';
 import { PlayerProfile } from '@/components/player-profile';
 import { ListRowSkeleton, SkeletonList } from '@/components/skeleton';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
+import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { DepthEntry, Player, RosterMove } from '@/lib/types';
 
 const c = surfaces(true);
@@ -193,6 +195,7 @@ export default function TeamScreen() {
   const [depth, setDepth] = useState<DepthEntry[]>([]);
   const [moves, setMoves] = useState<RosterMove[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('football');
   const [mode, setMode] = useState<(typeof MODES)[number]['id']>('roster');
@@ -207,9 +210,14 @@ export default function TeamScreen() {
       supabase.from('depth_chart').select('*'),
       supabase.from('roster_moves').select('*').order('move_date', { ascending: false }),
     ]);
-    setPlayers((pRes.data ?? []) as Player[]);
-    setDepth((dRes.data ?? []) as DepthEntry[]);
-    setMoves((mRes.data ?? []) as RosterMove[]);
+    if (pRes.error && mRes.error) {
+      setLoadError(true);
+    } else {
+      setPlayers((pRes.data ?? []) as Player[]);
+      setDepth((dRes.data ?? []) as DepthEntry[]);
+      setMoves((mRes.data ?? []) as RosterMove[]);
+      setLoadError(false);
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -217,6 +225,7 @@ export default function TeamScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useForegroundRefresh(load);
 
   if (loading) {
     return (
@@ -229,6 +238,17 @@ export default function TeamScreen() {
             <ListRowSkeleton />
           </SkeletonList>
         </View>
+      </View>
+    );
+  }
+
+  if (loadError && players.length === 0 && moves.length === 0) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
+        <View style={styles.screenHeader}>
+          <Text style={styles.screenTitle}>Team</Text>
+        </View>
+        <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
       </View>
     );
   }

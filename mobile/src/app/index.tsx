@@ -12,10 +12,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PulseDetail } from '@/components/pulse-detail';
+import { OfflineNotice } from '@/components/offline-notice';
 import { BriefingSkeleton, PulseRowSkeleton, Skeleton } from '@/components/skeleton';
 import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useAlerts } from '@/lib/alerts';
+import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
 import { Briefing } from '@/lib/types';
@@ -78,6 +80,7 @@ export default function PulseScreen() {
   const [records, setRecords] = useState<Record<string, Rec>>({});
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
   const { favorites } = useFavorites();
@@ -105,6 +108,7 @@ export default function PulseScreen() {
   );
 
   const load = useCallback(async () => {
+    try {
     const [snapRes, briefingRes, gamesRes] = await Promise.all([
       supabase.from('pulse_snapshots').select('*').order('date', { ascending: true }),
       supabase.from('daily_briefings').select('*').order('date', { ascending: false }).limit(1),
@@ -113,6 +117,7 @@ export default function PulseScreen() {
         .select('sport_id,season,home_points,away_points,is_wvu_home,status')
         .eq('status', 'final'),
     ]);
+    if (snapRes.error) throw snapRes.error; // no connection → show the offline state
 
     setBriefing((briefingRes.data?.[0] as Briefing) ?? null);
 
@@ -145,14 +150,22 @@ export default function PulseScreen() {
       else r.l += 1;
     }
     setRecords(rec);
-
-    setLoading(false);
-    setRefreshing(false);
+    setLoadError(false);
+    } catch {
+      setLoadError(true); // keep any data we already have; just flag the failure
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Refetch when the app returns to the foreground (e.g. tapping the morning-briefing
+  // notification) so it never shows yesterday's briefing until a manual pull-to-refresh.
+  useForegroundRefresh(load);
 
   const body = (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
@@ -209,6 +222,8 @@ export default function PulseScreen() {
             <PulseRowSkeleton />
           </View>
         </View>
+      ) : loadError && Object.keys(snaps).length === 0 ? (
+        <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
       ) : (
         <>
       {/* Daily briefing — per-sport sections when available, else plain text */}

@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OfflineNotice } from '@/components/offline-notice';
 import { NewsCardSkeleton, SkeletonList } from '@/components/skeleton';
 import { Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
+import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 
 const c = surfaces(true);
 
@@ -48,16 +50,22 @@ export default function NewsScreen() {
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
 
   const load = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('news_items')
       .select('*')
       .order('published_at', { ascending: false })
       .limit(80);
-    setItems((data ?? []) as NewsItem[]);
+    if (error) {
+      setLoadError(true);
+    } else {
+      setItems((data ?? []) as NewsItem[]);
+      setLoadError(false);
+    }
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -65,6 +73,7 @@ export default function NewsScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useForegroundRefresh(load);
 
   const visible = filter === 'all' ? items : items.filter((n) => n.sport_id === filter);
   const updated = items[0] ? relativeTime(items[0].published_at) : '';
@@ -99,7 +108,10 @@ export default function NewsScreen() {
             <NewsCardSkeleton />
           </SkeletonList>
         )}
-        {!loading && visible.length === 0 && (
+        {!loading && loadError && items.length === 0 && (
+          <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
+        )}
+        {!loading && !loadError && visible.length === 0 && (
           <Text style={styles.empty}>No headlines in this filter yet.</Text>
         )}
         {!loading && visible.map((n) => (
