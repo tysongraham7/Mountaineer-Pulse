@@ -100,7 +100,6 @@ jobs:
       - name: Stale-fact check
         if: ${{ !cancelled() }}
         env:
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
         run: python check_stale_facts.py

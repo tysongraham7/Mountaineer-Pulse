@@ -12,25 +12,23 @@ What it flags:
     (e.g. "deadline Jul 27" once Jul 27 has passed).
 
 Costs nothing to run: pure date checks on data you already have, no AI calls. Prints findings
-always; emails a digest only when GMAIL_USER / GMAIL_APP_PASSWORD are set and there's something
-to report.
+always; emails a digest only when the email secrets are set and there's something to report.
 
   python check_stale_facts.py
 
-Env: SUPABASE_URL, SUPABASE_SECRET_KEY (required); GMAIL_USER, GMAIL_APP_PASSWORD, REPORT_ALERT_TO
-(optional, to email the digest).
+Env: SUPABASE_URL, SUPABASE_SECRET_KEY (required); RESEND_API_KEY, REPORT_ALERT_TO
+(optional, to email the digest — see emailer.py).
 """
 
 import os
 import re
-import smtplib
-import ssl
 import sys
 from datetime import date
-from email.message import EmailMessage
 
 from dotenv import load_dotenv
 from supabase import create_client
+
+from emailer import email_configured, send_email
 
 load_dotenv()
 
@@ -41,9 +39,6 @@ except Exception:
 
 SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_PW = os.getenv("GMAIL_APP_PASSWORD")
-TO = os.getenv("REPORT_ALERT_TO") or GMAIL_USER
 
 PENDING_GRACE_DAYS = 4  # a 'draft-pending' older than this has probably been decided
 
@@ -132,24 +127,18 @@ def main() -> None:
         print(f"  • {f}")
     print("-" * 60)
 
-    if not GMAIL_USER or not GMAIL_PW:
-        print("(GMAIL_USER / GMAIL_APP_PASSWORD not set — printed only, no email sent.)")
+    if not email_configured():
+        print("(email not configured — RESEND_API_KEY / REPORT_ALERT_TO — printed only, no email sent.)")
         return
 
     body = (f"{len(findings)} Mountaineer Pulse fact(s) may have gone stale — worth a look:\n\n"
             + "\n\n".join(f"• {f}" for f in findings)
             + "\n\n----\nFix in the data-pipeline JSON (roster_moves.json / depth_chart.json), "
             "then re-run sync_moves.py / sync_depth.py.\n")
-    msg = EmailMessage()
-    msg["Subject"] = f"[Mountaineer Pulse] {len(findings)} fact(s) to review (possible stale data)"
-    msg["From"] = GMAIL_USER
-    msg["To"] = TO
-    msg.set_content(body)
+    subject = f"[Mountaineer Pulse] {len(findings)} fact(s) to review (possible stale data)"
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context()) as s:
-            s.login(GMAIL_USER, GMAIL_PW)
-            s.send_message(msg)
-        print(f"[OK] Emailed the review list to {TO}.")
+        send_email(subject, body)
+        print("[OK] Emailed the review list.")
     except Exception as e:
         die(f"Email send failed: {str(e)[:160]}")
 
