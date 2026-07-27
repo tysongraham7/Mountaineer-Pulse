@@ -74,7 +74,9 @@ def main() -> None:
             continue
         # Cascade: a confirmed departure removes the player from the depth chart, even if
         # they're still listed in depth_chart.json (keeps movement/roster/depth in sync).
-        if (e.get("sport_id"), norm_name(name)) in gone:
+        # Exception: `keep_despite_out` pins an undecided player (e.g. an eligibility case that
+        # could still return) on the chart on purpose — show them, flagged, rather than drop them.
+        if (e.get("sport_id"), norm_name(name)) in gone and not e.get("keep_despite_out"):
             dropped.append(f"{name} ({e.get('sport_id')})")
             continue
         status = (e.get("status") or "active").lower()

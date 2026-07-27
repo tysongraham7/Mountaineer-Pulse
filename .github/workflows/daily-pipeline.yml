@@ -94,3 +94,13 @@ jobs:
       - name: Daily AI Briefing
         if: ${{ !cancelled() }}
         run: python generate_briefing.py
+
+      # Cheap, no-AI sweep for facts that have gone stale (a passed deadline, a still-'pending'
+      # decision). Emails a short review list only if something turns up and Gmail secrets exist.
+      - name: Stale-fact check
+        if: ${{ !cancelled() }}
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
+        run: python check_stale_facts.py
