@@ -153,7 +153,7 @@
     "source_name": "On3",
     "source_url": "",
     "notes": ".401, 5 HR, 39 RBI",
-    "alert": "Drafted by StL Cardinals (6th rd) — likely to sign pro & leave WVU; has until Jul 27 to decide"
+    "alert": "Signed with the Cardinals (6th rd) — turned pro; will not join WVU"
   },
   {
     "sport_id": "baseball",
@@ -992,12 +992,17 @@
     "sport_id": "baseball",
     "player_name": "Owen Henne",
     "position": "INF",
+    "class_year": "",
     "direction": "out",
-    "category": "draft-pending",
-    "move_date": "2026-07-12",
-    "impact": null,
+    "category": "draft",
+    "status": "signed",
     "other_school": "St. Louis Cardinals",
-    "alert": "Drafted by the Cardinals (6th rd) — awaiting his decision; has until Jul 27 to sign pro or return to WVU"
+    "move_date": "2026-07-17",
+    "source_name": "Sports Illustrated",
+    "source_url": "https://www.si.com/college/westvirginia/baseball/dawson-montesa-owen-henne-officially-turn-pro-with-cardinals",
+    "notes": "Top portal signee (from Seton Hill) signed pro instead of enrolling — Cardinals, 6th round.",
+    "alert": "Signed with the Cardinals (6th rd) — turned pro, will not join WVU",
+    "pulse_neutral": true
   },
   {
     "sport_id": "baseball",
