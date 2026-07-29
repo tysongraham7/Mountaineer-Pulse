@@ -79,8 +79,9 @@ Star your favorite sports to float them to the top. No account, no sign-up — j
 and go.
 
 BUILT FOR FANS
-No ads. No tracking. No login. Mountaineer Pulse collects no personal information — it just
-shows you public West Virginia University sports info, fast.
+No ads. No login. No personal information — no name, no email, no account, ever. Just
+anonymous usage counts and crash reports so we can fix what breaks, and public West
+Virginia University sports info, fast.
 
 Mountaineer Pulse is an independent, unofficial fan app. It is not affiliated with, endorsed
 by, or sponsored by West Virginia University. All team names, logos, and trademarks are the
@@ -111,10 +112,35 @@ Mountaineers mentions in the description above do double duty there.
 - **App name (30 char max):** `Mountaineer Pulse`
 - **Short description (80 char max):** `The daily pulse of WVU football, basketball & baseball — scores, roster & news.` *(78)*
 - **Full description:** reuse the App Store description above (Play allows 4000 char).
-- Data safety form: select **No data collected / No data shared**.
+- Data safety form: **not** "no data collected" (same reason as the App Privacy note below).
+  Declare *App activity → App interactions*, *App info & performance → Crash logs*, and the
+  free-text of in-app reports. Mark all as **collected, not shared, not linked to a user**,
+  and tick *Data is encrypted in transit* and *Users can request deletion* (email support).
 
 ---
 
 ## App Privacy (App Store Connect questionnaire)
-Answer **"Data Not Collected"** — the app has no accounts, no analytics, no tracking, and
-stores favorites only on-device.
+
+> **Do NOT answer "Data Not Collected."** That was true before the July 2026 analytics,
+> in-app reports, and Sentry crash reporting shipped. `privacy.html` already discloses all
+> three, and Apple compares your questionnaire against your linked privacy policy — a
+> mismatch is a rejection now and a removal risk later. Declare all four rows below.
+
+Everything is **"Not Linked to You"** (no account, no name, no email, no advertising ID —
+just a random per-install string) and **Tracking: NO** (nothing is shared with data brokers
+or linked across other companies' apps/sites, so no ATT permission prompt is needed).
+
+| Data type | Why we collect it | Purpose to select |
+|---|---|---|
+| **Diagnostics → Crash Data** | Sentry, `sendDefaultPii: false`, `tracesSampleRate: 0` — crashes only | App Functionality |
+| **Usage Data → Product Interaction** | `analytics_events`: app opens, screen views, push opens | Analytics |
+| **User Content → Customer Support** | free-text of in-app bug/feedback reports | App Functionality |
+| **Identifiers → User ID** | random per-install id used to count unique installs and rate-limit reports | Analytics, App Functionality |
+
+> The two random ids (`mp-anon-id` for analytics, `mp-reporter-id` for reports) are generated
+> on-device, are deliberately different from each other, and are not device identifiers.
+> Declaring them is the conservative, honest call — under-disclosing is what gets punished.
+
+**Sentry setting to check:** in the Sentry project, turn on *Prevent Storing of IP Addresses*
+(Settings → Security & Privacy). The SDK doesn't send PII, but Sentry's ingest can retain the
+request IP by default, which would undercut the "no personal information" claim above.

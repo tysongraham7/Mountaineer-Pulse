@@ -1,0 +1,16 @@
+{
+  // Stream safety: keep .env out of the file explorer, search results, and Quick Open
+  // (Ctrl+P), so it can't be opened by muscle memory or a stray fuzzy-match on camera.
+  // To edit it: temporarily flip the "**/.env" line below to false, or open it from a
+  // terminal with `notepad data-pipeline\.env`.
+  "files.exclude": {
+    "**/.env": true
+  },
+  "search.exclude": {
+    "**/.env": true,
+    "**/node_modules": true
+  },
+  // Don't surface git author emails inline on camera.
+  "git.blame.editorDecoration.enabled": false,
+  "git.blame.statusBarItem.enabled": false
+}

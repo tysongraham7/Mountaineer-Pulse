@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(./data-pipeline/.env)",
+      "Read(**/*.pem)",
+      "Read(**/*.p8)",
+      "Read(**/*.keystore)",
+      "Bash(env)",
+      "Bash(printenv*)",
+      "Bash(cat *.env*)",
+      "Bash(head *.env*)",
+      "Bash(tail *.env*)",
+      "Bash(gh auth token*)",
+      "PowerShell(Get-Content *.env*)",
+      "PowerShell(Get-ChildItem Env:*)",
+      "PowerShell(gci env:*)",
+      "PowerShell(ls env:*)"
+    ]
+  }
+}

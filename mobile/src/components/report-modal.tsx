@@ -48,6 +48,7 @@ export function ReportModal({
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Reset to a clean slate every time the sheet opens.
   useEffect(() => {
@@ -56,19 +57,28 @@ export function ReportModal({
       setMessage('');
       setBusy(false);
       setSent(false);
+      setNotice(null);
     }
   }, [visible, initialCategory]);
 
   const submit = async () => {
     if (busy || !message.trim()) return;
     setBusy(true);
-    const ok = await submitErrorReport(category, message, context);
+    setNotice(null);
+    const res = await submitErrorReport(category, message, context);
     setBusy(false);
-    if (ok) {
+    if (res.ok) {
       setSent(true);
-    } else {
-      // Surface a soft failure without a blocking alert; keep their text.
-      setSent(false);
+      return;
+    }
+    // Surface a soft failure without a blocking alert; keep their text either way.
+    setSent(false);
+    if (res.reason === 'rate-limited') {
+      const mins = res.retryAfterMin ?? 1;
+      const wait = mins >= 60 ? 'in about an hour' : `in ${mins} min`;
+      setNotice(`Thanks — you've sent a few already. You can send another ${wait}.`);
+    } else if (res.reason === 'failed') {
+      setNotice("Couldn't send that. Check your connection and try again.");
     }
   };
 
@@ -138,6 +148,13 @@ export function ReportModal({
                   maxLength={2000}
                   textAlignVertical="top"
                 />
+
+                {notice ? (
+                  <View style={styles.notice}>
+                    <Ionicons name="time-outline" size={15} color={c.textSecondary} />
+                    <Text style={styles.noticeText}>{notice}</Text>
+                  </View>
+                ) : null}
 
                 <Pressable
                   style={[styles.primary, (busy || !message.trim()) && { opacity: 0.5 }]}
@@ -211,6 +228,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 21,
     color: c.text,
+  },
+  notice: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    borderRadius: 12,
+    backgroundColor: c.bg,
+    borderWidth: 1,
+    borderColor: c.borderStrong,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+  },
+  noticeText: {
+    flex: 1,
+    fontFamily: Font.body,
+    fontSize: 13,
+    lineHeight: 18,
+    color: c.textSecondary,
   },
   primary: {
     marginTop: 16,

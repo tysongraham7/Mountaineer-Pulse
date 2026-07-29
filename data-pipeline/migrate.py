@@ -58,15 +58,61 @@ ALTERS = [
         created_at   timestamptz not null default now()
     );""",
     "alter table error_reports enable row level security;",
+    # `notified` = has this report already triggered an email alert? Set true after a successful
+    # send (notify_reports.py) so each report emails exactly once. Client can't set it (insert-only).
+    "alter table error_reports add column if not exists notified boolean not null default false;",
+    # Random per-install reporter id, used ONLY to rate-limit. Deliberately a different id from
+    # analytics_events.anon_id so a report can't be joined to that install's browsing history.
+    "alter table error_reports add column if not exists anon_id text;",
+    "create index if not exists error_reports_created_idx on error_reports (created_at desc);",
+    "create index if not exists error_reports_anon_idx on error_reports (anon_id, created_at desc);",
+    # Size/shape guards. The app already caps message length, but the app is not the only thing
+    # that can reach this table — the publishable key ships inside every install, so anyone can
+    # POST here directly. Enforce it where it can't be bypassed.
+    """do $$ begin
+        if not exists (select 1 from pg_constraint where conname = 'error_reports_message_len') then
+            alter table error_reports add constraint error_reports_message_len
+                check (char_length(message) between 1 and 2000);
+        end if;
+        if not exists (select 1 from pg_constraint where conname = 'error_reports_category_ok') then
+            alter table error_reports add constraint error_reports_category_ok
+                check (category is null or category in ('data','bug','idea','other'));
+        end if;
+    end $$;""",
+    # Rate limit, enforced in the INSERT policy itself.
+    #   * security definer  -> the function reads error_reports as the owner, so it isn't blocked
+    #                          by this same RLS policy (and can't recurse into it).
+    #   * stable            -> evaluated against the statement snapshot, so the row being inserted
+    #                          isn't counted; the Nth insert in the window is the one refused.
+    #   * global cap        -> the only limit that survives someone randomizing their anon_id.
+    """create or replace function public.error_reports_allowed(p_anon text)
+    returns boolean
+    language sql
+    stable
+    security definer
+    set search_path = public, pg_temp
+    as $$
+        select (
+            select count(*) from public.error_reports
+            where created_at > now() - interval '1 hour'
+        ) < 300
+        and (
+            p_anon is null
+            or (
+                select count(*) from public.error_reports
+                where anon_id = p_anon and created_at > now() - interval '1 hour'
+            ) < 5
+        );
+    $$;""",
     # The client may submit reports ONLY — it cannot read them back (reports may contain other
     # users' words; nothing in the app lists them). No select policy => reads denied to all but
     # the secret key (read_reports.py). `to public` (not `to anon`) for the same reason as
     # push_tokens above: the sb_publishable_ key isn't matched by a `to anon` policy.
+    # Kill switch if this is ever abused: alter the policy to `with check (false)` to freeze
+    # all inbound reports without touching the app.
     "drop policy if exists error_reports_insert on error_reports;",
-    "create policy error_reports_insert on error_reports for insert to public with check (true);",
-    # `notified` = has this report already triggered an email alert? Set true after a successful
-    # send (notify_reports.py) so each report emails exactly once. Client can't set it (insert-only).
-    "alter table error_reports add column if not exists notified boolean not null default false;",
+    """create policy error_reports_insert on error_reports for insert to public
+       with check (public.error_reports_allowed(anon_id));""",
     # --- Anonymous, privacy-first usage analytics ---
     # Random per-install id (NOT a device id, no PII), so we can count daily-active users,
     # push opens, and which tabs get used — without identifying anyone. Insert-only for the
