@@ -1033,5 +1033,19 @@
     "source_name": "On3",
     "source_url": "",
     "notes": "Two-way transfer, former A-Sun Preseason Freshman of the Year. Missed 2026 recovering from Tommy John surgery; expected back on the mound for 2027."
+  },
+  {
+    "sport_id": "football",
+    "player_name": "Destin Achi",
+    "position": "LB",
+    "class_year": "",
+    "direction": "in",
+    "category": "juco",
+    "status": "committed",
+    "other_school": "",
+    "move_date": "2026-07-31",
+    "source_name": "247Sports / On3",
+    "source_url": "https://247sports.com/college/west-virginia/article/juco-linebacker-talks-late-addition-to-wvus-2026-roster-288603263/",
+    "notes": "Late JUCO addition to the linebacker room ahead of fall camp"
   }
 ]
