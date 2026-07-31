@@ -91,6 +91,35 @@ Let's go, Mountaineers.
 
 ---
 
+## App Review Notes  (App Store Connect → version page → App Review Information)
+
+Paste verbatim. Each paragraph preempts a specific rejection: (1) reviewers blocked by a
+login they can't get past, (2) guideline 5.2.1 third-party trademarks — the real risk for an
+unofficial college-team app — and 4.2 minimum functionality, (3) consistency with the App
+Privacy answers.
+
+```
+Mountaineer Pulse is an independent, unofficial fan app for West Virginia
+University sports. No account or login is required — all features are
+available immediately on launch, so no demo credentials are needed.
+
+All content is factual sports information (scores, schedules, rosters, and
+publicly reported roster moves) compiled from publicly available sources,
+plus an original computed "Pulse" score and a daily briefing that summarizes
+public news. The app uses no West Virginia University logos, marks, or
+branding, and the app description states that it is not affiliated with,
+endorsed by, or sponsored by the university. News items link out to the
+original publishers.
+
+The app collects no personal information and requests no permissions other
+than optional push notifications.
+```
+
+**Sign-In Information:** leave unchecked (no account required).
+**IDFA / Advertising Identifier:** No.
+**Version Release:** *Manually release this version* — so approval doesn't publish the app
+before the launch posts are ready.
+
 ## Category
 - Primary: **Sports**
 - Secondary: **News**
