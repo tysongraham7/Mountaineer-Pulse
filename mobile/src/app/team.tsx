@@ -127,7 +127,12 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 function formatDate(iso: string | null): string {
   if (!iso) return '';
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  // Split the parts instead of `new Date(iso)`: a bare 'YYYY-MM-DD' parses as UTC
+  // midnight, which renders as the PREVIOUS day in Eastern — the same off-by-one
+  // that made the Pulse chart look a day behind.
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return '';
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 // Roster can be viewed for last completed season (the scraped roster) or the
@@ -723,39 +728,47 @@ function DepthPositionCard({
 
 /* ---------------- Movement ---------------- */
 
-// Grouped sections for the Movement page. In = green, Out = red (via MoveCard).
-const MOVE_SECTIONS: { title: string; match: (m: RosterMove) => boolean }[] = [
-  { title: 'Transfers In', match: (m) => m.direction === 'in' && m.category === 'transfer' },
-  { title: 'JUCO Signees', match: (m) => m.direction === 'in' && m.category === 'juco' },
-  { title: 'High School Signees', match: (m) => m.direction === 'in' && (m.category === 'hs' || m.category === 'recruit') },
-  { title: 'Transfers Out', match: (m) => m.direction === 'out' && m.category === 'transfer' },
-  {
-    title: 'Out of Eligibility',
-    match: (m) => m.direction === 'out' && (m.category === 'eligibility' || m.category === 'graduation' || m.category === 'draft'),
-  },
-];
+// What kind of move this is, phrased for the card badge. Movement is ordered by DATE, not
+// grouped by type, so this label is the only thing telling you what happened — it has to be
+// specific and directional on its own ("Transfer Out", not "Transfer").
+function moveLabel(m: RosterMove): string {
+  const cat = m.category ?? '';
+  if (m.direction === 'in') {
+    if (cat === 'transfer') return 'Transfer In';
+    if (cat === 'juco') return 'JUCO Signee';
+    if (cat === 'hs' || cat === 'recruit') return 'HS Signee';
+    return 'Addition';
+  }
+  if (cat === 'transfer') return 'Transfer Out';
+  if (cat === 'draft') return 'Drafted';
+  if (cat === 'draft-pending') return 'Draft Pending';
+  if (cat === 'eligibility' || cat === 'graduation') return 'Out of Eligibility';
+  return 'Departure';
+}
 
 function MovementView({ moves, c, showTag }: { moves: RosterMove[]; c: ReturnType<typeof surfaces>; showTag: boolean }) {
-  const sections = MOVE_SECTIONS.map((s) => ({ title: s.title, items: moves.filter(s.match) })).filter(
-    (s) => s.items.length > 0,
-  );
-  if (sections.length === 0) {
+  // Newest first. Grouping by category buried the news: a signing that happened today sat
+  // below months of older moves just because it was a JUCO one. ISO 'YYYY-MM-DD' sorts
+  // lexicographically the same as chronologically, so no Date parsing (and no timezone risk).
+  const sorted = [...moves].sort((a, b) => {
+    const da = a.move_date ?? '';
+    const db = b.move_date ?? '';
+    if (da !== db) return db.localeCompare(da);
+    return (a.player_name ?? '').localeCompare(b.player_name ?? '');
+  });
+  if (sorted.length === 0) {
     return <Text style={[styles.empty, { color: c.textSecondary }]}>No moves logged yet.</Text>;
   }
   return (
     <>
-      {sections.map((s) => (
-        <View key={s.title}>
-          <View style={styles.moveSectionRow}>
-            <Text style={styles.sectionTitle}>{s.title}</Text>
-            <View style={[styles.countPill, { backgroundColor: c.surface2 }]}>
-              <Text style={[styles.countText, { color: c.textSecondary }]}>{s.items.length}</Text>
-            </View>
-          </View>
-          {s.items.map((m) => (
-            <MoveCard key={m.id} move={m} c={c} showTag={showTag} />
-          ))}
+      <View style={styles.moveSectionRow}>
+        <Text style={styles.sectionTitle}>Most recent first</Text>
+        <View style={[styles.countPill, { backgroundColor: c.surface2 }]}>
+          <Text style={[styles.countText, { color: c.textSecondary }]}>{sorted.length}</Text>
         </View>
+      </View>
+      {sorted.map((m) => (
+        <MoveCard key={m.id} move={m} c={c} showTag={showTag} />
       ))}
     </>
   );
@@ -775,22 +788,21 @@ function MoveCard({
   const body = (
     <View style={[styles.moveCard, { backgroundColor: c.card, borderColor: c.border, borderLeftColor: accent }]}>
       <View style={styles.cardHead}>
+        {/* One chip, not two: the arrow carries direction by colour and the text says
+            exactly what happened. Since the list is date-ordered rather than grouped,
+            this badge is what tells you a card is a signing vs. a departure. */}
         <View style={[styles.dirBadge, { backgroundColor: isIn ? Brand.greenTint : Brand.redTint }]}>
           <Ionicons name={isIn ? 'arrow-down' : 'arrow-up'} size={11} color={accent} />
-          <Text style={[styles.dirText, { color: accent }]}>{isIn ? 'IN' : 'OUT'}</Text>
+          <Text style={[styles.dirText, { color: accent }]}>{moveLabel(move)}</Text>
         </View>
-        {move.category && CATEGORY_LABEL[move.category] && (
-          <View style={[styles.catTag, { backgroundColor: c.surface2 }]}>
-            <Text style={[styles.catText, { color: c.textSecondary }]}>{CATEGORY_LABEL[move.category]}</Text>
-          </View>
-        )}
         {showTag && move.sport_id && SPORT_TAG[move.sport_id] && (
           <View style={styles.tag}>
             <Text style={styles.tagText}>{SPORT_TAG[move.sport_id]}</Text>
           </View>
         )}
-        <Text style={[styles.status, { color: c.textSecondary }]}>
-          {move.status ?? ''} · {formatDate(move.move_date)}
+        <Text style={[styles.status, { color: c.textMuted }]}>
+          {move.status ? `${move.status} · ` : ''}
+          <Text style={styles.moveDate}>{formatDate(move.move_date)}</Text>
         </Text>
       </View>
 
@@ -1025,6 +1037,8 @@ const styles = StyleSheet.create({
   catTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 },
   catText: { fontSize: 10, fontFamily: Font.bodyBold },
   status: { fontSize: 11, color: c.textMuted, flex: 1, textAlign: 'right', fontFamily: Font.body },
+  // The date is the sort key now, so it reads brighter than the status beside it.
+  moveDate: { color: c.text, fontFamily: Font.bodyMed },
   player: { fontSize: 14, fontFamily: Font.displaySemi },
   school: { fontSize: 13, fontFamily: Font.bodyMed, marginTop: 3 },
   notes: { fontSize: 12, marginTop: 4, lineHeight: 17, color: c.textSecondary, fontFamily: Font.body },
