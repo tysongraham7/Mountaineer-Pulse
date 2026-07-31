@@ -20,6 +20,7 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import date, datetime, timedelta, timezone
 
 from dotenv import load_dotenv
@@ -220,12 +221,53 @@ def call_model(client, context: str, recent: str, use_search: bool):
     )
     if use_search:
         kwargs["tools"] = [WEB_SEARCH_TOOL]
-    resp = client.messages.create(**kwargs)
-    text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
-    searches = sum(1 for b in resp.content if getattr(b, "type", "") == "server_tool_use")
+    blocks, resp = _create_resilient(client, kwargs)
+    text = "".join(b.text for b in blocks if getattr(b, "type", "") == "text").strip()
+    searches = sum(1 for b in blocks if getattr(b, "type", "") == "server_tool_use")
     if resp.stop_reason == "max_tokens":
         print(f"    (warning: hit max_tokens; output may be truncated — text {len(text)} chars)")
     return text, searches, resp.usage
+
+
+def _create_resilient(client, kwargs, max_attempts: int = 4):
+    """One flaky API call used to cost a whole day's briefing — this step had no retry, so
+    a single 529 or dropped connection meant users saw yesterday's briefing under today's
+    date with nothing to indicate it was stale.
+
+    Two failure modes are handled:
+      * transient errors (overloaded / rate limit / connection) -> retry with backoff.
+      * `pause_turn` -> the server-side web-search loop hit its iteration cap mid-answer.
+        Re-send so it can finish; otherwise we'd parse a half-written briefing and die.
+
+    Returns (all content blocks across resumes, final response). On a resumed turn the
+    returned `usage` covers the final call only, so the cost readout can under-report.
+    """
+    import anthropic
+
+    delay = 5.0
+    last_err = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = client.messages.create(**kwargs)
+            blocks = list(resp.content)
+            msgs = list(kwargs["messages"])
+            for _ in range(3):  # bounded, so a stuck search loop can't spin forever
+                if resp.stop_reason != "pause_turn":
+                    break
+                print("    (search loop paused — resuming)")
+                msgs = msgs + [{"role": "assistant", "content": resp.content}]
+                resp = client.messages.create(**{**kwargs, "messages": msgs})
+                blocks += list(resp.content)
+            return blocks, resp
+        except (anthropic.RateLimitError, anthropic.InternalServerError,
+                anthropic.APIConnectionError) as e:
+            last_err = e
+            if attempt == max_attempts:
+                break
+            print(f"    (transient API error {type(e).__name__} — retrying in {delay:.0f}s)")
+            time.sleep(delay)
+            delay *= 2
+    raise last_err
 
 
 def to_plaintext(intro: str, sections: list) -> str:

@@ -60,6 +60,13 @@ jobs:
         run: python sync_news.py
         continue-on-error: true
 
+      # Turns roster news into actual roster_moves rows, so an addition reported overnight
+      # shows on Movement/roster the same morning instead of waiting for a hand edit.
+      # Runs AFTER news (needs the headlines) and after sync_moves (curated rows win).
+      - name: Auto-extract roster moves from news
+        run: python extract_moves.py
+        continue-on-error: true
+
       - name: Football player stats (CFBD)
         run: python sync_player_stats.py
         continue-on-error: true

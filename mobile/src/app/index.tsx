@@ -167,6 +167,25 @@ export default function PulseScreen() {
   // notification) so it never shows yesterday's briefing until a manual pull-to-refresh.
   useForegroundRefresh(load);
 
+  // Is the briefing we're showing actually today's? Compared on LOCAL calendar date —
+  // `new Date('2026-07-31')` parses as UTC midnight and reads as the previous day in
+  // Eastern, which is the same trap that made the Pulse chart look a day behind.
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate(),
+  ).padStart(2, '0')}`;
+  const briefingDay = (briefing?.date ?? '').slice(0, 10);
+  const briefingStale = !!briefingDay && briefingDay !== todayISO;
+  const briefingDateLabel = briefingStale
+    ? (() => {
+        const [y, m, d] = briefingDay.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+        });
+      })()
+    : '';
+
   const body = (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
       {/* Header — pinned above the scroll (stays put like the Team tab) */}
@@ -226,11 +245,15 @@ export default function PulseScreen() {
         <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
       ) : (
         <>
-      {/* Daily briefing — per-sport sections when available, else plain text */}
+      {/* Daily briefing — per-sport sections when available, else plain text.
+          We deliberately still show the most recent briefing when this morning's hasn't
+          landed (better than an empty card), but we date it: the header above says
+          "today", so an unlabelled stale briefing reads as today's news. */}
       {briefing && (
         <Card style={styles.briefing}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <SectionLabel>Daily Briefing</SectionLabel>
+            {briefingStale ? <Text style={styles.briefStale}>{briefingDateLabel}</Text> : null}
           </View>
           {briefing.sections?.sections?.length ? (
             <>
@@ -383,6 +406,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   briefing: { padding: 18, marginTop: 16 },
+  briefStale: { fontFamily: Font.body, fontSize: 11.5, color: c.textMuted, letterSpacing: 0.2 },
   briefingBody: { fontFamily: Font.body, fontSize: 14, lineHeight: 21, color: c.textSecondary, marginTop: 8 },
   briefingIntro: { fontFamily: Font.bodyMed, fontSize: 14, lineHeight: 21, color: c.text, marginTop: 10 },
   briefSport: { marginTop: 16 },
