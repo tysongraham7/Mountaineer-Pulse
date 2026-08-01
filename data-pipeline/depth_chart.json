@@ -588,8 +588,8 @@
     "position": "LT",
     "pos_order": 8,
     "rank": 1,
-    "player_name": "Carsten Casady",
-    "class_year": "R-Jr.",
+    "player_name": "Kevin Brown",
+    "class_year": "Fr.",
     "status": "active",
     "note": ""
   },
@@ -599,8 +599,8 @@
     "position": "LT",
     "pos_order": 8,
     "rank": 2,
-    "player_name": "Deshawn Woods",
-    "class_year": "R-So.",
+    "player_name": "Malik Agbo",
+    "class_year": "R-Sr.",
     "status": "active",
     "note": ""
   },
@@ -632,8 +632,8 @@
     "position": "LG",
     "pos_order": 9,
     "rank": 2,
-    "player_name": "Josh Aisosa",
-    "class_year": "R-So.",
+    "player_name": "Devin Vass",
+    "class_year": "R-Jr.",
     "status": "active",
     "note": ""
   },
@@ -643,8 +643,8 @@
     "position": "LG",
     "pos_order": 9,
     "rank": 3,
-    "player_name": "Camden Goforth",
-    "class_year": "Fr.",
+    "player_name": "Josh Aisosa",
+    "class_year": "R-So.",
     "status": "active",
     "note": ""
   },
@@ -665,17 +665,6 @@
     "position": "C",
     "pos_order": 10,
     "rank": 2,
-    "player_name": "Landen Livingston",
-    "class_year": "R-Sr.",
-    "status": "active",
-    "note": ""
-  },
-  {
-    "sport_id": "football",
-    "unit": "Offense",
-    "position": "C",
-    "pos_order": 10,
-    "rank": 3,
     "player_name": "Cameron Griffin",
     "class_year": "Sr.",
     "status": "active",
@@ -698,8 +687,8 @@
     "position": "RG",
     "pos_order": 11,
     "rank": 2,
-    "player_name": "Devin Vass",
-    "class_year": "R-Jr.",
+    "player_name": "Landen Livingston",
+    "class_year": "R-Sr.",
     "status": "active",
     "note": ""
   },
@@ -720,8 +709,8 @@
     "position": "RT",
     "pos_order": 12,
     "rank": 1,
-    "player_name": "Kevin Brown",
-    "class_year": "Fr.",
+    "player_name": "Carsten Casady",
+    "class_year": "R-Jr.",
     "status": "active",
     "note": ""
   },
@@ -731,8 +720,8 @@
     "position": "RT",
     "pos_order": 12,
     "rank": 2,
-    "player_name": "Malik Agbo",
-    "class_year": "R-Sr.",
+    "player_name": "Deshawn Woods",
+    "class_year": "R-So.",
     "status": "active",
     "note": ""
   },
@@ -931,8 +920,8 @@
     "rank": 2,
     "player_name": "Ashton Woods",
     "class_year": "R-So.",
-    "status": "active",
-    "note": ""
+    "status": "questionable",
+    "note": "Listed INJ on the July 31 projection"
   },
   {
     "sport_id": "football",
@@ -944,6 +933,18 @@
     "class_year": "Fr.",
     "status": "active",
     "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Defense",
+    "position": "OLB",
+    "pos_order": 18,
+    "rank": 4,
+    "player_name": "Destin Achi",
+    "class_year": "So.",
+    "status": "questionable",
+    "note": "JUCO addition — added July 31",
+    "alert": "Just signed out of junior college — no camp reps to judge yet, so where he actually lands is a guess"
   },
   {
     "sport_id": "football",
@@ -1028,8 +1029,8 @@
     "position": "FS",
     "pos_order": 21,
     "rank": 2,
-    "player_name": "Matt Sieg",
-    "class_year": "Fr.",
+    "player_name": "Kameron Reddic",
+    "class_year": "Jr.",
     "status": "active",
     "note": ""
   },
@@ -1039,8 +1040,8 @@
     "position": "FS",
     "pos_order": 21,
     "rank": 3,
-    "player_name": "Kameron Reddic",
-    "class_year": "Jr.",
+    "player_name": "Matt Sieg",
+    "class_year": "Fr.",
     "status": "active",
     "note": ""
   },
