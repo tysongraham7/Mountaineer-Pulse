@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -8,10 +9,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GameDetail } from '@/components/game-detail';
 import { OfflineNotice } from '@/components/offline-notice';
 import { GameCardSkeleton, Skeleton, SkeletonList } from '@/components/skeleton';
 import { SectionLabel, Segmented, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { easternDateShort, easternTime } from '@/lib/eastern';
 import { supabase } from '@/lib/supabase';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { Game } from '@/lib/types';
@@ -26,9 +29,12 @@ const FILTERS = [
 ];
 const RESULTS_LIMIT = 60;
 
+// Eastern, not device-local: WVU @ Utah is stored 2026-11-28T02:00Z, which is Friday
+// the 27th in Morgantown. Formatting in local time put "Sat, Nov 28" on the card while
+// the detail sheet said Friday — the same game, two different days.
 function formatDate(iso: string | null): string {
   if (!iso) return 'TBD';
-  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return easternDateShort(iso);
 }
 
 function fromWvuView(g: Game) {
@@ -52,6 +58,7 @@ export default function ScoresScreen() {
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('football');
+  const [selected, setSelected] = useState<Game | null>(null);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.from('games').select('*').order('start_date', { ascending: true });
@@ -112,13 +119,13 @@ export default function ScoresScreen() {
             {upcoming.length > 0 && (
               <>
                 <SectionLabel style={styles.sectionLabel as never}>Upcoming</SectionLabel>
-                {upcoming.map((g) => <GameCard key={g.id} game={g} showTag={showTag} />)}
+                {upcoming.map((g) => <GameCard key={g.id} game={g} showTag={showTag} onPick={setSelected} />)}
               </>
             )}
             {results.length > 0 && (
               <>
                 <SectionLabel tone="muted" style={styles.sectionLabel as never}>Final</SectionLabel>
-                {results.map((g) => <GameCard key={g.id} game={g} showTag={showTag} />)}
+                {results.map((g) => <GameCard key={g.id} game={g} showTag={showTag} onPick={setSelected} />)}
               </>
             )}
             {upcoming.length === 0 && results.length === 0 && (
@@ -127,14 +134,32 @@ export default function ScoresScreen() {
           </>
         )}
       </ScrollView>
+      <GameDetail game={selected} onClose={() => setSelected(null)} />
     </View>
   );
 }
 
-function GameCard({ game, showTag }: { game: Game; showTag: boolean }) {
+function GameCard({
+  game,
+  showTag,
+  onPick,
+}: {
+  game: Game;
+  showTag: boolean;
+  onPick: (g: Game) => void;
+}) {
   const p = fromWvuView(game);
+  // Kickoff sits next to the date once it's announced; before that the card stays
+  // quiet rather than showing the feed's midnight placeholder.
+  const kickoff = game.start_date && !p.final ? easternTime(game.start_date) : null;
+  const metaParts = [formatDate(game.start_date)];
+  if (kickoff) metaParts.push(kickoff);
+  if (showTag) metaParts.push(labelOf(game.sport_id));
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={() => onPick(game)}
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.7 }]}>
       <View style={styles.tile}>
         <SportIcon sport={game.sport_id} size={20} color={Brand.gold} />
       </View>
@@ -143,7 +168,7 @@ function GameCard({ game, showTag }: { game: Game; showTag: boolean }) {
           <Text style={{ color: c.textSecondary }}>{p.locator} </Text>
           {p.opponent}
         </Text>
-        <Text style={styles.meta}>{formatDate(game.start_date)}{showTag ? ` · ${labelOf(game.sport_id)}` : ''}</Text>
+        <Text style={styles.meta}>{metaParts.join(' · ')}</Text>
       </View>
       {p.final ? (
         <Text style={[styles.result, { color: p.win ? Brand.green : Brand.red }]}>
@@ -152,7 +177,7 @@ function GameCard({ game, showTag }: { game: Game; showTag: boolean }) {
       ) : (
         <Text style={styles.chevron}>›</Text>
       )}
-    </View>
+    </Pressable>
   );
 }
 
