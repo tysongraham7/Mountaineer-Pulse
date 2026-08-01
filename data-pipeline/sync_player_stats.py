@@ -23,11 +23,11 @@ Run:  python sync_player_stats.py
 
 import os
 import sys
-import unicodedata
-
 import requests
 from dotenv import load_dotenv
 from supabase import create_client
+
+from names import canonical, norm_name
 
 load_dotenv()
 
@@ -41,22 +41,11 @@ SEASONS = [2024, 2025, 2026]     # WVU: prior seasons + current (empty until kic
 PREV_SEASONS = [2024, 2025]      # incoming transfers: seasons to pull at old school
 PORTAL_YEAR = 2026               # portal cycle whose arrivals we enrich
 SPORT = "football"
-SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
 
 
 def die(msg: str) -> None:
     print(f"\n[X] {msg}")
     sys.exit(1)
-
-
-def norm_name(name: str) -> str:
-    """Normalize a name for matching: strip accents, punctuation, suffixes, case."""
-    if not name:
-        return ""
-    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    s = s.lower().replace(".", " ").replace("'", "").replace("-", " ")
-    tokens = [t for t in s.split() if t and t not in SUFFIXES]
-    return " ".join(tokens)
 
 
 def cfbd(path: str, params: dict) -> list:
@@ -94,10 +83,14 @@ def main() -> None:
     roster = sb.table("players").select("id,first_name,last_name").eq(
         "sport_id", SPORT).execute().data or []
     name_to_id = {}
+    id_by_roster_name = {}
     for p in roster:
-        key = norm_name(f"{p.get('first_name') or ''} {p.get('last_name') or ''}")
+        display = f"{p.get('first_name') or ''} {p.get('last_name') or ''}".strip()
+        key = norm_name(display)
         if key:
             name_to_id[key] = p["id"]
+            id_by_roster_name[display] = p["id"]
+    roster_names = list(id_by_roster_name)
     print(f"roster players to match against: {len(name_to_id)}")
 
     rows = []
@@ -115,14 +108,25 @@ def main() -> None:
             rows.append(stat_row(pid_final, season, TEAM, d))
 
     # --- Phase 2: incoming transfers' previous-school stats -----------------
-    incoming = []  # (roster_id, norm_name, origin)
+    # Two different names are in play per player and they must not be confused: the
+    # ROSTER spelling decides which profile the stats attach to, while the CFBD
+    # spelling is what the old school's box scores are filed under. Reconciling only
+    # the first one is why #18 Zeke Durham-Campbell had no Coastal Carolina stats.
+    incoming = []  # (roster_id, cfbd_norm_name, origin)
+    unlinked = []
     for d in cfbd("/player/portal", {"year": PORTAL_YEAR}):
         if d.get("destination") != TEAM or not d.get("origin"):
             continue
-        nm = norm_name(f"{d.get('firstName', '')} {d.get('lastName', '')}")
+        full = f"{d.get('firstName', '')} {d.get('lastName', '')}".strip()
+        nm = norm_name(full)
         rid = name_to_id.get(nm)
+        if not rid:
+            roster_spelling = canonical(full, roster_names)
+            rid = id_by_roster_name.get(roster_spelling) if roster_spelling else None
         if rid:  # only if they're on our roster (so a profile exists to attach to)
             incoming.append((rid, nm, d["origin"]))
+        else:
+            unlinked.append(f"{full} ({d['origin']})")
 
     by_origin = {}
     for rid, nm, origin in incoming:
@@ -153,6 +157,21 @@ def main() -> None:
     print(f"              WVU: {wvu_linked} returners linked   (CFBD rows/season  {summary})")
     print(f"              Transfers in: {len(incoming)} matched to roster, "
           f"{len(prev_linked)} had previous-school stats")
+
+    # Name every transfer whose profile will show an empty stats table, so a gap is
+    # something we know about rather than something a fan finds first.
+    blank = sorted(
+        f"{nm}  (from {origin})" for rid, nm, origin in incoming if rid not in prev_linked
+    )
+    if blank:
+        print(f"\n              {len(blank)} matched transfer(s) with NO previous-school "
+              f"stats in CFBD:")
+        for b in blank:
+            print(f"                 {b}")
+    if unlinked:
+        print(f"\n              {len(unlinked)} portal arrival(s) not on the roster yet:")
+        for u in unlinked:
+            print(f"                 {u}")
     print("\n[OK] Football player stats synced to Supabase.")
 
 

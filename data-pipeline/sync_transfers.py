@@ -27,6 +27,8 @@ import requests
 from dotenv import load_dotenv
 from supabase import create_client
 
+from names import canonical, same_person
+
 load_dotenv()
 
 CFBD_KEY = os.getenv("CFBD_API_KEY")
@@ -60,6 +62,17 @@ def main() -> None:
 
     sb = create_client(SB_URL, SB_KEY)
 
+    # The scraped roster is the naming authority -- it's what's on the jersey. CFBD
+    # sends legal names ("Ezekiel Durham-Campbell" for #18 Zeke), and an exact-string
+    # join would file him as a second player: duplicated on the roster, and cut off
+    # from his previous-school stats, which attach by roster id.
+    roster_names = [
+        f"{p.get('first_name') or ''} {p.get('last_name') or ''}".strip()
+        for p in (sb.table("players").select("first_name,last_name")
+                  .eq("sport_id", SPORT).execute().data or [])
+    ]
+    renamed = []
+
     rows = []
     seen = set()
     for season in SEASONS:
@@ -73,7 +86,14 @@ def main() -> None:
             name = f"{first} {last}".strip()
             if not name:
                 continue
+            # Only incoming players are on our roster; a departure's name has no
+            # local authority to reconcile against.
             direction = "in" if dest == TEAM else "out"
+            if direction == "in":
+                roster_spelling = canonical(name, roster_names)
+                if roster_spelling and roster_spelling != name:
+                    renamed.append(f"{name} -> {roster_spelling}")
+                    name = roster_spelling
             other_school = origin if direction == "in" else dest
 
             note_parts = []
@@ -112,20 +132,26 @@ def main() -> None:
     if rows:
         sb.table("roster_moves").upsert(rows).execute()
 
-    # De-dupe: drop any curated football row that CFBD now covers (name+direction).
+    # De-dupe: drop any curated football row that CFBD now covers. Matching by name
+    # variant, not exact string -- a curated "Jaire Rawlison" and CFBD's "Jaire
+    # Rawlinson" are one cornerback, and an exact compare kept both.
     removed = 0
     existing = sb.table("roster_moves").select("id,player_name,direction").eq(
         "sport_id", SPORT).execute().data or []
     for r in existing:
         if str(r["id"]).startswith("pt-"):
             continue
-        if (r["player_name"], r["direction"]) in seen:
+        if any(d == r["direction"] and same_person(n, r["player_name"]) for n, d in seen):
             sb.table("roster_moves").delete().eq("id", r["id"]).execute()
             removed += 1
 
     ins = sum(1 for r in rows if r["direction"] == "in")
     outs = sum(1 for r in rows if r["direction"] == "out")
     print(f"roster_moves -> {len(rows)} football portal moves  (+{ins} in / -{outs} out)")
+    if renamed:
+        print(f"              reconciled {len(renamed)} name(s) to the roster spelling:")
+        for r in renamed:
+            print(f"                 {r}")
     if removed:
         print(f"              removed {removed} curated duplicate(s) now covered by CFBD")
     print("\n[OK] Football transfers synced to Supabase.")
