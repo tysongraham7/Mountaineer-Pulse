@@ -486,9 +486,20 @@ function RosterSection({
       .filter((m) => m.direction === 'out' && m.category !== 'draft-pending' && !returningNames.has(normName(m.player_name)))
       .map((m) => ({ ...synthFromMove(m, sport), incoming: false, departed: true, moveCategory: m.category }));
   }
+  // Football's scraped roster hands out jersey numbers to the incoming class too, so
+  // returners and newcomers belong in one numbered list — the way a program prints it,
+  // and the only way a late arrival is findable without knowing to scroll to a section.
+  // Basketball and baseball newcomers are mostly synthesized from moves with no number
+  // yet, so a jersey sort would strand them all at the bottom; those keep the split.
+  const combineIntoOne = sport === 'football' && projected;
+  // Jersey numbers repeat in football (one offense, one defense), so name breaks the tie.
+  const byJersey = (a: RosterItem, b: RosterItem) =>
+    (a.jersey ?? 999) - (b.jersey ?? 999) || playerFullName(a).localeCompare(playerFullName(b));
+
   const sorted = [...returning].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
   const incSorted = [...incoming].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
   const depSorted = [...departed].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  const combined: RosterItem[] = combineIntoOne ? [...returning, ...incoming].sort(byJersey) : [];
 
   return (
     <>
@@ -500,14 +511,16 @@ function RosterSection({
       ) : (
         <>
           <Text style={[styles.rosterNote, { color: c.textSecondary }]}>
-            {projected
-              ? `Projected ${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
-              : `${lastLabel} roster · ${sorted.length} returning + ${depSorted.length} departed`}
+            {combineIntoOne
+              ? `Projected ${projLabel} · ${combined.length} players · ${incSorted.length} new`
+              : projected
+                ? `Projected ${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
+                : `${lastLabel} roster · ${sorted.length} returning + ${depSorted.length} departed`}
           </Text>
-          {sorted.map((p) => (
+          {(combineIntoOne ? combined : sorted).map((p) => (
             <RosterRow key={p.id} player={p} c={c} onPick={onPick} />
           ))}
-          {incSorted.length > 0 && (
+          {!combineIntoOne && incSorted.length > 0 && (
             <>
               <Text style={[styles.incomingLabel, { color: Brand.gold }]}>INCOMING FOR {projLabel}</Text>
               {incSorted.map((p) => (
