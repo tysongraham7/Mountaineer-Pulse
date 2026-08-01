@@ -59,6 +59,23 @@ def die(msg: str) -> None:
     sys.exit(1)
 
 
+def parse_ts(stamp: str):
+    """Parse a Postgres timestamptz, or None if it can't be read.
+
+    Postgres emits however many fractional-second digits it has ('...:09.6702+00'),
+    while datetime.fromisoformat before 3.11 accepts only 3 or 6 -- so the obvious
+    parse works on the first run and throws on every run after it.
+    """
+    s = stamp.replace("Z", "+00:00")
+    m = re.match(r"^(.*\.)(\d+)(.*)$", s)
+    if m:
+        s = m.group(1) + m.group(2)[:6].ljust(6, "0") + m.group(3)
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
 def html_to_text(fragment: str) -> str:
     """Flatten the bio's <h2>/<ul> markup into headed, bulleted plain text."""
     t = fragment
@@ -124,7 +141,8 @@ def main() -> None:
         stamp = p.get("bio_fetched_at")
         if not stamp:
             return True
-        return datetime.fromisoformat(stamp.replace("Z", "+00:00")) < cutoff
+        when = parse_ts(stamp)
+        return when is None or when < cutoff  # unreadable stamp -> refetch
 
     todo = [p for p in players if needs_fetch(p)]
     if limit:
