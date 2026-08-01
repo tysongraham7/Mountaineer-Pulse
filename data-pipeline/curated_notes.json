@@ -22,5 +22,17 @@
     "date": "2026-07-17",
     "note": "Kyle Casteel signed with the White Sox (11th rd), forgoing his WVU career — the possible loss is now confirmed.",
     "delta": -1
+  },
+  {
+    "sport_id": "mbb",
+    "date": "2026-07-31",
+    "note": "A federal injunction restored a fifth year to the 2022 class — Brenen Lorient, Harlan Obioha, Honor Huff, Treysen Eaglestaff and Jasper Floyd are eligible again, but WVU has one open scholarship and the NCAA is appealing.",
+    "delta": 1
+  },
+  {
+    "sport_id": "football",
+    "date": "2026-07-31",
+    "note": "The same ruling makes six ex-Mountaineers eligible for 2026 — TE Jacob Barrick, DL Eddie Kelly Jr., CBs Jason Chambers and Tyrence Crutcher, S Fred Perry and P Oliver Straw. None has committed to return.",
+    "delta": 1
   }
 ]

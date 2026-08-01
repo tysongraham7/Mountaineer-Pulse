@@ -43,20 +43,6 @@
   },
   {
     "sport_id": "football",
-    "player_name": "Javan Buchanan",
-    "position": "",
-    "class_year": "Fr",
-    "direction": "in",
-    "category": "recruit",
-    "status": "signed",
-    "other_school": "",
-    "move_date": "2026-02-04",
-    "source_name": "WV News",
-    "source_url": "",
-    "notes": "Signed with West Virginia"
-  },
-  {
-    "sport_id": "football",
     "player_name": "Akheem Mesidor",
     "position": "DL",
     "class_year": "Sr",

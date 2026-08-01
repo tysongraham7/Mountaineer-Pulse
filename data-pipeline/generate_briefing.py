@@ -112,6 +112,22 @@ def build_context(sb) -> str:
                     when = ""
             lines.append(f"- {d}: {m['player_name']}{pos}{sch} [{SPORT_NAME.get(m['sport_id'], m['sport_id'])}]{alert}{when}")
 
+    # Curated notes (ids ending "|c") are the founder's override channel — hand-entered when
+    # the news feed misses something. The July 31 eligibility injunction was the case in point:
+    # Google News carried the "players are suing" stories but never the ruling itself, so the
+    # briefing had no way to know the biggest story of the day had happened. Feed them in as
+    # fact. Deliberately NOT including the AI daily notes (ids without "|c") — those are derived
+    # from these same headlines, so echoing them back would just be circular.
+    since = (date.today() - timedelta(days=2)).isoformat()
+    curated = [n for n in (sb.table("daily_sport_notes").select("id,sport_id,date,note")
+                           .gte("date", since).order("date", desc=True).execute().data or [])
+               if str(n.get("id", "")).endswith("|c") and (n.get("note") or "").strip()]
+    if curated:
+        lines.append("\n=== EDITOR'S NOTES (hand-verified — treat as CONFIRMED fact, and lead "
+                     "with these if they outrank the headlines) ===")
+        for n in curated:
+            lines.append(f"- [{SPORT_NAME.get(n['sport_id'], n['sport_id'])}, {n['date']}] {n['note']}")
+
     snaps = sb.table("pulse_snapshots").select("*").order("date", desc=True).execute().data
     seen, pulse_lines = set(), []
     for s in snaps:
