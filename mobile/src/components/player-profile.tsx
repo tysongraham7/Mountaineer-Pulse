@@ -165,7 +165,9 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
                 <SectionLabel style={{ color: c.blueLabel } as never}>
                   {[SPORT_LABEL[player.sport_id] ?? '', player.position].filter(Boolean).join(' · ')}
                 </SectionLabel>
-                <View style={styles.circleBtn} />
+                {/* Balances the back button so the label stays centred. Sized, not
+                    styled — reusing circleBtn drew an empty circle in the corner. */}
+                <View style={styles.headerSpacer} />
               </View>
 
               <View style={styles.heroBody}>
@@ -328,6 +330,7 @@ const styles = StyleSheet.create({
   hero: { paddingHorizontal: 20, paddingBottom: 20 },
   heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   circleBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  headerSpacer: { width: 32, height: 32 },
   heroBody: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 },
   photo: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: Brand.gold, backgroundColor: c.card },
   photoFallback: { alignItems: 'center', justifyContent: 'center' },
