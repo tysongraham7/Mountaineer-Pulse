@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReportModal } from '@/components/report-modal';
@@ -70,11 +70,17 @@ const SPORT_LABEL: Record<string, string> = { football: 'Football', mbb: "Men's 
 
 type ProfilePlayer = Player & { incoming?: boolean; note?: string | null; fromSchool?: string | null };
 
+// Collapsed height of the bio. Enough to show a season header and its first few
+// bullets, so the reader can tell what's there before deciding to expand.
+const BIO_PREVIEW_LINES = 7;
+
 export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | null; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [bio, setBio] = useState<{ text: string; url: string | null } | null>(null);
+  const [bioOpen, setBioOpen] = useState(false);
 
   useEffect(() => {
     if (!player) return;
@@ -89,6 +95,27 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
         setLoadingStats(false);
       });
   }, [player]);
+
+  // Bios are big, so they're fetched per profile rather than with the roster list.
+  // A synthesized incoming player (id "in_<moveId>") has no players row — the query
+  // simply comes back empty, which is the right outcome.
+  useEffect(() => {
+    if (!player) return;
+    setBio(null);
+    setBioOpen(false);
+    supabase
+      .from('players')
+      .select('bio,bio_url')
+      .eq('id', player.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.bio) setBio({ text: data.bio, url: data.bio_url ?? null });
+      });
+  }, [player]);
+
+  const bioLines = bio ? bio.text.split('\n').filter(Boolean) : [];
+  const bioTruncated = bioLines.length > BIO_PREVIEW_LINES;
+  const shownBioLines = bioOpen ? bioLines : bioLines.slice(0, BIO_PREVIEW_LINES);
 
   const subParts: string[] = [];
   if (player) {
@@ -239,6 +266,43 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
                 </Text>
               )}
 
+              {/* Official bio. This is WVU's writing, so it carries a visible credit
+                  and a link back to the page it came from. */}
+              {bioLines.length > 0 && (
+                <>
+                  <SectionLabel tone="muted" style={styles.head as never}>Bio</SectionLabel>
+                  <View style={[styles.card, { paddingVertical: 14 }]}>
+                    {shownBioLines.map((line, i) =>
+                      line.startsWith('•') ? (
+                        <Text key={i} style={styles.bioBullet}>{line}</Text>
+                      ) : (
+                        <Text key={i} style={[styles.bioHead, i > 0 && { marginTop: 12 }]}>{line}</Text>
+                      ),
+                    )}
+                    {bioTruncated && (
+                      <Pressable onPress={() => setBioOpen((v) => !v)} hitSlop={8} style={styles.bioToggle}>
+                        <Text style={styles.bioToggleText}>
+                          {bioOpen ? 'Show less' : `Show all ${bioLines.length} lines`}
+                        </Text>
+                        <Ionicons
+                          name={bioOpen ? 'chevron-up' : 'chevron-down'}
+                          size={13}
+                          color={Brand.gold}
+                        />
+                      </Pressable>
+                    )}
+                  </View>
+                  <Pressable
+                    onPress={() => bio?.url && Linking.openURL(bio.url)}
+                    disabled={!bio?.url}
+                    hitSlop={8}>
+                    <Text style={[styles.note, bio?.url && styles.bioCreditLink]}>
+                      Bio courtesy of WVUsports.com{bio?.url ? ' ↗' : ''}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
+
               <Pressable style={styles.reportBtn} onPress={() => setReportOpen(true)} hitSlop={8}>
                 <Ionicons name="flag-outline" size={13} color={c.textMuted} />
                 <Text style={styles.reportText}>Report incorrect info</Text>
@@ -285,6 +349,11 @@ const styles = StyleSheet.create({
   beforeSchool: { fontSize: 13, color: Brand.gold, fontFamily: Font.displaySemi, marginBottom: 6 },
   beforeLine: { fontSize: 15, color: c.text, lineHeight: 22, fontFamily: Font.body },
   note: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, lineHeight: 18, fontFamily: Font.body },
+  bioHead: { fontSize: 12.5, color: Brand.gold, fontFamily: Font.bodyBold, letterSpacing: 0.3, marginBottom: 6 },
+  bioBullet: { fontSize: 14, color: c.text, lineHeight: 21, fontFamily: Font.body, marginBottom: 5 },
+  bioToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.border },
+  bioToggleText: { fontSize: 12.5, color: Brand.gold, fontFamily: Font.bodySemi },
+  bioCreditLink: { color: c.blueLabel, textDecorationLine: 'underline' },
   reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24, paddingVertical: 8 },
   reportText: { fontSize: 12.5, color: c.textMuted, fontFamily: Font.bodyMed },
 });

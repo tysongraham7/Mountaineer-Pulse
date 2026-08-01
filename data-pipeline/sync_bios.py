@@ -1,0 +1,193 @@
+"""
+Mountaineer Pulse - Official Player Bios: wvusports.com -> Supabase
+==================================================================
+Pulls each player's official bio from their wvusports.com roster page.
+
+Why this matters more than it sounds: CFBD box scores can't describe an
+offensive lineman -- the position records no countable stats, anywhere, ever.
+The official bio does: "1,750 snaps over 33 career starts, has not allowed a
+sack in his career." It also covers D2/JUCO arrivals and true freshmen that no
+stats API carries, and sometimes names a previous school the portal feed missed.
+
+The prose is WVU's writing, so every bio is stored with the URL it came from and
+the app displays it under attribution with a link back.
+
+Cadence: bios change a few times a year, not nightly. Only players missing a bio
+or older than STALE_DAYS are fetched, so a normal run makes almost no requests.
+
+Brittleness: the bio lives in the page's Nuxt hydration payload, not a stable
+API -- same tradeoff sync_rosters.py takes. If WVU redesigns, this exits non-zero
+rather than quietly blanking every bio.
+
+Run:  python sync_bios.py [--force] [--limit N]
+"""
+
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime, timedelta, timezone
+
+import requests
+from dotenv import load_dotenv
+from supabase import create_client
+
+load_dotenv()
+
+SB_URL = os.getenv("SUPABASE_URL")
+SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120 Safari/537.36"}
+
+SPORT = "football"
+ROSTER_URL = "https://wvusports.com/sports/football/roster"
+SITE = "https://wvusports.com"
+STALE_DAYS = 30          # refresh a bio at most monthly
+REQUEST_PAUSE = 0.6      # be a polite scraper
+# Below this success rate on attempted fetches, assume the page changed shape.
+MIN_SUCCESS_RATE = 0.5
+
+# A bio is a JSON string of escaped HTML inside the hydration payload. Anchor on a
+# length floor plus list markup so we don't match incidental strings.
+BIO_STRING_RE = re.compile(r'"((?:[^"\\]|\\.){200,})"')
+LINK_RE = re.compile(r'href="(/sports/[^"]+/roster/[a-z0-9.\-]+/(\d+))"')
+
+
+def die(msg: str) -> None:
+    print(f"\n[X] {msg}")
+    sys.exit(1)
+
+
+def html_to_text(fragment: str) -> str:
+    """Flatten the bio's <h2>/<ul> markup into headed, bulleted plain text."""
+    t = fragment
+    t = re.sub(r"</h2\s*>", "\n", t, flags=re.I)
+    t = re.sub(r"<li[^>]*>", "• ", t, flags=re.I)
+    t = re.sub(r"</li\s*>", "\n", t, flags=re.I)
+    t = re.sub(r"</(ul|ol|p|div)\s*>", "\n", t, flags=re.I)
+    t = re.sub(r"<br\s*/?>", "\n", t, flags=re.I)
+    t = re.sub(r"<[^>]+>", "", t)
+    t = (t.replace("&nbsp;", " ").replace("&amp;", "&").replace("&quot;", '"')
+          .replace("&#39;", "'").replace("&lt;", "<").replace("&gt;", ">"))
+    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in t.split("\n")]
+    return "\n".join(ln for ln in lines if ln).strip()
+
+
+def extract_bio(page: str) -> str | None:
+    """Return the bio as plain text, or None if this page has no bio block."""
+    best = None
+    for m in BIO_STRING_RE.finditer(page):
+        blob = m.group(1)
+        if "\\u003Cli>" in blob and (best is None or len(blob) > len(best)):
+            best = blob
+    if not best:
+        return None
+    try:
+        # json.loads resolves the \uXXXX escapes correctly; decoding by hand with
+        # unicode_escape mangles anything non-ASCII into mojibake.
+        fragment = json.loads(f'"{best}"')
+    except json.JSONDecodeError:
+        return None
+    text = html_to_text(fragment)
+    return text or None
+
+
+def bio_urls() -> dict[str, str]:
+    """player id (as on the site) -> absolute bio URL, read off the roster page."""
+    r = requests.get(ROSTER_URL, headers=UA, timeout=30)
+    if r.status_code != 200:
+        die(f"roster page returned HTTP {r.status_code}")
+    urls = {pid: SITE + path for path, pid in LINK_RE.findall(r.text)}
+    if not urls:
+        die("no player links found on the roster page -- the markup changed")
+    return urls
+
+
+def main() -> None:
+    if not SB_URL or not SB_KEY:
+        die("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env")
+    force = "--force" in sys.argv
+    limit = None
+    if "--limit" in sys.argv:
+        limit = int(sys.argv[sys.argv.index("--limit") + 1])
+
+    sb = create_client(SB_URL, SB_KEY)
+    players = sb.table("players").select(
+        "id,first_name,last_name,bio,bio_fetched_at").eq("sport_id", SPORT).execute().data or []
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=STALE_DAYS)
+
+    def needs_fetch(p: dict) -> bool:
+        if force or not p.get("bio"):
+            return True
+        stamp = p.get("bio_fetched_at")
+        if not stamp:
+            return True
+        return datetime.fromisoformat(stamp.replace("Z", "+00:00")) < cutoff
+
+    todo = [p for p in players if needs_fetch(p)]
+    if limit:
+        todo = todo[:limit]
+    print(f"{len(players)} {SPORT} players -- {len(todo)} need a bio fetch")
+    if not todo:
+        print("\n[OK] All bios current.")
+        return
+
+    urls = bio_urls()
+    print(f"bio links on the roster page: {len(urls)}")
+
+    updated, no_bio, no_link, failed = 0, [], [], []
+    for i, p in enumerate(todo, 1):
+        name = f"{p.get('first_name') or ''} {p.get('last_name') or ''}".strip()
+        site_id = p["id"].replace("wvu_", "")
+        url = urls.get(site_id)
+        if not url:
+            no_link.append(name)
+            continue
+        try:
+            r = requests.get(url, headers=UA, timeout=30)
+        except requests.RequestException as e:
+            failed.append(f"{name} ({e.__class__.__name__})")
+            continue
+        if r.status_code != 200:
+            failed.append(f"{name} (HTTP {r.status_code})")
+            continue
+        bio = extract_bio(r.text)
+        if not bio:
+            # A real state, not an error: freshmen sometimes have an empty bio.
+            no_bio.append(name)
+            continue
+        # Only ever write a bio we actually got. A blank extraction must never
+        # overwrite good prose already in the database.
+        sb.table("players").update({
+            "bio": bio,
+            "bio_url": url,
+            "bio_fetched_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", p["id"]).execute()
+        updated += 1
+        if i % 20 == 0:
+            print(f"   ...{i}/{len(todo)}")
+        time.sleep(REQUEST_PAUSE)
+
+    attempted = len(todo) - len(no_link)
+    print(f"\nplayers -> {updated} bios written")
+    if no_bio:
+        print(f"   {len(no_bio)} page(s) had no bio yet: {', '.join(no_bio[:12])}"
+              f"{' ...' if len(no_bio) > 12 else ''}")
+    if no_link:
+        print(f"   {len(no_link)} not linked from the roster page: {', '.join(no_link[:12])}")
+    if failed:
+        print(f"   {len(failed)} fetch failure(s): {', '.join(failed[:12])}")
+
+    # A collapse in the success rate means the page shape changed. Say so loudly --
+    # a silent no-op would leave stale bios looking current.
+    if attempted and (updated + len(no_bio)) / attempted < MIN_SUCCESS_RATE:
+        die(f"only {updated}/{attempted} bios extracted -- wvusports.com markup "
+            f"likely changed; sync_bios.py needs updating")
+
+    print("\n[OK] Player bios synced to Supabase.")
+
+
+if __name__ == "__main__":
+    main()

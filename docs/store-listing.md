@@ -111,6 +111,10 @@ branding, and the app description states that it is not affiliated with,
 endorsed by, or sponsored by the university. News items link out to the
 original publishers.
 
+Player biographies shown on player profiles are the university athletics
+department's published bios. Each is credited on-screen as "Bio courtesy of
+WVUsports.com" and links to the original page it was taken from.
+
 The app collects no personal information and requests no permissions other
 than optional push notifications.
 ```

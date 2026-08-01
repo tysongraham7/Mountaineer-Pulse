@@ -45,6 +45,13 @@ jobs:
         run: python sync_rosters.py
         continue-on-error: true
 
+      # Runs after the roster so a newly-scraped player gets a bio the same night.
+      # Self-limiting: only players missing a bio or older than 30 days are fetched,
+      # so a steady-state run makes no requests at all.
+      - name: Official player bios (wvusports.com)
+        run: python sync_bios.py
+        continue-on-error: true
+
       - name: Roster movement (curated)
         run: python sync_moves.py
         continue-on-error: true

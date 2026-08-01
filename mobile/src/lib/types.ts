@@ -29,6 +29,10 @@ export type Player = {
   home_city: string | null;
   home_state: string | null;
   photo_url: string | null;
+  // Official wvusports.com bio. Shown under attribution with a link back to bio_url,
+  // since the prose is WVU's writing, not ours.
+  bio?: string | null;
+  bio_url?: string | null;
 };
 
 export type DepthEntry = {

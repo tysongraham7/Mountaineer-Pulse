@@ -211,7 +211,10 @@ export default function TeamScreen() {
 
   const load = useCallback(async () => {
     const [pRes, dRes, mRes] = await Promise.all([
-      supabase.from('players').select('*'),
+      // Columns are explicit so the (large) bio text doesn't ride along with every
+      // roster load — the profile fetches it on open instead. Kept as one literal:
+      // concatenating the string defeats the client's column-type inference.
+      supabase.from('players').select('id,sport_id,season,first_name,last_name,jersey,position,height,weight,height_display,class_display,home_city,home_state,photo_url'),
       supabase.from('depth_chart').select('*'),
       supabase.from('roster_moves').select('*').order('move_date', { ascending: false }),
     ]);

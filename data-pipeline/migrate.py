@@ -28,6 +28,12 @@ ALTERS = [
     "alter table roster_moves add column if not exists pulse_neutral boolean not null default false;",
     "alter table depth_chart add column if not exists alert text;",
     "alter table daily_briefings add column if not exists sections jsonb;",
+    # --- Official player bios (scraped from wvusports.com) ---
+    # bio_url is stored, not derived: the app must link back to the source, since the
+    # prose is WVU's writing and we display it under attribution.
+    "alter table players add column if not exists bio text;",
+    "alter table players add column if not exists bio_url text;",
+    "alter table players add column if not exists bio_fetched_at timestamptz;",
     # --- Push notifications: device push tokens ---
     """create table if not exists push_tokens (
         token       text primary key,
