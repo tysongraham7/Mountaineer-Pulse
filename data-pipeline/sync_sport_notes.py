@@ -84,6 +84,16 @@ NOTE_SYSTEM = (
     "a major injury to a star, a stunning off-field loss to the roster).\n"
     "NEVER assign a negative delta for a normal game LOSS — game results already move the Pulse "
     "elsewhere; delta is for roster/off-field program news only. Be strict and default to 0.\n"
+    "A DEPARTURE ONLY COUNTS IF THE PLAYER IS ON THE CURRENT ROSTER, which you are given below. "
+    "If someone entering the portal, transferring out, or leaving is NOT on that roster, he already "
+    "left or his eligibility already ended — this year's team loses nothing it had, so delta is 0. "
+    "Word it so a reader can tell he wasn't on this year's team ('former corner', 'ex-Mountaineer'), "
+    "never 'WVU loses'. In particular, when a ruling makes an ex-player eligible again and he then "
+    "goes elsewhere, the roster is exactly where it started: delta 0, never negative.\n"
+    "IF THE HEADLINE DOES NOT NAME THE PLAYER ('a starting cornerback', 'a veteran lineman'), you "
+    "cannot check him against the roster, so you MUST NOT give it a negative delta — use 0. A title "
+    "like 'starting cornerback' is the writer's shorthand and often means LAST season's starter, who "
+    "may not be on this year's team at all. Never infer a current roster spot from a job title.\n"
     "UNCONFIRMED NEWS IS ALWAYS delta 0. If the source hedges ('set to add', 'reportedly', "
     "'expected to', 'per sources'), the event has not happened yet — word the note with the hedge "
     "intact ('reportedly set to add X', not 'adds X') and give it delta 0. Score it later, once a "
@@ -141,19 +151,69 @@ def recent_notes(sb, sport: str, today: str, days: int = 7) -> str:
     return f"\nALREADY REPORTED (recent notes — do NOT repeat these or re-apply their delta):\n{lines}"
 
 
-def seed_curated(sb, today: str) -> None:
+# Phrases that mean "a player is leaving the program". Deliberately excludes decommits
+# and flips: a recruit was never on the roster, so that check doesn't apply to them.
+DEPARTURE_WORDS = (
+    "transfer portal", "enter the portal", "enters the portal", "entering the portal",
+    "transferring", "transfers out", "transfer out", "leaving the program",
+    "departs", "departing", "exits the program",
+)
+
+
+def clamp_unverified_departure(note: str, delta: int, roster: list[str]) -> tuple[int, str | None]:
+    """Refuse a negative Pulse hit for a departure we can't tie to someone on the roster.
+
+    Headlines write "WVU Starting Cornerback to Enter Transfer Portal" without a name, and
+    that job title usually means LAST season's starter. Jason Chambers was the 2025 starter
+    whose eligibility had ended; he was never on the 2026 roster, so his leaving cost this
+    team nothing -- but the phrasing reads exactly like losing a starter, and the model kept
+    scoring it -1 no matter how the instruction was worded. Prompt rules the model ignores
+    are worth enforcing in code.
+    """
+    if delta >= 0:
+        return delta, None
+    low = note.lower()
+    if not any(w in low for w in DEPARTURE_WORDS):
+        return delta, None
+    if any(n.lower() in low for n in roster if n):
+        return delta, None       # a real current player -- the hit stands
+    return 0, "departure doesn't name anyone on the current roster"
+
+
+def roster_names(sb, sport: str) -> list[str]:
+    rows = (sb.table("players").select("first_name,last_name")
+            .eq("sport_id", sport).execute().data or [])
+    return sorted(
+        n for n in (f"{r.get('first_name') or ''} {r.get('last_name') or ''}".strip() for r in rows) if n
+    )
+
+
+def roster_block(names: list[str]) -> str:
+    """The current roster, so 'X enters the portal' can be checked against who's on the team."""
+    if not names:
+        return ""
+    return ("\nCURRENT ROSTER (anyone NOT on this list has already left the program — "
+            f"their departure is delta 0):\n{', '.join(names)}\n")
+
+
+def seed_curated(sb, today: str) -> set[str]:
     """Upsert hand-curated Pulse events (curated_notes.json) as note rows with an
     exact signed delta and id `sport|date|c`, so they live alongside the AI daily
     note (id `sport|date`) without colliding. Idempotent — safe every run, and a DB
     rebuild restores them. Remove an entry from the JSON to reverse it (e.g. if a
-    player who was 'likely gone' returns)."""
+    player who was 'likely gone' returns).
+
+    Returns the sports curated for TODAY, so the AI note can stand down for them:
+    the app shows one note per day and picks arbitrarily between two rows with the
+    same date, so leaving both would make the displayed wording a coin flip."""
     path = os.path.join(os.path.dirname(__file__), "curated_notes.json")
     try:
         with open(path, encoding="utf-8") as f:
             events = json.load(f)
     except (OSError, ValueError):
-        return
+        return set()
     n = 0
+    curated_today: set[str] = set()
     for e in events:
         sport, d = e.get("sport_id"), e.get("date")
         if sport not in SPORT_NAME or not d:
@@ -164,7 +224,10 @@ def seed_curated(sb, today: str) -> None:
              "note": e.get("note", ""), "hype": delta > 0, "pulse_delta": delta},
             on_conflict="id").execute()
         n += 1
+        if d == today:
+            curated_today.add(sport)
     print(f"  curated events seeded: {n}")
+    return curated_today
 
 
 def main() -> None:
@@ -193,10 +256,16 @@ def main() -> None:
 
     # Seed curated events FIRST, so the daily-note memory (recent_notes) already includes any
     # hand-set event and the AI won't re-report the same story with a second delta.
-    seed_curated(sb, today)
+    curated_today = seed_curated(sb, today)
 
     print("Per-sport notes:")
     for sport in ("football", "mbb", "baseball"):
+        # A hand-written note for today is the final word on that day — drop any AI note
+        # for the same date rather than let the app pick between them at random.
+        if sport in curated_today:
+            sb.table("daily_sport_notes").delete().eq("id", f"{sport}|{today}").execute()
+            print(f"  {SPORT_NAME[sport]}: curated note owns today — AI note skipped")
+            continue
         # This sport's own headlines first, then the day's general WVU headlines
         # (the model keeps only the ones clearly about this sport).
         own = by_sport.get(sport, [])
@@ -208,15 +277,21 @@ def main() -> None:
 
         headlines = "\n".join(f"- {h}" for h in candidates[:18])
         already = recent_notes(sb, sport, today)
+        names = roster_names(sb, sport)
+        roster = roster_block(names)
         resp = client.messages.create(
             model="claude-haiku-4-5", max_tokens=120,
             system=NOTE_SYSTEM.format(sport=SPORT_NAME[sport]),
             messages=[{"role": "user", "content":
                        f"Today is {today}. WVU headlines (some may not be about {SPORT_NAME[sport]}):\n"
-                       f"{headlines}\n{already}\n\nWrite the JSON note for WVU {SPORT_NAME[sport]}."}],
+                       f"{headlines}\n{already}\n{roster}\n"
+                       f"Write the JSON note for WVU {SPORT_NAME[sport]}."}],
         )
         raw = "".join(b.text for b in resp.content if b.type == "text")
         note, delta = parse_note(raw)
+        delta, clamped = clamp_unverified_departure(note, delta, names)
+        if clamped:
+            print(f"  {SPORT_NAME[sport]}: delta forced to 0 — {clamped}")
         if not note or note.upper().startswith("NONE"):
             sb.table("daily_sport_notes").delete().eq("id", f"{sport}|{today}").execute()
             print(f"  {SPORT_NAME[sport]}: (nothing relevant)")
