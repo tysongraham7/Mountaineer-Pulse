@@ -16,6 +16,8 @@ import unicodedata
 from dotenv import load_dotenv
 from supabase import create_client
 
+from names import same_person
+
 load_dotenv()
 
 SB_URL = os.getenv("SUPABASE_URL")
@@ -97,6 +99,24 @@ def main() -> None:
        .execute())
     if rows:
         sb.table("roster_moves").upsert(rows).execute()
+
+    # sync_transfers.py drops curated rows the portal feed now covers, but only when it
+    # runs afterwards. Running this script alone re-inserted a curated Jaire Rawlison
+    # alongside the portal's, and the app renders both from one scraped player -- two
+    # React children with the same key. Re-check here so order stops mattering.
+    dupes = 0
+    owned = (sb.table("roster_moves").select("id,sport_id,player_name,direction")
+             .execute().data or [])
+    feed = [r for r in owned if str(r["id"]).startswith(("pt-", "auto-"))]
+    for r in owned:
+        if str(r["id"]).startswith(("pt-", "auto-")):
+            continue
+        if any(f["sport_id"] == r["sport_id"] and f["direction"] == r["direction"]
+               and same_person(f["player_name"], r["player_name"]) for f in feed):
+            sb.table("roster_moves").delete().eq("id", r["id"]).execute()
+            dupes += 1
+    if dupes:
+        print(f"   dropped {dupes} curated row(s) the portal/news feed already covers")
 
     ins = sum(1 for r in rows if r["direction"] == "in")
     outs = sum(1 for r in rows if r["direction"] == "out")

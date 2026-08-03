@@ -167,6 +167,26 @@ function playerFullName(p: Player): string {
   return `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
 }
 
+/**
+ * Copy a list, keeping the first entry per player id.
+ *
+ * Player id is the React key for every roster row, so a repeat is a rendering error,
+ * not just a cosmetic one — React warns and may drop or duplicate the row. Two
+ * roster_moves rows naming the same player resolve to the same scraped player here
+ * (it happened with Jaire Rawlison, listed once by hand and once by the portal feed),
+ * and a schedule glitch upstream shouldn't be able to surface as a red screen.
+ */
+function byId(list: RosterItem[]): RosterItem[] {
+  const seen = new Set<string>();
+  const out: RosterItem[] = [];
+  for (const p of list) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    out.push(p);
+  }
+  return out;
+}
+
 function synthFromMove(m: RosterMove, sport: string): RosterItem {
   const parts = (m.player_name || '').trim().split(/\s+/);
   const first = parts.shift() ?? '';
@@ -499,10 +519,10 @@ function RosterSection({
   const byJersey = (a: RosterItem, b: RosterItem) =>
     (a.jersey ?? 999) - (b.jersey ?? 999) || playerFullName(a).localeCompare(playerFullName(b));
 
-  const sorted = [...returning].sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
-  const incSorted = [...incoming].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
-  const depSorted = [...departed].sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
-  const combined: RosterItem[] = combineIntoOne ? [...returning, ...incoming].sort(byJersey) : [];
+  const sorted = byId(returning).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
+  const incSorted = byId(incoming).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  const depSorted = byId(departed).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  const combined: RosterItem[] = combineIntoOne ? byId([...returning, ...incoming]).sort(byJersey) : [];
 
   return (
     <>
