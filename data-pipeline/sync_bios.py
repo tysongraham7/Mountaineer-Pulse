@@ -40,8 +40,12 @@ SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/120 Safari/537.36"}
 
-SPORT = "football"
-ROSTER_URL = "https://wvusports.com/sports/football/roster"
+# Same roster pages sync_rosters.py scrapes — one Sidearm layout across all three.
+SPORTS = [
+    ("football", "https://wvusports.com/sports/football/roster"),
+    ("mbb", "https://wvusports.com/sports/mens-basketball/roster"),
+    ("baseball", "https://wvusports.com/sports/baseball/roster"),
+]
 SITE = "https://wvusports.com"
 STALE_DAYS = 30          # refresh a bio at most monthly
 REQUEST_PAUSE = 0.6      # be a polite scraper
@@ -110,28 +114,20 @@ def extract_bio(page: str) -> str | None:
     return text or None
 
 
-def bio_urls() -> dict[str, str]:
+def bio_urls(roster_url: str) -> dict[str, str]:
     """player id (as on the site) -> absolute bio URL, read off the roster page."""
-    r = requests.get(ROSTER_URL, headers=UA, timeout=30)
+    r = requests.get(roster_url, headers=UA, timeout=30)
     if r.status_code != 200:
-        die(f"roster page returned HTTP {r.status_code}")
+        die(f"{roster_url} returned HTTP {r.status_code}")
     urls = {pid: SITE + path for path, pid in LINK_RE.findall(r.text)}
     if not urls:
-        die("no player links found on the roster page -- the markup changed")
+        die(f"no player links found on {roster_url} -- the markup changed")
     return urls
 
 
-def main() -> None:
-    if not SB_URL or not SB_KEY:
-        die("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env")
-    force = "--force" in sys.argv
-    limit = None
-    if "--limit" in sys.argv:
-        limit = int(sys.argv[sys.argv.index("--limit") + 1])
-
-    sb = create_client(SB_URL, SB_KEY)
+def sync_sport(sb, sport: str, roster_url: str, force: bool, limit: int | None) -> None:
     players = sb.table("players").select(
-        "id,first_name,last_name,bio,bio_fetched_at").eq("sport_id", SPORT).execute().data or []
+        "id,first_name,last_name,bio,bio_fetched_at").eq("sport_id", sport).execute().data or []
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=STALE_DAYS)
 
@@ -147,13 +143,12 @@ def main() -> None:
     todo = [p for p in players if needs_fetch(p)]
     if limit:
         todo = todo[:limit]
-    print(f"{len(players)} {SPORT} players -- {len(todo)} need a bio fetch")
+    print(f"\n{sport}: {len(players)} players -- {len(todo)} need a bio fetch")
     if not todo:
-        print("\n[OK] All bios current.")
+        print("   all current")
         return
 
-    urls = bio_urls()
-    print(f"bio links on the roster page: {len(urls)}")
+    urls = bio_urls(roster_url)
 
     updated, no_bio, no_link, failed = 0, [], [], []
     for i, p in enumerate(todo, 1):
@@ -189,7 +184,7 @@ def main() -> None:
         time.sleep(REQUEST_PAUSE)
 
     attempted = len(todo) - len(no_link)
-    print(f"\nplayers -> {updated} bios written")
+    print(f"   {updated} bios written")
     if no_bio:
         print(f"   {len(no_bio)} page(s) had no bio yet: {', '.join(no_bio[:12])}"
               f"{' ...' if len(no_bio) > 12 else ''}")
@@ -201,8 +196,26 @@ def main() -> None:
     # A collapse in the success rate means the page shape changed. Say so loudly --
     # a silent no-op would leave stale bios looking current.
     if attempted and (updated + len(no_bio)) / attempted < MIN_SUCCESS_RATE:
-        die(f"only {updated}/{attempted} bios extracted -- wvusports.com markup "
+        die(f"only {updated}/{attempted} {sport} bios extracted -- wvusports.com markup "
             f"likely changed; sync_bios.py needs updating")
+
+
+def main() -> None:
+    if not SB_URL or not SB_KEY:
+        die("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env")
+    force = "--force" in sys.argv
+    limit = None
+    if "--limit" in sys.argv:
+        limit = int(sys.argv[sys.argv.index("--limit") + 1])
+    only = None
+    if "--sport" in sys.argv:
+        only = sys.argv[sys.argv.index("--sport") + 1]
+
+    sb = create_client(SB_URL, SB_KEY)
+    for sport, roster_url in SPORTS:
+        if only and sport != only:
+            continue
+        sync_sport(sb, sport, roster_url, force, limit)
 
     print("\n[OK] Player bios synced to Supabase.")
 
