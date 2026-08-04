@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReportModal } from '@/components/report-modal';
@@ -17,6 +17,19 @@ const SPORTS = [
   { id: 'mbb', name: "Men's Basketball", gold: false },
   { id: 'baseball', name: 'Baseball', gold: true },
 ];
+
+const SITE_URL = 'https://tysongraham7.github.io/Mountaineer-Pulse/';
+
+/**
+ * Off until build 8 is cut.
+ *
+ * The row is deliberately not shipped by OTA into build 7. Anything that reads as
+ * monetization belongs in a binary Apple actually reviewed — slipping it in after
+ * approval is how a reviewed app stops matching the app on the store. The link goes
+ * to the project site rather than straight to a payment page, and it unlocks nothing
+ * in the app, which is the line guideline 3.1.1 actually cares about.
+ */
+const SHOW_SUPPORT_LINK = false;
 
 export default function YouScreen() {
   const insets = useSafeAreaInsets();
@@ -109,6 +122,27 @@ export default function YouScreen() {
           <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
         </Pressable>
       </View>
+
+      {SHOW_SUPPORT_LINK && (
+        <>
+          <SectionLabel style={{ marginTop: 22, marginBottom: 4 } as never}>Support</SectionLabel>
+          <Text style={styles.hint}>
+            Mountaineer Pulse is free, has no ads, and is built by one person. Supporting is
+            entirely optional — nothing in the app is locked behind it.
+          </Text>
+          <View style={styles.card}>
+            <Pressable
+              style={[styles.row, { borderBottomWidth: 0 }]}
+              onPress={() => Linking.openURL(SITE_URL)}>
+              <View style={[styles.tile, { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }]}>
+                <Ionicons name="heart-outline" size={18} color={Brand.gold} />
+              </View>
+              <Text style={styles.rowLabel}>Support the dev</Text>
+              <Ionicons name="open-outline" size={17} color={c.textMuted} />
+            </Pressable>
+          </View>
+        </>
+      )}
 
       <SectionLabel tone="muted" style={{ marginTop: 22, marginBottom: 8 } as never}>About</SectionLabel>
       <View style={styles.card}>
