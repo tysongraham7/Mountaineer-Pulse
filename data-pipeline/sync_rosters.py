@@ -122,18 +122,37 @@ def main() -> None:
         die("Missing SUPABASE_URL or SUPABASE_SECRET_KEY in .env")
     sb = create_client(SB_URL, SB_KEY)
 
+    # The rebuild below wipes the row, and bios live on it -- written by sync_bios.py, not
+    # scraped here. Losing them nightly would mean re-fetching 175 pages from wvusports.com
+    # every run instead of the handful that actually changed, which is both slow and rude.
+    # Carry them across the rebuild; a player who drops off the roster loses his with the row.
+    kept = {
+        r["id"]: r
+        for r in (sb.table("players").select("id,bio,bio_url,bio_fetched_at")
+                  .execute().data or [])
+        if r.get("bio")
+    }
+
     sb.table("players").delete().neq("id", "___none___").execute()
 
+    carried = 0
     for sport_id, url in SPORTS:
         players = scrape(url)
         for p in players:
             p["sport_id"] = sport_id
+            prev = kept.get(p["id"])
+            if prev:
+                p["bio"] = prev["bio"]
+                p["bio_url"] = prev["bio_url"]
+                p["bio_fetched_at"] = prev["bio_fetched_at"]
+                carried += 1
         if players:
             sb.table("players").upsert(players).execute()
         withphoto = sum(1 for p in players if p["photo_url"])
         withtown = sum(1 for p in players if p["home_city"])
         print(f"  {sport_id:<9} {len(players)} players ({withphoto} photos, {withtown} hometowns)")
 
+    print(f"  bios carried across the rebuild: {carried}/{len(kept)}")
     print("\n[OK] Official rosters scraped to Supabase.")
 
 
