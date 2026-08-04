@@ -87,3 +87,24 @@ export function countdownLabel(iso: string): string | null {
   if (n === 1) return 'Tomorrow';
   return `In ${n} days`;
 }
+
+/**
+ * Kickoff as a timestamp, or null when the time hasn't been announced.
+ *
+ * Guarded by easternTime rather than reading the instant directly: an unannounced
+ * kickoff is stored as midnight Eastern, and counting down to that would show a
+ * confident timer to a time nobody has set.
+ */
+export function kickoffAt(iso: string): number | null {
+  return easternTime(iso) === null ? null : new Date(iso).getTime();
+}
+
+/** "3:42:15", or "12:05" inside the last hour. Largest unit first, no leading zero. */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}

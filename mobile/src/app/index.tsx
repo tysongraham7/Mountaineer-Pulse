@@ -19,6 +19,7 @@ import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useAlerts } from '@/lib/alerts';
 import { countdownLabel, daysUntil, easternDateShort, easternTime } from '@/lib/eastern';
+import { useKickoffCountdown } from '@/lib/use-kickoff';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
@@ -421,8 +422,11 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
     /\s+(Mountaineers|Tar Heels|Trojans|Bears|Cowboys|Cyclones|Wildcats|Bearcats|Horned Frogs|Highlanders|Thundering Herd|Nittany Lions)$/i,
     '',
   );
+  const { live, underway } = useKickoffCountdown(iso || null);
   const days = iso ? daysUntil(iso) : 1;
-  const isGameDay = days === 0;
+  // "Game day" is the last 24 hours, not the calendar date — a 12:00 kickoff is closer
+  // at 11pm the night before than at 12:01am on a day that still counts as "Today".
+  const isGameDay = days === 0 || !!live || underway;
   const kickoff = iso ? easternTime(iso) : null;
   // A kickoff the feed hasn't been given yet is stored as midnight Eastern; easternTime
   // returns null for it rather than printing "12:00 AM".
@@ -434,8 +438,14 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
         <View style={styles.nextGameTop}>
           <SectionLabel>{isGameDay ? 'Game Day' : 'Next Up'}</SectionLabel>
           <View style={[styles.countPill, isGameDay && { backgroundColor: Brand.gold }]}>
-            <Text style={[styles.countText, isGameDay && { color: '#0B1220' }]}>
-              {iso ? countdownLabel(iso) ?? '' : ''}
+            <Text
+              style={[
+                styles.countText,
+                isGameDay && { color: '#0B1220' },
+                // Seconds change every tick; fixed-width digits stop the pill twitching.
+                !!live && { fontVariant: ['tabular-nums'] },
+              ]}>
+              {live ?? (underway ? 'Underway' : iso ? countdownLabel(iso) ?? '' : '')}
             </Text>
           </View>
         </View>
