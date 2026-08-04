@@ -33,6 +33,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from supabase import create_client
+import usage
 
 load_dotenv()
 
@@ -138,7 +139,7 @@ def curated_keys() -> set[tuple[str, str]]:
             if m.get("player_name")}
 
 
-def extract(headlines: list[str], today: str) -> list[dict]:
+def extract(sb, headlines: list[str], today: str) -> list[dict]:
     import anthropic
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
@@ -155,6 +156,7 @@ def extract(headlines: list[str], today: str) -> list[dict]:
                    f"Today is {today}. WVU headlines from the last {LOOKBACK_HOURS} hours:\n\n"
                    f"{listing}\n\nExtract the roster moves."}],
     )
+    usage.log(sb, "extract_moves", MODEL, resp)
     if resp.stop_reason == "refusal":
         die("Model declined the extraction request.")
     raw = "".join(b.text for b in resp.content if b.type == "text")
@@ -185,7 +187,7 @@ def main() -> None:
         return
     print(f"Reading {len(headlines)} headlines from the last {LOOKBACK_HOURS}h...")
 
-    moves = extract(headlines, today)
+    moves = extract(sb, headlines, today)
     if not moves:
         print("No roster moves found in the news. (This is normal on a quiet day.)")
 

@@ -29,6 +29,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from supabase import create_client
+import usage
 
 load_dotenv()
 
@@ -287,6 +288,7 @@ def main() -> None:
                        f"{headlines}\n{already}\n{roster}\n"
                        f"Write the JSON note for WVU {SPORT_NAME[sport]}."}],
         )
+        usage.log(sb, "sync_sport_notes", "claude-haiku-4-5", resp)
         raw = "".join(b.text for b in resp.content if b.type == "text")
         note, delta = parse_note(raw)
         delta, clamped = clamp_unverified_departure(note, delta, names)

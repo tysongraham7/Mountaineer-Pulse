@@ -25,6 +25,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 from supabase import create_client
+import usage as api_usage
 
 load_dotenv()
 
@@ -36,10 +37,6 @@ MODEL = "claude-sonnet-5"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 12}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
 SPORT_ORDER = ["football", "mbb", "baseball"]
-
-# Sonnet-5 pricing per 1M tokens (intro pricing through 2026-08-31): $2 in / $10 out,
-# cache write $2.50, cache read $0.20; web search $0.01/use. Used only for the cost readout.
-PRICE = {"in": 2.0, "out": 10.0, "cache_w": 2.5, "cache_r": 0.20, "search": 0.01}
 
 # Search budget: web search is the cost driver, but it's also what gives the briefing its real
 # detail. Generous on a busy news day, self-limiting on a quiet one. Prompt caching (below) makes
@@ -378,12 +375,12 @@ def main() -> None:
             print(f"  • {it['topic']}: {it['body']}")
     print("-" * 60)
     if usage:
-        cw = getattr(usage, "cache_creation_input_tokens", 0) or 0
+        # Priced and stored through usage.py so every Claude call in the pipeline shares one
+        # price table and the day's total is a query rather than four separate printouts.
         cr = getattr(usage, "cache_read_input_tokens", 0) or 0
-        est = (usage.input_tokens / 1e6 * PRICE["in"] + usage.output_tokens / 1e6 * PRICE["out"]
-               + cw / 1e6 * PRICE["cache_w"] + cr / 1e6 * PRICE["cache_r"] + searches * PRICE["search"])
+        api_usage.log_raw(sb, "generate_briefing", MODEL, usage, searches)
         print(f"\n[OK] Briefing stored. {searches} searches | tokens: in {usage.input_tokens} / "
-              f"cache-read {cr} / out {usage.output_tokens} | est. cost ~${est:.3f}")
+              f"cache-read {cr} / out {usage.output_tokens}")
 
 
 if __name__ == "__main__":

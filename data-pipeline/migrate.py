@@ -31,6 +31,20 @@ ALTERS = [
     # --- Official player bios (scraped from wvusports.com) ---
     # bio_url is stored, not derived: the app must link back to the source, since the
     # prose is WVU's writing and we display it under attribution.
+    # --- Claude API usage, so the daily cost is measured rather than guessed ---
+    """create table if not exists api_usage (
+        id            bigserial primary key,
+        script        text not null,        -- which pipeline step made the call
+        model         text not null,
+        input_tokens  int  not null default 0,
+        output_tokens int  not null default 0,
+        cache_read    int  not null default 0,
+        cache_write   int  not null default 0,
+        web_searches  int  not null default 0,
+        cost_usd      numeric(10,5),        -- null when the model has no price on file
+        created_at    timestamptz not null default now()
+    );""",
+    "create index if not exists api_usage_created_idx on api_usage (created_at desc);",
     "alter table players add column if not exists bio text;",
     "alter table players add column if not exists bio_url text;",
     "alter table players add column if not exists bio_fetched_at timestamptz;",

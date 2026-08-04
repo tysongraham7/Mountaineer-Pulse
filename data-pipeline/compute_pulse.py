@@ -26,6 +26,7 @@ from datetime import date, datetime, timedelta
 
 from dotenv import load_dotenv
 from supabase import create_client
+import usage
 
 from pulse_model import is_postseason as post_by_date
 from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, clamp, national_rank, news_delta,
@@ -71,7 +72,7 @@ def made_cws(games: list[dict]) -> bool:
                for g in games)
 
 
-def ai_explanation(ctx: str) -> str | None:
+def ai_explanation(ctx: str, sb=None) -> str | None:
     key = os.getenv("ANTHROPIC_API_KEY")
     if not key:
         return None
@@ -90,6 +91,8 @@ def ai_explanation(ctx: str) -> str | None:
                 ),
             }],
         )
+        if sb is not None:
+            usage.log(sb, "compute_pulse", "claude-haiku-4-5-20251001", msg)
         return msg.content[0].text.strip()
     except Exception as e:
         print(f"    (AI explanation skipped: {e})")
@@ -220,7 +223,7 @@ def main() -> None:
                f"{'made College World Series, ' if cws else ''}"
                f"transfers in {transfers_in}/out {transfers_out}, {recruits} recruits signed, "
                f"{departures} graduated/drafted, Pulse {score}/100, momentum {trend}")
-        explanation = ai_explanation(ctx) or template_explanation(name, w, l, latest_season, score, rank, cws)
+        explanation = ai_explanation(ctx, sb) or template_explanation(name, w, l, latest_season, score, rank, cws)
 
         sb.table("pulse_snapshots").upsert(
             {"sport_id": sport, "date": today, "score": score, "trend": trend,
