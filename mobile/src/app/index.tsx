@@ -11,16 +11,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GameDetail } from '@/components/game-detail';
 import { PulseDetail } from '@/components/pulse-detail';
 import { OfflineNotice } from '@/components/offline-notice';
 import { BriefingSkeleton, PulseRowSkeleton, Skeleton } from '@/components/skeleton';
 import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useAlerts } from '@/lib/alerts';
+import { countdownLabel, daysUntil, easternDateShort, easternTime } from '@/lib/eastern';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
-import { Briefing } from '@/lib/types';
+import { Briefing, Game } from '@/lib/types';
 
 const c = surfaces(true);
 
@@ -79,6 +81,8 @@ export default function PulseScreen() {
   const [series, setSeries] = useState<Record<string, { date: string; score: number }[]>>({});
   const [records, setRecords] = useState<Record<string, Rec>>({});
   const [briefing, setBriefing] = useState<Briefing | null>(null);
+  const [nextGame, setNextGame] = useState<Game | null>(null);
+  const [gameOpen, setGameOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -109,13 +113,24 @@ export default function PulseScreen() {
 
   const load = useCallback(async () => {
     try {
-    const [snapRes, briefingRes, gamesRes] = await Promise.all([
+    const [snapRes, briefingRes, gamesRes, nextRes] = await Promise.all([
       supabase.from('pulse_snapshots').select('*').order('date', { ascending: true }),
       supabase.from('daily_briefings').select('*').order('date', { ascending: false }).limit(1),
       supabase
         .from('games')
         .select('sport_id,season,home_points,away_points,is_wvu_home,status')
         .eq('status', 'final'),
+      // Filtered by DATE, not just status: four baseball games from last March are still
+      // marked 'scheduled', and ordering non-final games by date would have made a game
+      // five months past the "next" one. A few are fetched so a game already under way
+      // today still wins over tomorrow's.
+      supabase
+        .from('games')
+        .select('*')
+        .neq('status', 'final')
+        .gte('start_date', new Date(Date.now() - 36 * 3600 * 1000).toISOString())
+        .order('start_date', { ascending: true })
+        .limit(5),
     ]);
     if (snapRes.error) throw snapRes.error; // no connection → show the offline state
 
@@ -150,6 +165,11 @@ export default function PulseScreen() {
       else r.l += 1;
     }
     setRecords(rec);
+    // The first game that hasn't finished in Eastern terms — daysUntil is 0 all day on
+    // game day, so the card keeps showing the game while it's being played.
+    setNextGame(
+      ((nextRes.data ?? []) as Game[]).find((g) => g.start_date && daysUntil(g.start_date) >= 0) ?? null,
+    );
     setLoadError(false);
     } catch {
       setLoadError(true); // keep any data we already have; just flag the failure
@@ -245,6 +265,10 @@ export default function PulseScreen() {
         <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
       ) : (
         <>
+      {/* Next game. Sits above the briefing because it's the only thing here about what
+          hasn't happened yet — everything below reports on what has. */}
+      {nextGame && <NextGameCard game={nextGame} onOpen={() => setGameOpen(true)} />}
+
       {/* Daily briefing — per-sport sections when available, else plain text.
           We deliberately still show the most recent briefing when this morning's hasn't
           landed (better than an empty card), but we date it: the header above says
@@ -379,7 +403,64 @@ export default function PulseScreen() {
     <>
       {body}
       <PulseDetail sport={selectedSport} onClose={() => setSelectedSport(null)} />
+      <GameDetail game={gameOpen ? nextGame : null} onClose={() => setGameOpen(false)} />
     </>
+  );
+}
+
+const SPORT_TAG: Record<string, string> = { football: 'Football', mbb: 'Basketball', baseball: 'Baseball' };
+
+/**
+ * The next game, as a hook rather than a schedule row: who, when, where, how soon.
+ * Tapping opens the same detail sheet the Scores tab uses.
+ */
+function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
+  const iso = game.start_date ?? '';
+  const home = !!game.is_wvu_home;
+  const opponent = (home ? game.away_team : game.home_team).replace(
+    /\s+(Mountaineers|Tar Heels|Trojans|Bears|Cowboys|Cyclones|Wildcats|Bearcats|Horned Frogs|Highlanders|Thundering Herd|Nittany Lions)$/i,
+    '',
+  );
+  const days = iso ? daysUntil(iso) : 1;
+  const isGameDay = days === 0;
+  const kickoff = iso ? easternTime(iso) : null;
+  // A kickoff the feed hasn't been given yet is stored as midnight Eastern; easternTime
+  // returns null for it rather than printing "12:00 AM".
+  const when = [iso ? easternDateShort(iso) : '', kickoff ?? 'Time TBA'].filter(Boolean).join(' · ');
+
+  return (
+    <Pressable onPress={onOpen} style={({ pressed }) => [pressed && { opacity: 0.75 }]}>
+      <Card style={[styles.nextGame, isGameDay && styles.nextGameToday] as never}>
+        <View style={styles.nextGameTop}>
+          <SectionLabel>{isGameDay ? 'Game Day' : 'Next Up'}</SectionLabel>
+          <View style={[styles.countPill, isGameDay && { backgroundColor: Brand.gold }]}>
+            <Text style={[styles.countText, isGameDay && { color: '#0B1220' }]}>
+              {iso ? countdownLabel(iso) ?? '' : ''}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.nextGameBody}>
+          <View style={styles.nextGameTile}>
+            <SportIcon sport={game.sport_id} size={22} color={Brand.gold} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.nextGameOpp} numberOfLines={1}>
+              <Text style={styles.nextGameVs}>{home ? 'vs ' : 'at '}</Text>
+              {opponent}
+            </Text>
+            <Text style={styles.nextGameMeta} numberOfLines={1}>
+              {when}
+            </Text>
+          </View>
+          <Text style={styles.nextGameChevron}>›</Text>
+        </View>
+
+        <Text style={styles.nextGameWhere} numberOfLines={1}>
+          {[game.venue, SPORT_TAG[game.sport_id] ?? game.sport_id].filter(Boolean).join(' · ')}
+        </Text>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -405,6 +486,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  nextGame: { padding: 18, marginTop: 16, gap: 14 },
+  // Game day earns the gold edge; every other day stays quiet so it means something.
+  nextGameToday: { borderColor: Brand.goldBorder, backgroundColor: Brand.goldTint },
+  nextGameTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  countPill: { backgroundColor: Brand.goldTint, borderWidth: 1, borderColor: Brand.goldBorder, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
+  countText: { fontFamily: Font.bodyBold, fontSize: 11.5, color: Brand.gold, letterSpacing: 0.2 },
+  nextGameBody: { flexDirection: 'row', alignItems: 'center', gap: 13 },
+  nextGameTile: { width: 44, height: 44, borderRadius: 12, backgroundColor: Brand.goldTint, borderWidth: 1, borderColor: Brand.goldBorder, alignItems: 'center', justifyContent: 'center' },
+  nextGameOpp: { fontFamily: Font.black, fontSize: 21, color: c.text, letterSpacing: -0.4 },
+  nextGameVs: { fontFamily: Font.body, fontSize: 15, color: c.textSecondary, letterSpacing: 0 },
+  nextGameMeta: { fontFamily: Font.bodySemi, fontSize: 13, color: Brand.gold, marginTop: 3 },
+  nextGameChevron: { fontSize: 22, color: c.textMuted },
+  nextGameWhere: { fontFamily: Font.body, fontSize: 12, color: c.textMuted },
   briefing: { padding: 18, marginTop: 16 },
   briefStale: { fontFamily: Font.body, fontSize: 11.5, color: c.textMuted, letterSpacing: 0.2 },
   briefingBody: { fontFamily: Font.body, fontSize: 14, lineHeight: 21, color: c.textSecondary, marginTop: 8 },
