@@ -62,6 +62,17 @@
   .callout{background:var(--card);border:1px solid var(--line);border-radius:12px;
     padding:14px 16px;margin:30px 0 0;color:var(--muted);font-size:14px}
   .callout strong{color:var(--ink)}
+
+  .support{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .support p{margin:0;font-size:14px;color:var(--muted)}
+  .support p + p{margin-top:10px}
+  .costs{list-style:none;margin:14px 0;padding:0;font-size:14px}
+  .costs li{display:flex;justify-content:space-between;gap:16px;
+    padding:9px 0;border-bottom:1px solid var(--line)}
+  .costs li:last-child{border-bottom:0;font-weight:700;color:var(--ink)}
+  .costs span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .costs .what{color:var(--ink)}
+  .costs .what small{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
   footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);
     color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center}
   footer a{color:var(--muted);text-decoration:none}
@@ -110,6 +121,35 @@
       <div><b>Scores &amp; schedule</b><p>Every result and upcoming game, so you always know where the Mountaineers stand.</p></div>
     </li>
   </ul>
+
+  <h2>Support the app</h2>
+  <div class="support">
+    <p>Mountaineer Pulse is free, has no ads, and doesn’t sell your data. It’s built and run by
+      one person. Here’s exactly what it costs to keep running:</p>
+    <ul class="costs">
+      <li>
+        <span class="what">Apple Developer Program<small>Required to publish on the App Store</small></span>
+        <span>$99&nbsp;/&nbsp;yr</span>
+      </li>
+      <li>
+        <span class="what">AI for the daily briefing<small>Writes the morning briefing and reads the news for roster moves</small></span>
+        <span>~$164&nbsp;/&nbsp;yr</span>
+      </li>
+      <li>
+        <span class="what">Database, hosting, scheduled jobs<small>Supabase and GitHub, free at this size</small></span>
+        <span>$0</span>
+      </li>
+      <li><span class="what">About</span><span>$22&nbsp;/&nbsp;month</span></li>
+    </ul>
+    <p>If the app is useful to you and you’d like to chip in, it goes straight to those costs.
+      It’s entirely optional — nothing in the app is locked behind it, and it never will be.</p>
+    <!-- The support button lands here once the Ko-fi page exists. Left out rather than
+         stubbed: this page is live on GitHub Pages the moment it's pushed, and a dead
+         or placeholder payment link on a public page is worse than no button at all.
+         <div class="links" style="margin-top:16px">
+           <a class="btn primary" href="https://ko-fi.com/USERNAME">Support the dev →</a>
+         </div> -->
+  </div>
 
   <div class="links">
     <a class="btn ghost" href="mailto:mountaineerpulse@gmail.com">Get in touch</a>
