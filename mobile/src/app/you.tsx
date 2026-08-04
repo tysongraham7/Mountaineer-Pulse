@@ -21,15 +21,28 @@ const SPORTS = [
 const SITE_URL = 'https://tysongraham7.github.io/Mountaineer-Pulse/';
 
 /**
- * Off until build 8 is cut.
+ * The row appears from this app version onward.
  *
- * The row is deliberately not shipped by OTA into build 7. Anything that reads as
- * monetization belongs in a binary Apple actually reviewed — slipping it in after
- * approval is how a reviewed app stops matching the app on the store. The link goes
- * to the project site rather than straight to a payment page, and it unlocks nothing
- * in the app, which is the line guideline 3.1.1 actually cares about.
+ * It must not reach users through an OTA into build 7: anything reading as monetization
+ * belongs in a binary Apple actually reviewed, and quietly adding it after approval is
+ * how a reviewed app stops matching the app on the store. The link goes to the project
+ * site rather than a payment page and unlocks nothing, which is the line guideline
+ * 3.1.1 actually cares about.
+ *
+ * Tied to the version rather than a flag someone has to remember to flip. runtimeVersion
+ * follows appVersion, so an OTA into build 7 always reports 1.1.0 and the row stays
+ * hidden; ship build 8 as 1.2.0 and it appears on its own.
  */
-const SHOW_SUPPORT_LINK = false;
+const SUPPORT_LINK_FROM_VERSION = [1, 2, 0];
+
+function atLeastVersion(current: string, min: number[]): boolean {
+  const parts = current.split('.').map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < min.length; i++) {
+    const a = parts[i] ?? 0;
+    if (a !== min[i]) return a > min[i];
+  }
+  return true;
+}
 
 export default function YouScreen() {
   const insets = useSafeAreaInsets();
@@ -123,7 +136,7 @@ export default function YouScreen() {
         </Pressable>
       </View>
 
-      {SHOW_SUPPORT_LINK && (
+      {atLeastVersion(version, SUPPORT_LINK_FROM_VERSION) && (
         <>
           <SectionLabel style={{ marginTop: 22, marginBottom: 4 } as never}>Support</SectionLabel>
           <Text style={styles.hint}>
