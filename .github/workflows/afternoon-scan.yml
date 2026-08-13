@@ -1,0 +1,71 @@
+name: Afternoon Scan
+
+# A second, lighter pass over the day's news, ~10 hours after the morning pipeline.
+#
+# Deliberately does NOT regenerate the daily briefing. The briefing is the expensive call
+# (~$0.50 of web search) and it's meant to be one artifact a day — rewriting it at 5pm
+# would change what users read that morning, under them. This run refreshes the DATA
+# (news, roster moves, notes, Pulse) and may fire ONE breaking-news alert.
+#
+# Cost is a few cents: no web search, and the AI steps are Haiku plus a single Opus
+# extraction.
+on:
+  schedule:
+    - cron: "0 21 * * *" # 21:00 UTC = 5pm ET (4pm during standard time)
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Same continue-on-error posture as the morning run: one flaky feed must not stop
+      # the notification step from seeing whatever else did come in.
+      - name: News feed (Google News)
+        run: python sync_news.py
+        continue-on-error: true
+
+      # Curated rows first, so extract_moves' "curated always wins" check compares against
+      # the same picture the morning run built.
+      - name: Roster movement (curated)
+        run: python sync_moves.py
+        continue-on-error: true
+
+      - name: Auto-extract roster moves from news
+        run: python extract_moves.py
+        continue-on-error: true
+
+      - name: Per-sport news notes
+        run: python sync_sport_notes.py
+        continue-on-error: true
+
+      # So an afternoon signing shows on the Pulse the same day rather than waiting
+      # until tomorrow morning.
+      - name: Backfill Pulse history
+        if: ${{ !cancelled() }}
+        run: python backfill_pulse.py
+
+      - name: Compute Mountaineer Pulse
+        if: ${{ !cancelled() }}
+        run: python compute_pulse.py
+
+      # Last, so it judges against fully-synced data. Sends at most one push, and only if
+      # something genuinely broke since this morning — most days this is a no-op.
+      - name: Breaking-news alert
+        if: ${{ !cancelled() }}
+        run: python notify_news.py

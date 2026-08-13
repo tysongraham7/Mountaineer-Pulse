@@ -72,6 +72,10 @@ def send_push(title: str, body: str, data: dict | None = None) -> int:
 
 
 if __name__ == "__main__":
+    # python send_push.py "Title" "Body" [screen]
+    # `screen` deep-links the tap target (e.g. "pulse"), matching what the daily
+    # briefing sends. Omit it and the notification just opens the app.
     t = sys.argv[1] if len(sys.argv) > 1 else "Mountaineer Pulse"
     b = sys.argv[2] if len(sys.argv) > 2 else "Push notifications are live. Let's go, Mountaineers!"
-    send_push(t, b)
+    screen = sys.argv[3] if len(sys.argv) > 3 else None
+    send_push(t, b, data={"screen": screen} if screen else None)

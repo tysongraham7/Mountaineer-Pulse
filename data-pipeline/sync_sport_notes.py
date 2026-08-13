@@ -38,6 +38,7 @@ SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
+PROGRAM = "program"  # curated_notes.json lane for athletics-wide news (see seed_curated)
 NOTE_SYSTEM = (
     "You write a ONE-LINE daily news note about WVU {sport} for a fan app, based ONLY on "
     "the provided headlines.\n"
@@ -204,6 +205,13 @@ def seed_curated(sb, today: str) -> set[str]:
     rebuild restores them. Remove an entry from the JSON to reverse it (e.g. if a
     player who was 'likely gone' returns).
 
+    `sport_id: "program"` is the athletics-wide lane — news that belongs to no single
+    sport (a jersey-patch sponsor across all 18 teams, a facilities or conference
+    move). It's stored with a NULL sport_id, which keeps it out of every per-sport
+    query (Pulse math, the Pulse chart) while generate_briefing.py, which reads
+    curated notes unfiltered, still gets it. Its delta is forced to 0 for the same
+    reason: there's no one sport's Pulse for it to move.
+
     Returns the sports curated for TODAY, so the AI note can stand down for them:
     the app shows one note per day and picks arbitrarily between two rows with the
     same date, so leaving both would make the displayed wording a coin flip."""
@@ -217,15 +225,16 @@ def seed_curated(sb, today: str) -> set[str]:
     curated_today: set[str] = set()
     for e in events:
         sport, d = e.get("sport_id"), e.get("date")
-        if sport not in SPORT_NAME or not d:
+        if not d or (sport not in SPORT_NAME and sport != PROGRAM):
             continue
-        delta = int(e.get("delta", 0))
+        program = sport == PROGRAM
+        delta = 0 if program else int(e.get("delta", 0))
         sb.table("daily_sport_notes").upsert(
-            {"id": f"{sport}|{d}|c", "sport_id": sport, "date": d,
+            {"id": f"{sport}|{d}|c", "sport_id": None if program else sport, "date": d,
              "note": e.get("note", ""), "hype": delta > 0, "pulse_delta": delta},
             on_conflict="id").execute()
         n += 1
-        if d == today:
+        if d == today and not program:  # program notes don't own a sport's day
             curated_today.add(sport)
     print(f"  curated events seeded: {n}")
     return curated_today

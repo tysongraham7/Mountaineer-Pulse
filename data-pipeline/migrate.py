@@ -152,6 +152,12 @@ ALTERS = [
     "alter table analytics_events enable row level security;",
     "drop policy if exists analytics_insert on analytics_events;",
     "create policy analytics_insert on analytics_events for insert to public with check (true);",
+    # --- Breaking-news push (notify_news.py) ---
+    # When this headline was pushed to devices. NULL = never pushed. This is the ONLY thing
+    # stopping a repeating scan from re-alerting the same story every run, and it doubles as
+    # the daily-cap counter (count today's non-null rows), so no separate push log is needed.
+    "alter table news_items add column if not exists notified_at timestamptz;",
+    "create index if not exists news_items_notified_idx on news_items (notified_at desc);",
 ]
 
 

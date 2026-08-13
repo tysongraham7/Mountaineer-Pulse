@@ -40,5 +40,23 @@
     "date": "2026-08-02",
     "note": "Jason Chambers will use his court-restored fifth year elsewhere — the 2025 starting corner was never on WVU's 2026 roster, so the depth chart is unchanged.",
     "delta": 0
+  },
+  {
+    "sport_id": "program",
+    "date": "2026-08-04",
+    "note": "WVU Athletics and Learfield signed a five-year jersey patch deal with Antero Resources — the first in school history, putting the Antero logo on home and away uniforms for all 18 varsity sports starting in 2026-27. Terms undisclosed; Antero, based in Bridgeport, produces close to half of West Virginia's natural gas.",
+    "delta": 0
+  },
+  {
+    "sport_id": "football",
+    "date": "2026-08-05",
+    "note": "CB Jordan Scruggs is back on the 2026 roster — the court ruling restored his fifth year. He played all 12 games in 2025 with 33 tackles and an 80-yard pick-six at Houston, and projects into the nickel/sam rotation.",
+    "delta": 2
+  },
+  {
+    "sport_id": "mbb",
+    "date": "2026-08-12",
+    "note": "Brenen Lorient is returning to WVU for a fifth season — the July 31 injunction restored eligibility to the 2022 high-school class, and he'll be back in the frontcourt after starting last season for Ross Hodge. He followed Hodge from North Texas and opened his career with two years at Florida Atlantic.",
+    "delta": 3
   }
 ]

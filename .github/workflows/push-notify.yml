@@ -1,0 +1,55 @@
+name: Send Push Notification
+
+# On-demand alert to every registered device. Trigger it from the GitHub mobile app
+# (Actions -> Send Push Notification -> Run workflow) so breaking news can go out from
+# your phone without a laptop or a pipeline run.
+#
+# This sends to REAL USERS immediately and cannot be recalled. Read the body once more
+# before hitting Run.
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "Notification title (keep it under ~40 chars)"
+        required: true
+        default: "Mountaineer Pulse 🏔️"
+      body:
+        description: "Notification body (under ~160 chars — longer gets truncated)"
+        required: true
+      screen:
+        description: "Screen to open on tap"
+        required: false
+        default: "pulse"
+        type: choice
+        options:
+          - pulse
+          - none
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      # send_push.py only needs these two; installing the full pipeline
+      # requirements.txt here would add a minute for no benefit.
+      - name: Install dependencies
+        run: pip install requests supabase python-dotenv
+
+      - name: Send
+        run: |
+          if [ "${{ inputs.screen }}" = "none" ]; then
+            python send_push.py "${{ inputs.title }}" "${{ inputs.body }}"
+          else
+            python send_push.py "${{ inputs.title }}" "${{ inputs.body }}" "${{ inputs.screen }}"
+          fi

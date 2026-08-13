@@ -15,6 +15,7 @@ const SPORT_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   football: 'american-football',
   mbb: 'basketball',
   baseball: 'baseball',
+  program: 'shield', // the briefing's athletics-wide section — a program mark, not a sport
 };
 
 export function SportIcon({

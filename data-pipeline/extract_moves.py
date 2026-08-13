@@ -128,7 +128,15 @@ def norm_name(name: str) -> str:
 
 
 def curated_keys() -> set[tuple[str, str]]:
-    """(sport, normalized name) for every hand-curated move — these are untouchable."""
+    """(sport, normalized name) for every hand-curated move that automation must NOT touch.
+
+    Rows flagged `"provisional": true` are deliberately EXCLUDED, so news can supersede them.
+    Without that escape hatch, hand-entering a player froze him out of automation forever:
+    Brenen Lorient sat in this file as an 'out' with the note "eligibility case unresolved",
+    so when he was reported returning on 2026-08-12, every future extraction skipped him for
+    being curated. A provisional row says "this is my best guess pending news" — exactly the
+    case automation should be allowed to resolve. Confirmed rows stay untouchable.
+    """
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "roster_moves.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -136,7 +144,7 @@ def curated_keys() -> set[tuple[str, str]]:
     except (OSError, ValueError):
         return set()
     return {(m.get("sport_id"), norm_name(m.get("player_name", ""))) for m in moves
-            if m.get("player_name")}
+            if m.get("player_name") and not m.get("provisional", False)}
 
 
 def extract(sb, headlines: list[str], today: str) -> list[dict]:

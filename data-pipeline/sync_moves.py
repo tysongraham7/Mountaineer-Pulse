@@ -104,6 +104,14 @@ def main() -> None:
     # runs afterwards. Running this script alone re-inserted a curated Jaire Rawlison
     # alongside the portal's, and the app renders both from one scraped player -- two
     # React children with the same key. Re-check here so order stops mattering.
+    # (sport, normalized name) of curated rows the author marked as a best guess pending
+    # news. For these, a feed row wins in EITHER direction — the whole point is that the
+    # feed is allowed to resolve them, including by reversing them (a player listed 'out'
+    # with an unresolved eligibility case who is later reported returning). Non-provisional
+    # rows keep the stricter same-direction rule, so a confirmed hand entry is never flipped.
+    provisional = {(m.get("sport_id"), norm_name(m.get("player_name", "")))
+                   for m in moves if m.get("provisional", False) and m.get("player_name")}
+
     dupes = 0
     owned = (sb.table("roster_moves").select("id,sport_id,player_name,direction")
              .execute().data or [])
@@ -111,7 +119,9 @@ def main() -> None:
     for r in owned:
         if str(r["id"]).startswith(("pt-", "auto-")):
             continue
-        if any(f["sport_id"] == r["sport_id"] and f["direction"] == r["direction"]
+        loose = (r["sport_id"], norm_name(r["player_name"])) in provisional
+        if any(f["sport_id"] == r["sport_id"]
+               and (loose or f["direction"] == r["direction"])
                and same_person(f["player_name"], r["player_name"]) for f in feed):
             sb.table("roster_moves").delete().eq("id", r["id"]).execute()
             dupes += 1

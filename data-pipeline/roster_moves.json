@@ -893,16 +893,17 @@
     "sport_id": "mbb",
     "player_name": "Brenen Lorient",
     "position": "F",
-    "class_year": "",
-    "direction": "out",
+    "class_year": "Sr",
+    "direction": "in",
     "category": "eligibility",
-    "status": "out of eligibility",
+    "status": "returning",
     "other_school": "",
-    "move_date": "2026-03-16",
+    "move_date": "2026-08-12",
     "source_name": "On3",
     "source_url": "",
-    "notes": "",
-    "alert": "Eligibility case unresolved — still has a chance to return to the 2026-27 roster."
+    "notes": "Returning for a fifth season — the July 31 injunction restored eligibility to the 2022 high-school class. Started at forward in 2025-26 after following Ross Hodge from North Texas; began his career with two seasons at Florida Atlantic. The NCAA's appeal of the ruling is still pending.",
+    "impact": "high",
+    "pulse_neutral": true
   },
   {
     "sport_id": "mbb",
@@ -1019,6 +1020,22 @@
     "source_name": "On3",
     "source_url": "",
     "notes": "Two-way transfer, former A-Sun Preseason Freshman of the Year. Missed 2026 recovering from Tommy John surgery; expected back on the mound for 2027."
+  },
+  {
+    "sport_id": "football",
+    "player_name": "Jordan Scruggs",
+    "position": "CB",
+    "class_year": "Sr",
+    "direction": "in",
+    "category": "eligibility",
+    "status": "returning",
+    "other_school": "",
+    "move_date": "2026-08-05",
+    "source_name": "WVU Athletics",
+    "source_url": "",
+    "notes": "Back for 2026 after the court ruling restored a fifth year. Played all 12 games in 2025: 33 tackles, 2 PBUs, a forced fumble and an 80-yard pick-six at Houston.",
+    "impact": "high",
+    "pulse_neutral": true
   },
   {
     "sport_id": "football",

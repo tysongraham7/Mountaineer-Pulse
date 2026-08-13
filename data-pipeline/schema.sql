@@ -120,6 +120,12 @@ create table if not exists news_items (
 
 create index if not exists news_published_idx on news_items (published_at desc);
 
+-- When this headline was pushed to devices as a breaking-news alert (notify_news.py).
+-- NULL = never pushed. Keeps a repeating scan from re-alerting the same story, and
+-- counting today's non-null rows enforces the daily push cap without a separate log.
+alter table news_items add column if not exists notified_at timestamptz;
+create index if not exists news_items_notified_idx on news_items (notified_at desc);
+
 alter table news_items enable row level security;
 create policy "public read news" on news_items for select using (true);
 

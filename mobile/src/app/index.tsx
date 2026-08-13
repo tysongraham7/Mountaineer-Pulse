@@ -31,6 +31,10 @@ const SPORT_NAME: Record<string, string> = {
   football: 'Football',
   mbb: "Men's Basketball",
   baseball: 'Baseball',
+  // Not a sport — the briefing's athletics-wide section (sponsorships, facilities,
+  // conference moves). Only ever appears as a briefing section, never in SPORT_ORDER,
+  // so it can't leak into the Pulse rows below.
+  program: 'WVU Athletics',
 };
 const SPORT_ORDER = ['football', 'mbb', 'baseball'];
 
@@ -45,6 +49,14 @@ type Snapshot = {
   drivers: Driver[] | null;
 };
 type Rec = { w: number; l: number; season: number };
+
+// A record is shown only while its season is actually being played. Out of season it's
+// last year's news sitting under today's Pulse — WVU football read "4–8 · 2025" all
+// summer. A sport qualifies if it has played a game in the last STALE_RECORD_DAYS; the
+// longest in-season gap is a football bye at ~14 days, so 45 clears every real break
+// while still hiding a season that has ended. Each sport lights up again on its own,
+// the day after its opener, with no season-window table to maintain.
+const STALE_RECORD_DAYS = 45;
 
 function todayLabel() {
   return new Date().toLocaleDateString('en-US', {
@@ -79,8 +91,8 @@ function monthSeries(snaps: { date: string; score: number }[]): number[] {
 export default function PulseScreen() {
   const insets = useSafeAreaInsets();
   const [snaps, setSnaps] = useState<Record<string, Snapshot>>({});
-  const [series, setSeries] = useState<Record<string, { date: string; score: number }[]>>({});
   const [records, setRecords] = useState<Record<string, Rec>>({});
+  const [series, setSeries] = useState<Record<string, { date: string; score: number }[]>>({});
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [nextGame, setNextGame] = useState<Game | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
@@ -117,10 +129,14 @@ export default function PulseScreen() {
     const [snapRes, briefingRes, gamesRes, nextRes] = await Promise.all([
       supabase.from('pulse_snapshots').select('*').order('date', { ascending: true }),
       supabase.from('daily_briefings').select('*').order('date', { ascending: false }).limit(1),
+      // Only the last ~13 months: enough to cover any season in progress, and a record
+      // older than that is never displayed anyway (see STALE_RECORD_DAYS). Avoids pulling
+      // every finished game WVU has ever played on each home-screen load.
       supabase
         .from('games')
-        .select('sport_id,season,home_points,away_points,is_wvu_home,status')
-        .eq('status', 'final'),
+        .select('sport_id,season,home_points,away_points,is_wvu_home,start_date')
+        .eq('status', 'final')
+        .gte('start_date', new Date(Date.now() - 400 * 86400 * 1000).toISOString()),
       // Filtered by DATE, not just status: four baseball games from last March are still
       // marked 'scheduled', and ordering non-final games by date would have made a game
       // five months past the "next" one. A few are fetched so a game already under way
@@ -146,16 +162,18 @@ export default function PulseScreen() {
     setSnaps(latest);
     setSeries(ser);
 
-    // Win–loss for each sport's most recent season.
+    // Win–loss for each sport's most recent season, kept only while that season is live.
     const games = (gamesRes.data ?? []) as {
       sport_id: string;
       season: number;
       home_points: number;
       away_points: number;
       is_wvu_home: boolean;
+      start_date: string | null;
     }[];
     const rec: Record<string, Rec> = {};
     const latestSeason: Record<string, number> = {};
+    const lastPlayed: Record<string, number> = {};
     for (const g of games) latestSeason[g.sport_id] = Math.max(latestSeason[g.sport_id] ?? 0, g.season);
     for (const g of games) {
       if (g.season !== latestSeason[g.sport_id]) continue;
@@ -164,6 +182,14 @@ export default function PulseScreen() {
       const r = (rec[g.sport_id] = rec[g.sport_id] || { w: 0, l: 0, season: g.season });
       if ((wvu ?? 0) > (opp ?? 0)) r.w += 1;
       else r.l += 1;
+      const t = g.start_date ? new Date(g.start_date).getTime() : 0;
+      lastPlayed[g.sport_id] = Math.max(lastPlayed[g.sport_id] ?? 0, t);
+    }
+    // Drop any sport whose season has gone quiet, so the offseason shows no record at all
+    // rather than last year's. Filtering here keeps the render free of the rule.
+    const staleBefore = Date.now() - STALE_RECORD_DAYS * 86400 * 1000;
+    for (const sport of Object.keys(rec)) {
+      if ((lastPlayed[sport] ?? 0) < staleBefore) delete rec[sport];
     }
     setRecords(rec);
     // The first game that hasn't finished in Eastern terms — daysUntil is 0 all day on

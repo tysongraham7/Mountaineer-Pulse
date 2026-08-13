@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -226,6 +227,10 @@ export default function TeamScreen() {
   const [mode, setMode] = useState<(typeof MODES)[number]['id']>('roster');
   const [leaderSeason, setLeaderSeason] = useState<number>(2025);
   const [rosterView, setRosterView] = useState<'projected' | 'last'>('projected');
+  // One query drives every roster section on screen, so searching with the sport filter on
+  // "All" looks through football, basketball and baseball at once. The roster is already
+  // loaded in memory, so this is a plain array filter — no query, no loading state.
+  const [rosterQuery, setRosterQuery] = useState('');
   const [depthView, setDepthView] = useState<'projected' | 'last'>('projected');
   const [selected, setSelected] = useState<Player | null>(null);
 
@@ -374,6 +379,28 @@ export default function TeamScreen() {
               })}
             </View>
           )}
+          {mode === 'roster' && (
+            <View style={[styles.searchWrap, { backgroundColor: c.card, borderColor: c.border }]}>
+              <Ionicons name="search" size={15} color={c.textMuted} />
+              <TextInput
+                value={rosterQuery}
+                onChangeText={setRosterQuery}
+                placeholder="Search name, number, or position"
+                placeholderTextColor={c.textMuted}
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="search"
+                clearButtonMode="never"
+                style={[styles.searchInput, { color: c.text }]}
+              />
+              {rosterQuery.length > 0 && (
+                // Explicit clear button rather than iOS's built-in one, so Android gets it too.
+                <Pressable onPress={() => setRosterQuery('')} hitSlop={10}>
+                  <Ionicons name="close-circle" size={16} color={c.textMuted} />
+                </Pressable>
+              )}
+            </View>
+          )}
           {mode === 'depth' && filter === 'baseball' && (
             <View style={styles.filterRow}>
               {(['projected', 'last'] as const).map((v) => {
@@ -409,6 +436,7 @@ export default function TeamScreen() {
               players={players.filter((p) => p.sport_id === sp)}
               moves={moves.filter((m) => m.sport_id === sp)}
               projected={rosterView === 'projected'}
+              query={rosterQuery}
               c={c}
               onPick={setSelected}
               showHeader={false}
@@ -442,6 +470,7 @@ function RosterSection({
   players,
   moves,
   projected,
+  query,
   c,
   onPick,
   showHeader,
@@ -450,6 +479,7 @@ function RosterSection({
   players: Player[];
   moves: RosterMove[];
   projected: boolean;
+  query: string;
   c: ReturnType<typeof surfaces>;
   onPick: (p: Player) => void;
   showHeader: boolean;
@@ -465,7 +495,14 @@ function RosterSection({
     return cd.startsWith('fr');
   };
   const inMoves = moves.filter((m) => m.direction === 'in');
-  const incomingNames = new Set(inMoves.map((m) => normName(m.player_name)));
+  // An eligibility return is NOT a newcomer. The player was on last year's team and won his
+  // year back, so he belongs with the returners — listing him under Incoming reads as an
+  // outside addition, and with no previous school the card would say "from —". Separated
+  // here so both the roster split below and `incomingNames` treat him as a returner.
+  const isEligibilityReturn = (m: RosterMove) => m.category === 'eligibility';
+  const returnMoves = inMoves.filter(isEligibilityReturn);
+  const newcomerMoves = inMoves.filter((m) => !isEligibilityReturn(m));
+  const incomingNames = new Set(newcomerMoves.map((m) => normName(m.player_name)));
   let returning: Player[] = players;
   let incoming: RosterItem[] = [];
   let departed: RosterItem[] = [];
@@ -483,7 +520,17 @@ function RosterSection({
     // Incoming: curated moves (reuse the scraped record for photo/jersey when it
     // exists, else synth) PLUS the true-freshman class that isn't already curated.
     const rosterByName = new Map(players.map((p) => [normName(playerFullName(p)), p]));
-    const curatedIncoming: RosterItem[] = inMoves.map((m) => {
+    // Eligibility returns rejoin the returning list. The official roster scrape often lags a
+    // court ruling by weeks — Brenen Lorient was reported returning on 2026-08-12 and was
+    // still absent from wvusports.com — so synthesize anyone it hasn't picked up yet, and
+    // skip those it has to avoid listing the same player twice.
+    returning = [
+      ...returning,
+      ...(returnMoves
+        .filter((m) => !rosterByName.has(normName(m.player_name)))
+        .map((m) => synthFromMove(m, sport)) as Player[]),
+    ];
+    const curatedIncoming: RosterItem[] = newcomerMoves.map((m) => {
       const rp = rosterByName.get(normName(m.player_name));
       return rp
         ? { ...rp, incoming: true, fromSchool: m.other_school, moveCategory: m.category, note: m.notes, alert: m.alert }
@@ -519,26 +566,55 @@ function RosterSection({
   const byJersey = (a: RosterItem, b: RosterItem) =>
     (a.jersey ?? 999) - (b.jersey ?? 999) || playerFullName(a).localeCompare(playerFullName(b));
 
-  const sorted = byId(returning).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
-  const incSorted = byId(incoming).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
-  const depSorted = byId(departed).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
-  const combined: RosterItem[] = combineIntoOne ? byId([...returning, ...incoming]).sort(byJersey) : [];
+  // Matches a name, a jersey number (with or without the "#"), a position, or a class.
+  // Substring rather than prefix so "brown" finds "Kevin Brown" and "qb" finds every
+  // quarterback; typing "41" finds #41 without competing with players born in '41.
+  const needle = query.trim().toLowerCase();
+  const matches = (p: RosterItem) =>
+    !needle ||
+    [
+      playerFullName(p),
+      p.position ?? '',
+      p.class_display ?? '',
+      p.jersey != null ? `#${p.jersey}` : '',
+    ]
+      .join(' ')
+      .toLowerCase()
+      .includes(needle);
+
+  const sorted = byId(returning).filter(matches).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
+  const incSorted = byId(incoming).filter(matches).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  const depSorted = byId(departed).filter(matches).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  const combined: RosterItem[] = combineIntoOne
+    ? byId([...returning, ...incoming]).filter(matches).sort(byJersey)
+    : [];
+  const visibleCount = combineIntoOne
+    ? combined.length
+    : sorted.length + incSorted.length + depSorted.length;
 
   return (
     <>
       {showHeader && <SectionTitle text={SPORT_LABEL[sport]} color={c.text} />}
-      {sorted.length === 0 && incSorted.length === 0 && depSorted.length === 0 ? (
+      {visibleCount === 0 ? (
         <Text style={[styles.empty, { color: c.textSecondary }]}>
-          {sport === 'baseball' ? 'Baseball roster isn’t available yet.' : 'No roster loaded.'}
+          {/* Naming the sport matters while searching: with the filter on "All" this renders
+              once per sport, so "no match" needs to say which roster came up empty. */}
+          {needle
+            ? `${SPORT_LABEL[sport]} — no players match “${query.trim()}”.`
+            : sport === 'baseball'
+              ? 'Baseball roster isn’t available yet.'
+              : 'No roster loaded.'}
         </Text>
       ) : (
         <>
           <Text style={[styles.rosterNote, { color: c.textSecondary }]}>
-            {combineIntoOne
-              ? `Projected ${projLabel} · ${combined.length} players · ${incSorted.length} new`
-              : projected
-                ? `Projected ${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
-                : `${lastLabel} roster · ${sorted.length} returning + ${depSorted.length} departed`}
+            {needle
+              ? `${visibleCount} ${visibleCount === 1 ? 'match' : 'matches'} in ${SPORT_LABEL[sport]}`
+              : combineIntoOne
+                ? `Projected ${projLabel} · ${combined.length} players · ${incSorted.length} new`
+                : projected
+                  ? `Projected ${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
+                  : `${lastLabel} roster · ${sorted.length} returning + ${depSorted.length} departed`}
           </Text>
           {(combineIntoOne ? combined : sorted).map((p) => (
             <RosterRow key={p.id} player={p} c={c} onPick={onPick} />
@@ -773,6 +849,9 @@ function moveLabel(m: RosterMove): string {
     if (cat === 'transfer') return 'Transfer In';
     if (cat === 'juco') return 'JUCO Signee';
     if (cat === 'hs' || cat === 'recruit') return 'HS Signee';
+    // A player whose eligibility came BACK (court ruling, waiver) and who is on the
+    // roster again — the mirror of the 'out' case below, not a generic addition.
+    if (cat === 'eligibility') return 'Eligibility Return';
     return 'Addition';
   }
   if (cat === 'transfer') return 'Transfer Out';
@@ -1007,6 +1086,20 @@ const styles = StyleSheet.create({
   segBtn: { flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: 'center' },
   segText: { fontSize: 12, fontFamily: Font.bodyBold },
   filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4, flexWrap: 'wrap' },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  // No vertical padding: on Android a TextInput adds its own, which would push the text
+  // off-centre inside the fixed-height row above.
+  searchInput: { flex: 1, fontFamily: Font.body, fontSize: 14, padding: 0 },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   chipText: { fontSize: 12, fontFamily: Font.bodySemi },
   sectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 8 },

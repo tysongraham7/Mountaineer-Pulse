@@ -2,10 +2,11 @@
 Mountaineer Pulse - Daily AI Briefing (per-sport, research-backed)
 =================================================================
 Claude reads the day's WVU headlines + confirmed roster moves + Pulse, then uses
-web search to READ the actual articles and writes a briefing split into three
-per-sport sections (Football / Men's Basketball / Baseball). Each section has a
-few topics, a couple of sentences each — real detail (draft rounds, slot money,
-who's staying/leaving), not one-liners. A sport with no genuine news is omitted.
+web search to READ the actual articles and writes a briefing split into sections
+(Football / Men's Basketball / Baseball, plus a program-wide "WVU Athletics"
+section for news that belongs to no single team). Each section has a few topics,
+a couple of sentences each — real detail (draft rounds, slot money, who's
+staying/leaving), not one-liners. A section with no genuine news is omitted.
 
 Why search: our stored links are Google News redirects that don't fetch cleanly,
 so we let Claude search the open web for each day's WVU stories and read the real
@@ -37,6 +38,16 @@ MODEL = "claude-sonnet-5"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 12}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
 SPORT_ORDER = ["football", "mbb", "baseball"]
+
+# The athletics-wide section: news that belongs to the program rather than to one team
+# (a jersey-patch sponsor across all 18 sports, a facilities project, a conference move).
+# Such stories arrive UNCLASSIFIED from the news feed — they carry no sport word — so
+# without a section of their own the only place they could go was nowhere, and the
+# Antero jersey-patch deal (the first in school history) was dropped on 2026-08-05.
+# Ordered last: team news still leads the briefing.
+PROGRAM = "program"
+SECTION_NAME = {**SPORT_NAME, PROGRAM: "WVU Athletics"}
+SECTION_ORDER = SPORT_ORDER + [PROGRAM]
 
 # Search budget: web search is the cost driver, but it's also what gives the briefing its real
 # detail. Generous on a busy news day, self-limiting on a quiet one. Prompt caching (below) makes
@@ -123,7 +134,9 @@ def build_context(sb) -> str:
         lines.append("\n=== EDITOR'S NOTES (hand-verified — treat as CONFIRMED fact, and lead "
                      "with these if they outrank the headlines) ===")
         for n in curated:
-            lines.append(f"- [{SPORT_NAME.get(n['sport_id'], n['sport_id'])}, {n['date']}] {n['note']}")
+            # A NULL sport_id is the athletics-wide lane (see PROGRAM above), not missing data.
+            sid = n["sport_id"] or PROGRAM
+            lines.append(f"- [{SECTION_NAME.get(sid, sid)}, {n['date']}] {n['note']}")
 
     snaps = sb.table("pulse_snapshots").select("*").order("date", desc=True).execute().data
     seen, pulse_lines = set(), []
@@ -170,7 +183,12 @@ SYSTEM = (
     "2. Rumors are not facts. 'reportedly', 'expected to', 'targets', 'linked', 'could' = mark clearly "
     "as such, never as done deals.\n"
     "3. WVU players being drafted (MLB/NFL) IS notable program news — include it. But ignore unrelated "
-    "alumni pro-career news, off-field/legal/personal stories, and other teams.\n"
+    "alumni pro-career news, personal/legal stories about individuals, and other teams. 'Off-field' "
+    "means a person's private life, NOT the athletic department: DEPARTMENT news IS real news and "
+    "belongs in the briefing — sponsorship and jersey/uniform deals, NIL and revenue-share moves, "
+    "facilities, ticketing, conference realignment, scheduling agreements, an AD or administrative "
+    "hire. A first-ever jersey-patch sponsor is a bigger story than a routine practice report, so "
+    "never drop one just because it names no player.\n"
     "4. CURRENT program only. Exclude commitments from FUTURE high-school recruiting classes a year+ "
     "away (e.g. class of 2027 or later high-schoolers). Incoming college transfers for the upcoming "
     "season ARE current.\n"
@@ -185,16 +203,22 @@ SYSTEM = (
     "watching. A quiet day should read as a quiet day, not a rerun. And judge freshness by DATE: "
     "if a development (a commitment, a return, a signing) happened more than ~3 days ago, it is NOT "
     "new — do not lead with it just because a web search resurfaced it. Today's date is given below.\n\n"
+    "7. THE 'program' SECTION is for athletics-wide news that belongs to no single team — a "
+    "sponsorship or jersey deal covering all sports, a facilities project, a conference or "
+    "scheduling move, a department-level hire. These stories reach you UNLABELLED (under 'General "
+    "WVU' or an editor's note), because they name no sport. Put them here rather than forcing them "
+    "into a team's section, and rather than dropping them. Same bar as everywhere else: only if a "
+    "fan would care.\n\n"
     "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
     "{\n"
     '  "intro": "<one short, warm greeting line>",\n'
     '  "sections": [\n'
-    '    {"sport": "football|mbb|baseball",\n'
+    '    {"sport": "football|mbb|baseball|program",\n'
     '     "items": [{"topic": "<3-6 word headline>", "body": "<2-3 factual sentences with real detail>"}]}\n'
     "  ]\n"
     "}\n"
-    "Include a section ONLY for sports with real news (0-3 topics each). Order sections football, then "
-    "men's basketball, then baseball. Keep each body tight (~2-3 sentences)."
+    "Include a section ONLY where there is real news (0-3 topics each). Order sections football, then "
+    "men's basketball, then baseball, then program. Keep each body tight (~2-3 sentences)."
 )
 
 
@@ -286,7 +310,7 @@ def _create_resilient(client, kwargs, max_attempts: int = 4):
 def to_plaintext(intro: str, sections: list) -> str:
     parts = [intro.strip()] if intro else []
     for sec in sections:
-        parts.append(f"\n{SPORT_NAME.get(sec['sport'], sec['sport']).upper()}")
+        parts.append(f"\n{SECTION_NAME.get(sec['sport'], sec['sport']).upper()}")
         for it in sec.get("items", []):
             parts.append(f"• {it.get('topic', '').strip()}: {it.get('body', '').strip()}")
     return "\n".join(parts).strip()
@@ -305,7 +329,7 @@ def clean_sections(obj) -> tuple[str, list]:
     out = []
     raw = obj.get("sections", []) if isinstance(obj, dict) else []
     by_sport = {s.get("sport"): s for s in raw if isinstance(s, dict)}
-    for sp in SPORT_ORDER:  # enforce football -> mbb -> baseball order
+    for sp in SECTION_ORDER:  # enforce football -> mbb -> baseball -> program order
         sec = by_sport.get(sp)
         if not sec:
             continue
@@ -370,7 +394,7 @@ def main() -> None:
     print(f"Daily Briefing ({today}) — {MODEL}, {searches} searches\n" + "-" * 60)
     print(intro)
     for sec in sections:
-        print(f"\n{SPORT_NAME[sec['sport']].upper()}")
+        print(f"\n{SECTION_NAME[sec['sport']].upper()}")
         for it in sec["items"]:
             print(f"  • {it['topic']}: {it['body']}")
     print("-" * 60)

@@ -30,11 +30,28 @@ load_dotenv()
 SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
-QUERY = '"West Virginia" Mountaineers (football OR basketball OR baseball)'
-RSS_URL = (
-    "https://news.google.com/rss/search"
-    f"?q={requests.utils.quote(QUERY)}&hl=en-US&gl=US&ceid=US:en"
-)
+# One combined query used to be the whole feed, and it quietly starved the quiet sports:
+# Google News returns a bounded, relevance-ranked result set, so through August every slot
+# went to football fall camp. Brenen Lorient being reported as returning on 2026-08-12 —
+# the biggest basketball story of the offseason — never entered the table at all.
+#
+# Each query now gets its own result budget, so a busy football cycle can't crowd basketball
+# or baseball out. Results are merged and de-duplicated by the same (source, headline) hash
+# and near-duplicate pass used below, so overlap between queries costs nothing.
+QUERIES = [
+    '"West Virginia" Mountaineers (football OR basketball OR baseball)',
+    '"West Virginia" Mountaineers football',
+    'WVU Mountaineers basketball',
+    'WVU Mountaineers baseball',
+    # Athletics-wide: sponsorship, facilities, realignment, NIL. These name no sport, so
+    # the queries above cannot reach them (see the PROGRAM lane in generate_briefing.py).
+    'WVU Athletics (sponsorship OR facilities OR "Big 12" OR NIL OR revenue)',
+]
+
+
+def rss_url(query: str) -> str:
+    return ("https://news.google.com/rss/search"
+            f"?q={requests.utils.quote(query)}&hl=en-US&gl=US&ceid=US:en")
 
 # Sport keyword fallback -> sport_id (first match wins). Space-padded position
 # abbreviations (" ol ", " wr ", ...) are strong football signals; "point guard"
@@ -204,10 +221,19 @@ def main() -> None:
     full, last = build_name_index(sb)
     print(f"name index: {len(full)} full names, {len(last)} unambiguous surnames")
 
-    resp = requests.get(RSS_URL, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
-    resp.raise_for_status()
-    root = ET.fromstring(resp.content)
-    items = root.findall(".//item")
+    # One flaky query must not cost the whole feed — collect what each returns and carry on.
+    items = []
+    for q in QUERIES:
+        try:
+            resp = requests.get(rss_url(q), headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            resp.raise_for_status()
+            got = ET.fromstring(resp.content).findall(".//item")
+            items += got
+            print(f"  {len(got):>3} items  <- {q}")
+        except (requests.RequestException, ET.ParseError) as e:
+            print(f"  (query failed, skipping: {q} — {type(e).__name__})")
+    if not items:
+        die("Every news query failed — nothing to sync.")
 
     rows = []
     seen = set()

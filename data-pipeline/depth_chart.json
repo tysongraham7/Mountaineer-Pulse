@@ -295,11 +295,9 @@
     "pos_order": 4,
     "rank": 1,
     "player_name": "Brenen Lorient",
-    "class_year": "",
-    "status": "questionable",
-    "note": "Fifth year restored by injunction",
-    "alert": "A federal injunction gave the 2022 class a fifth year — he's eligible again, but it's under appeal and unsigned",
-    "keep_despite_out": true
+    "class_year": "Sr.",
+    "status": "active",
+    "note": "Returning starter — fifth year restored"
   },
   {
     "sport_id": "mbb",
