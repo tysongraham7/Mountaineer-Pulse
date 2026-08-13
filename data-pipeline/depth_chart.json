@@ -509,6 +509,17 @@
     "position": "FL",
     "pos_order": 5,
     "rank": 3,
+    "player_name": "Cyrus Traugh",
+    "class_year": "R-Jr.",
+    "status": "active",
+    "note": ""
+  },
+  {
+    "sport_id": "football",
+    "unit": "Offense",
+    "position": "FL",
+    "pos_order": 5,
+    "rank": 4,
     "player_name": "Keon Hutchins",
     "class_year": "Jr.",
     "status": "active",
