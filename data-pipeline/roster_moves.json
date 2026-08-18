@@ -1023,22 +1023,6 @@
   },
   {
     "sport_id": "football",
-    "player_name": "Jordan Scruggs",
-    "position": "CB",
-    "class_year": "Sr",
-    "direction": "in",
-    "category": "eligibility",
-    "status": "returning",
-    "other_school": "",
-    "move_date": "2026-08-05",
-    "source_name": "WVU Athletics",
-    "source_url": "",
-    "notes": "Back for 2026 after the court ruling restored a fifth year. Played all 12 games in 2025: 33 tackles, 2 PBUs, a forced fumble and an 80-yard pick-six at Houston.",
-    "impact": "high",
-    "pulse_neutral": true
-  },
-  {
-    "sport_id": "football",
     "player_name": "Destin Achi",
     "position": "LB",
     "class_year": "",
