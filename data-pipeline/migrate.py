@@ -45,6 +45,12 @@ ALTERS = [
         created_at    timestamptz not null default now()
     );""",
     "create index if not exists api_usage_created_idx on api_usage (created_at desc);",
+    # api_usage is internal cost telemetry — the app never reads it, only the pipeline writes
+    # it (with the secret key, which bypasses RLS) and read_usage.py reads it. It shipped
+    # without RLS, and Supabase grants anon full DML on public tables by default, so the
+    # publishable key inside every install could read the spend or TRUNCATE the table.
+    # RLS on with NO policy is the correct shape here: same pattern as error_reports reads.
+    "alter table api_usage enable row level security;",
     "alter table players add column if not exists bio text;",
     "alter table players add column if not exists bio_url text;",
     "alter table players add column if not exists bio_fetched_at timestamptz;",
