@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Skeleton } from '@/components/skeleton';
@@ -16,6 +16,11 @@ import { PulseExplainer } from './pulse-explainer';
 const c = surfaces(true);
 
 const SCRUB_DEMO_KEY = 'mp-scrub-demo-seen';
+
+// Every share carries the store link — a screenshot of a Pulse score is worth nothing to
+// someone who can't find the app, and search won't find it for them ("WVU" isn't in the
+// subtitle). The link is the whole point of the share.
+const APP_STORE_URL = 'https://apps.apple.com/us/app/mountaineer-pulse/id6791230388';
 
 const SPORT_NAME: Record<string, string> = {
   football: 'Football',
@@ -192,6 +197,28 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
     return win.length ? win[win.length - 1].note : null;
   })();
 
+  // Shares the score plus WHY it's there. A bare number means nothing to someone outside the
+  // app; "82, up after Lorient's return" is the part a fan actually wants to post. Text rather
+  // than an image because that ships over the air — rendering the card needs a native module
+  // and a new build.
+  const onShare = async () => {
+    if (!curSport || !current) return;
+    const name = SPORT_NAME[curSport] ?? curSport;
+    const rank = current.ranking ? ` · #${current.ranking} nationally` : '';
+    const driver = current.drivers?.[0]?.label;
+    const lines = [
+      `WVU ${name} Pulse: ${current.score}/100${rank}`,
+      noteForWindow || driver || null,
+      '',
+      `via Mountaineer Pulse — ${APP_STORE_URL}`,
+    ].filter(Boolean) as string[];
+    try {
+      await Share.share({ message: lines.join('\n') });
+    } catch {
+      // User dismissed the sheet, or the OS refused it. Nothing to recover from.
+    }
+  };
+
   // Today's per-sport briefing, surfaced on the chart's TODAY point. This reuses the same
   // daily briefing shown on the home tab (that card is untouched) — here we show only this
   // sport's section, and only when the scrubbed point is actually today.
@@ -243,8 +270,15 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
             <Ionicons name="chevron-back" size={20} color={c.textSecondary} />
           </Pressable>
           <Text style={styles.headerTitle}>{curSport ? SPORT_NAME[curSport] : ''} Pulse</Text>
-          {/* Invisible spacer — balances the back button so the title stays centered. */}
-          <View style={{ width: 32, height: 32 }} />
+          {/* Sits where the spacer that balanced the back button used to, so the title stays
+              centered. Hidden until the score loads — sharing "undefined/100" helps nobody. */}
+          {current ? (
+            <Pressable onPress={onShare} hitSlop={12} style={styles.circleBtn}>
+              <Ionicons name="share-outline" size={18} color={c.textSecondary} />
+            </Pressable>
+          ) : (
+            <View style={{ width: 32, height: 32 }} />
+          )}
         </View>
 
         {loading ? (

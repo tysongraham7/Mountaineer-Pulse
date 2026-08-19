@@ -61,8 +61,13 @@ export function ReportModal({
     }
   }, [visible, initialCategory]);
 
+  // A one-character report is worse than none: it burns an alert email and tells you
+  // nothing. Two real reports ("I", "Basketball 8/17") arrived before this existed.
+  const MIN_MESSAGE = 12;
+  const tooShort = message.trim().length < MIN_MESSAGE;
+
   const submit = async () => {
-    if (busy || !message.trim()) return;
+    if (busy || tooShort) return;
     setBusy(true);
     setNotice(null);
     const res = await submitErrorReport(category, message, context);
@@ -156,9 +161,15 @@ export function ReportModal({
                   </View>
                 ) : null}
 
+                {tooShort && message.trim().length > 0 ? (
+                  <Text style={styles.tooShort}>
+                    A few more words, please — what did you expect to see instead?
+                  </Text>
+                ) : null}
+
                 <Pressable
-                  style={[styles.primary, (busy || !message.trim()) && { opacity: 0.5 }]}
-                  disabled={busy || !message.trim()}
+                  style={[styles.primary, (busy || tooShort) && { opacity: 0.5 }]}
+                  disabled={busy || tooShort}
                   onPress={submit}>
                   {busy ? (
                     <ActivityIndicator color={Brand.onGold} />
@@ -247,6 +258,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: c.textSecondary,
+  },
+  // Only appears once they've started typing — nagging an empty field is just rude.
+  tooShort: {
+    fontFamily: Font.body,
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: c.textMuted,
+    marginTop: 10,
   },
   primary: {
     marginTop: 16,

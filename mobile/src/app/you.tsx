@@ -19,6 +19,9 @@ const SPORTS = [
 ];
 
 const SITE_URL = 'https://tysongraham7.github.io/Mountaineer-Pulse/';
+// `?action=write-review` opens the App Store straight onto the review composer rather than
+// the product page, which is the difference between a tap and a scavenger hunt.
+const REVIEW_URL = 'https://apps.apple.com/app/id6791230388?action=write-review';
 
 /**
  * The row appears from this app version onward.
@@ -156,6 +159,26 @@ export default function YouScreen() {
           </View>
         </>
       )}
+
+      {/* Deliberately a link the user chooses to tap, not Apple's native review prompt.
+          The native prompt is capped at three per user per year and needs a native module
+          (so, a new build); this ships over the air and only reaches people who go looking —
+          which skews toward the ones inclined to leave a good review anyway. */}
+      <SectionLabel style={{ marginTop: 22, marginBottom: 4 } as never}>Enjoying the app?</SectionLabel>
+      <Text style={styles.hint}>
+        Ratings are how other WVU fans find it. It takes about ten seconds.
+      </Text>
+      <View style={styles.card}>
+        <Pressable
+          style={[styles.row, { borderBottomWidth: 0 }]}
+          onPress={() => Linking.openURL(REVIEW_URL)}>
+          <View style={[styles.tile, { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }]}>
+            <Ionicons name="star-outline" size={18} color={Brand.gold} />
+          </View>
+          <Text style={styles.rowLabel}>Rate Mountaineer Pulse</Text>
+          <Ionicons name="open-outline" size={17} color={c.textMuted} />
+        </Pressable>
+      </View>
 
       <SectionLabel tone="muted" style={{ marginTop: 22, marginBottom: 8 } as never}>About</SectionLabel>
       <View style={styles.card}>
