@@ -600,11 +600,11 @@ function RosterSection({
   const sorted = byId(returning).filter(matches).sort((a, b) => (a.jersey ?? 999) - (b.jersey ?? 999));
   const incSorted = byId(incoming).filter(matches).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
   const depSorted = byId(departed).filter(matches).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
+  // Numbered order for both, the way a program prints a roster. Anyone without a number yet
+  // (a newcomer synthesized from a move, before the official roster assigns one) falls to the
+  // bottom via the 999 fallback in byJersey, with name breaking ties.
   const combined: RosterItem[] = combineIntoOne
-    ? byId([...returning, ...incoming]).filter(matches)
-        .sort(sport === 'football'
-          ? byJersey
-          : (a, b) => playerFullName(a).localeCompare(playerFullName(b)))
+    ? byId([...returning, ...incoming]).filter(matches).sort(byJersey)
     : [];
   const visibleCount = combineIntoOne
     ? combined.length

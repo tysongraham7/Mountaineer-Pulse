@@ -33,6 +33,8 @@ import requests
 from dotenv import load_dotenv
 from supabase import create_client
 
+from sync_rosters import fetch
+
 load_dotenv()
 
 SB_URL = os.getenv("SUPABASE_URL")
@@ -116,10 +118,10 @@ def extract_bio(page: str) -> str | None:
 
 def bio_urls(roster_url: str) -> dict[str, str]:
     """player id (as on the site) -> absolute bio URL, read off the roster page."""
-    r = requests.get(roster_url, headers=UA, timeout=30)
-    if r.status_code != 200:
-        die(f"{roster_url} returned HTTP {r.status_code}")
-    urls = {pid: SITE + path for path, pid in LINK_RE.findall(r.text)}
+    # Same retrying fetch as everywhere else here: this one page failing used to abort the
+    # whole bio sync before a single player was looked at.
+    page = fetch(roster_url)
+    urls = {pid: SITE + path for path, pid in LINK_RE.findall(page)}
     if not urls:
         die(f"no player links found on {roster_url} -- the markup changed")
     return urls
@@ -159,14 +161,13 @@ def sync_sport(sb, sport: str, roster_url: str, force: bool, limit: int | None) 
             no_link.append(name)
             continue
         try:
-            r = requests.get(url, headers=UA, timeout=30)
+            # Retries with backoff: a single 30s timeout used to drop the player silently,
+            # and 12 were lost that way in one run on 2026-08-19.
+            page = fetch(url)
         except requests.RequestException as e:
             failed.append(f"{name} ({e.__class__.__name__})")
             continue
-        if r.status_code != 200:
-            failed.append(f"{name} (HTTP {r.status_code})")
-            continue
-        bio = extract_bio(r.text)
+        bio = extract_bio(page)
         if not bio:
             # A real state, not an error: freshmen sometimes have an empty bio.
             no_bio.append(name)
