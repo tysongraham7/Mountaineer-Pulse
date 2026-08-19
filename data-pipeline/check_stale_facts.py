@@ -51,15 +51,39 @@ def die(msg: str) -> None:
     sys.exit(1)
 
 
+# A passed date only matters if it was a DEADLINE. Notes legitimately reference past events
+# ("the July 31 injunction restored eligibility", "signed on June 26") and flagging those
+# produced pure noise — Brenen Lorient's note was reported stale on 2026-08-19 for correctly
+# describing a ruling that happened. Requiring deadline language keeps what the check is
+# actually for: a decision that was pending by some date and now silently isn't.
+DEADLINE_CUES = (
+    "until", "deadline", "by ", "decide", "decision", "pending", "awaiting", "expected",
+    "must ", "has to ", "window", "no later", "ahead of", "before ",
+)
+
+
+def _is_deadline(text: str, start: int, end: int) -> bool:
+    """True if a deadline cue sits right next to this date.
+
+    Proximity matters, not mere presence: Lorient's note says "the July 31 injunction ..."
+    AND, two sentences later, "the appeal is still pending". A whole-text search sees
+    'pending' and flags a date that is plainly historical. Only the words immediately
+    around the date tell you which kind of date it is.
+    """
+    window = f"{text[max(0, start - 55):start]} {text[end:end + 30]}".lower()
+    return any(cue in window for cue in DEADLINE_CUES)
+
+
 def past_dates_in(text: str, today: date) -> list[date]:
-    """Calendar dates in `text` that are already in the past — 'YYYY-MM-DD' or 'Mon DD' /
-    'Month DD'. A month-name date is read as this year (a deadline is about the current cycle)."""
+    """Calendar dates in `text` that are already in the past AND read as a deadline —
+    'YYYY-MM-DD' or 'Mon DD' / 'Month DD'. A month-name date is read as this year (a deadline
+    is about the current cycle). A date with no deadline cue beside it is history, not staleness."""
     out: list[date] = []
     t = text or ""
     for m in re.finditer(r"\b(20\d\d)-(\d{2})-(\d{2})\b", t):
         try:
             d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-            if d < today:
+            if d < today and _is_deadline(t, m.start(), m.end()):
                 out.append(d)
         except ValueError:
             pass
@@ -72,7 +96,7 @@ def past_dates_in(text: str, today: date) -> list[date]:
             d = date(today.year, mon, day)
         except ValueError:
             continue
-        if d < today:
+        if d < today and _is_deadline(t, m.start(), m.end()):
             out.append(d)
     return out
 
