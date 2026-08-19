@@ -145,9 +145,18 @@ const ROSTER_SEASON_LABELS: Record<string, { projected: string; last: string }> 
   baseball: { projected: '2027', last: '2026' },
 };
 
+// Whether the upcoming roster is still a projection. Football's 2026 team is settled now —
+// camp is open and the depth chart is real — so calling it "Proj." undersells it. Basketball
+// and baseball are still months out and genuinely projected.
+const PROJECTED_SPORTS = new Set(['mbb', 'baseball']);
+
 // A projected-incoming player synthesized from a roster move (no photo/jersey yet).
 type RosterItem = Player & {
   incoming?: boolean;
+  // Won his eligibility back and is on the team again. Distinct from `incoming`: he is not
+  // arriving from anywhere, so the row must not read "from —" or borrow the newcomer label
+  // (which for category 'eligibility' says "Out of Elig." — the exact opposite of the truth).
+  returned?: boolean;
   departed?: boolean;
   fromSchool?: string | null;
   moveCategory?: string | null;
@@ -372,7 +381,7 @@ export default function TeamScreen() {
                     style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
                     <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>
                       {label}
-                      {v === 'projected' ? ' · Proj.' : ''}
+                      {v === 'projected' && PROJECTED_SPORTS.has(filter) ? ' · Proj.' : ''}
                     </Text>
                   </Pressable>
                 );
@@ -413,7 +422,7 @@ export default function TeamScreen() {
                     style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
                     <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>
                       {label}
-                      {v === 'projected' ? ' · Proj.' : ''}
+                      {v === 'projected' && PROJECTED_SPORTS.has(filter) ? ' · Proj.' : ''}
                     </Text>
                   </Pressable>
                 );
@@ -485,6 +494,8 @@ function RosterSection({
   showHeader: boolean;
 }) {
   const projLabel = ROSTER_SEASON_LABELS[sport]?.projected ?? '';
+  // "Projected 2026" reads as guesswork for a football team that has already reported to camp.
+  const projWord = PROJECTED_SPORTS.has(sport) ? 'Projected ' : '';
   const lastLabel = ROSTER_SEASON_LABELS[sport]?.last ?? '';
   // The scraped roster is already the UPCOMING season, so a TRUE freshman on it is a
   // brand-new arrival (this year's HS class), not a last-year player. Redshirt freshmen
@@ -528,7 +539,8 @@ function RosterSection({
       ...returning,
       ...(returnMoves
         .filter((m) => !rosterByName.has(normName(m.player_name)))
-        .map((m) => synthFromMove(m, sport)) as Player[]),
+        .map((m) => ({ ...synthFromMove(m, sport), incoming: false, returned: true,
+                       fromSchool: null })) as Player[]),
     ];
     const curatedIncoming: RosterItem[] = newcomerMoves.map((m) => {
       const rp = rosterByName.get(normName(m.player_name));
@@ -561,7 +573,10 @@ function RosterSection({
   // and the only way a late arrival is findable without knowing to scroll to a section.
   // Basketball and baseball newcomers are mostly synthesized from moves with no number
   // yet, so a jersey sort would strand them all at the bottom; those keep the split.
-  const combineIntoOne = sport === 'football' && projected;
+  // One numbered list rather than Returning/Incoming sections. Football reads best by jersey
+  // (the scrape numbers newcomers too); basketball newcomers are mostly synthesized from moves
+  // with no number yet, so a jersey sort would strand them all at the bottom — sort by name.
+  const combineIntoOne = projected && (sport === 'football' || sport === 'mbb');
   // Jersey numbers repeat in football (one offense, one defense), so name breaks the tie.
   const byJersey = (a: RosterItem, b: RosterItem) =>
     (a.jersey ?? 999) - (b.jersey ?? 999) || playerFullName(a).localeCompare(playerFullName(b));
@@ -586,7 +601,10 @@ function RosterSection({
   const incSorted = byId(incoming).filter(matches).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
   const depSorted = byId(departed).filter(matches).sort((a, b) => playerFullName(a).localeCompare(playerFullName(b)));
   const combined: RosterItem[] = combineIntoOne
-    ? byId([...returning, ...incoming]).filter(matches).sort(byJersey)
+    ? byId([...returning, ...incoming]).filter(matches)
+        .sort(sport === 'football'
+          ? byJersey
+          : (a, b) => playerFullName(a).localeCompare(playerFullName(b)))
     : [];
   const visibleCount = combineIntoOne
     ? combined.length
@@ -611,9 +629,9 @@ function RosterSection({
             {needle
               ? `${visibleCount} ${visibleCount === 1 ? 'match' : 'matches'} in ${SPORT_LABEL[sport]}`
               : combineIntoOne
-                ? `Projected ${projLabel} · ${combined.length} players · ${incSorted.length} new`
+                ? `${projWord}${projLabel} · ${combined.length} players · ${incSorted.length} new`
                 : projected
-                  ? `Projected ${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
+                  ? `${projWord}${projLabel} · ${sorted.length} returning + ${incSorted.length} incoming`
                   : `${lastLabel} roster · ${sorted.length} returning + ${depSorted.length} departed`}
           </Text>
           {(combineIntoOne ? combined : sorted).map((p) => (
@@ -669,7 +687,11 @@ function RosterRow({ player, c, onPick }: { player: RosterItem; c: ReturnType<ty
           </View>
         ) : null}
       </View>
-      {player.incoming ? (
+      {player.returned ? (
+        <View style={[styles.incTag, { borderColor: Brand.gold }]}>
+          <Text style={[styles.incTagText, { color: Brand.gold }]}>Returning</Text>
+        </View>
+      ) : player.incoming ? (
         <View style={[styles.incTag, { borderColor: Brand.win }]}>
           <Text style={[styles.incTagText, { color: Brand.win }]}>
             {(player.moveCategory && CATEGORY_LABEL[player.moveCategory]) || 'New'}

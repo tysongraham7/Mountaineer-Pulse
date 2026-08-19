@@ -13,9 +13,11 @@ Run:  python sync_rosters.py
 """
 
 import html as htmllib
+import json
 import os
 import re
 import sys
+import time
 
 import requests
 from dotenv import load_dotenv
@@ -104,8 +106,33 @@ def parse_card(block: str) -> dict | None:
     }
 
 
+def fetch(url: str, attempts: int = 3) -> str:
+    """GET with retries. wvusports.com intermittently takes well over 30s to answer, and a
+    single timeout used to abort the whole sync — which, before the reordering above, meant
+    an emptied roster table. Backs off between tries and raises only if all of them fail."""
+    delay = 5.0
+    last: Exception | None = None
+    for i in range(1, attempts + 1):
+        try:
+            html = requests.get(url, headers=UA, timeout=60).text
+            # A truncated body is the dangerous failure: these pages are ~4MB and a short
+            # read returns without raising, then parses to zero players and looks like an
+            # empty roster rather than a network problem. Insist the document is complete.
+            if "</html>" not in html[-2000:]:
+                raise requests.RequestException(
+                    f"incomplete response ({len(html)} bytes, no closing </html>)")
+            return html
+        except requests.RequestException as e:
+            last = e
+            if i < attempts:
+                print(f"    (fetch failed {type(e).__name__} — retry {i}/{attempts - 1} in {delay:.0f}s)")
+                time.sleep(delay)
+                delay *= 2
+    raise last  # type: ignore[misc]
+
+
 def scrape(url: str) -> list[dict]:
-    html = requests.get(url, headers=UA, timeout=30).text
+    html = fetch(url)
     starts = [m.start() for m in re.finditer(r'class="[^"]*s-person-card--list', html)]
     players, seen = [], set()
     for i, start in enumerate(starts):
@@ -133,24 +160,57 @@ def main() -> None:
         if r.get("bio")
     }
 
+    # Scrape EVERYTHING before touching the table. This used to delete first and scrape
+    # after, so a single slow response from wvusports.com left the app with an empty roster:
+    # on 2026-08-19 a read timeout on the baseball page wiped all 48 baseball players and
+    # left them gone. A failed scrape must cost nothing.
+    scraped: list[tuple[str, list]] = []
+    for sport_id, url in SPORTS:
+        players = scrape(url)
+        if not players:
+            die(f"{sport_id}: scrape returned no players — refusing to rebuild the roster "
+                f"(existing rows left untouched).")
+        for p in players:
+            p["sport_id"] = sport_id
+        scraped.append((sport_id, players))
+
+    # Every page answered, so it is safe to swap.
     sb.table("players").delete().neq("id", "___none___").execute()
 
     carried = 0
-    for sport_id, url in SPORTS:
-        players = scrape(url)
+    for sport_id, players in scraped:
         for p in players:
-            p["sport_id"] = sport_id
             prev = kept.get(p["id"])
             if prev:
                 p["bio"] = prev["bio"]
                 p["bio_url"] = prev["bio_url"]
                 p["bio_fetched_at"] = prev["bio_fetched_at"]
                 carried += 1
-        if players:
-            sb.table("players").upsert(players).execute()
+        sb.table("players").upsert(players).execute()
         withphoto = sum(1 for p in players if p["photo_url"])
         withtown = sum(1 for p in players if p["home_city"])
         print(f"  {sport_id:<9} {len(players)} players ({withphoto} photos, {withtown} hometowns)")
+
+    # Curated additions, applied AFTER the rebuild so they survive the wipe. For players the
+    # official roster page has dropped but who are on the team — Brenen Lorient won his
+    # eligibility back in court while wvusports.com still showed last season's roster, so the
+    # scrape could not see him and he appeared with no photo, bio or stats. Remove an entry
+    # here once the official page catches up and the scrape takes over.
+    add_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "roster_additions.json")
+    try:
+        with open(add_path, encoding="utf-8") as f:
+            additions = [{k: v for k, v in a.items() if not k.startswith("_")}
+                         for a in json.load(f)]
+    except (OSError, ValueError):
+        additions = []
+    if additions:
+        # Don't fight the scrape: if the official page now lists them, its row wins.
+        have = {r["id"] for r in (sb.table("players").select("id").execute().data or [])}
+        fresh = [a for a in additions if a.get("id") not in have]
+        if fresh:
+            sb.table("players").upsert(fresh).execute()
+        print(f"  curated additions: {len(fresh)} added, {len(additions) - len(fresh)} "
+              f"already on the official roster")
 
     print(f"  bios carried across the rebuild: {carried}/{len(kept)}")
     print("\n[OK] Official rosters scraped to Supabase.")
