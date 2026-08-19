@@ -59,6 +59,26 @@ removed from the roster, a departure, or a signee who signs pro instead of enrol
 Extract ONLY what the headlines state. Never add a player, position, school, or claim from
 your own knowledge. If the headlines do not name a specific player, extract nothing.
 
+A MOVE IS AN EVENT THAT JUST HAPPENED. The headline must report the move itself. Fall camp
+produces a flood of profile and retrospective pieces about players who are ALREADY on the
+team, and those are NOT moves no matter how much they sound like arrivals:
+  "How X's different stops prepared him for WVU"        -> NOT a move (profile)
+  "What X learned from being tested in the Big Ten"     -> NOT a move (profile)
+  "What X's walk-on path taught him before arriving"    -> NOT a move (profile)
+  "Freshman RB X is who the coach thought he was"       -> NOT a move (analysis)
+  "X's dismissal from [other school] brings his WVU
+   departure back into focus"                           -> NOT a move (he left long ago)
+Phrases like "arriving at", "his path to", "before he got to", "prepared him for" describe
+a journey already completed. Extract only on event verbs reporting something NEW: signs,
+commits, transfers to/from, joins, enrolls, enters the portal, leaves, is dismissed,
+is removed from the roster, announces his return.
+
+You are given the CURRENT ROSTER below. Use it:
+- A player already on that roster is NOT arriving. Do not extract an "in" for him unless the
+  headline reports a brand-new move that happened now.
+- A player NOT on that roster has already left or never joined, so he cannot depart. Do not
+  extract an "out" for him.
+
 DO NOT extract:
 - Former players / alumni, or anything about their pro careers.
 - Eligibility lawsuits, waivers, or court cases — those are status news, not roster moves,
@@ -147,6 +167,39 @@ def curated_keys() -> set[tuple[str, str]]:
             if m.get("player_name") and not m.get("provisional", False)}
 
 
+def roster_index(sb) -> dict[str, set[str]]:
+    """{sport_id: {normalized names currently on the scraped roster}}. This is the ground
+    truth the extractor was missing: without it a profile piece about a four-year starter
+    reads exactly like a transfer announcement."""
+    idx: dict[str, set[str]] = {s: set() for s in SPORTS}
+    rows = sb.table("players").select("first_name,last_name,sport_id").execute().data or []
+    for r in rows:
+        sid = r.get("sport_id")
+        if sid in idx:
+            n = norm_name(f"{r.get('first_name') or ''} {r.get('last_name') or ''}")
+            if n:
+                idx[sid].add(n)
+    return idx
+
+
+def roster_block(idx: dict[str, set[str]], sb) -> str:
+    """The rosters, formatted for the prompt. Names only — position and class add tokens
+    without helping the one judgement being made (is this person already here?)."""
+    rows = sb.table("players").select("first_name,last_name,sport_id").execute().data or []
+    by_sport: dict[str, list[str]] = {s: [] for s in SPORTS}
+    for r in rows:
+        sid = r.get("sport_id")
+        if sid in by_sport:
+            full = f"{r.get('first_name') or ''} {r.get('last_name') or ''}".strip()
+            if full:
+                by_sport[sid].append(full)
+    parts = ["\n\nCURRENT ROSTERS (already on the team — see the rules above):"]
+    for s in SPORTS:
+        names = sorted(by_sport[s])
+        parts.append(f"\n[{s}] {', '.join(names) if names else '(none loaded)'}")
+    return "".join(parts)
+
+
 def extract(sb, headlines: list[str], today: str) -> list[dict]:
     import anthropic
 
@@ -162,7 +215,7 @@ def extract(sb, headlines: list[str], today: str) -> list[dict]:
         },
         messages=[{"role": "user", "content":
                    f"Today is {today}. WVU headlines from the last {LOOKBACK_HOURS} hours:\n\n"
-                   f"{listing}\n\nExtract the roster moves."}],
+                   f"{listing}{roster_block(roster_index(sb), sb)}\n\nExtract the roster moves."}],
     )
     usage.log(sb, "extract_moves", MODEL, resp)
     if resp.stop_reason == "refusal":
@@ -200,6 +253,7 @@ def main() -> None:
         print("No roster moves found in the news. (This is normal on a quiet day.)")
 
     curated = curated_keys()
+    roster = roster_index(sb)
     rows, skipped = [], []
     for m in moves:
         name = (m.get("player_name") or "").strip()
@@ -209,6 +263,27 @@ def main() -> None:
         key = (m.get("sport_id"), norm_name(name))
         if key in curated:
             skipped.append(f"{name} (already curated by hand)")
+            continue
+
+        # Roster reality check, enforced in code because the prompt rule above is not
+        # reliably obeyed — the same reason sync_sport_notes clamps departures itself.
+        # Fall camp broke this loudly on 2026-08-19: profile pieces ("How X's stops
+        # prepared him for WVU") produced four bogus transfers-in for players who had
+        # been on the team for years, and a story about Cam Vaughn being dismissed by
+        # MIAMI became a fresh WVU departure.
+        on_roster = norm_name(name) in roster.get(m.get("sport_id"), set())
+        if m["direction"] == "out" and not on_roster:
+            # Can't leave a team you're not on. This is the Chambers/Vaughn case: an
+            # ex-player's news is not this year's roster losing anything.
+            skipped.append(f"{name} (out, but not on the current roster)")
+            continue
+        if m["direction"] == "in" and on_roster:
+            # Already on the roster, so the app already shows him. An auto row here adds
+            # nothing and is nearly always a profile piece misread as an arrival. The
+            # tradeoff: a real transfer who enrolls fast enough to appear on the scrape
+            # before the news lands loses his Movement entry — acceptable, since the
+            # whole point of auto-extraction is surfacing people the roster hasn't got yet.
+            skipped.append(f"{name} (in, but already on the current roster)")
             continue
 
         reported = m.get("status") == "reported"
