@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "709986403664",
+    "project_id": "mountaineer-pulse",
+    "storage_bucket": "mountaineer-pulse.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:709986403664:android:7bb8024936ad08a7435855",
+        "android_client_info": {
+          "package_name": "com.tysongraham.mountaineerpulse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBx1tYrgObUFg-1tmaDRN12GWm1UBTwhWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

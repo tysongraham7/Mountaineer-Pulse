@@ -28,6 +28,22 @@ export function configureNotificationHandler(): void {
   });
 }
 
+/**
+ * Android delivers nothing without a channel: a push whose channel doesn't exist is dropped
+ * by the OS, silently. Creating it only inside enableAlerts() covers the device that opted in
+ * on this install, but not the one restored from a backup or reinstalled with permission
+ * already granted — there, the first briefing would simply never arrive. So it runs at every
+ * startup as well. setNotificationChannelAsync is idempotent, and a no-op off Android.
+ */
+export async function ensureAndroidChannel(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'Mountaineer Pulse',
+    importance: Notifications.AndroidImportance.DEFAULT,
+    lightColor: '#EAA000',
+  });
+}
+
 function easProjectId(): string | undefined {
   const extra = Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined;
   return extra?.eas?.projectId ?? Constants.easConfig?.projectId;
@@ -112,13 +128,7 @@ export async function enableAlerts(): Promise<string | null> {
   // immediately, even if the token fetch below momentarily races APNs (the sync self-heals it).
   await AsyncStorage.setItem(ALERTS_PREF, 'true');
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Mountaineer Pulse',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      lightColor: '#EAA000',
-    });
-  }
+  await ensureAndroidChannel();
 
   const token = await currentToken();
   if (!token) return null;

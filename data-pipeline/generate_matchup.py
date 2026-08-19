@@ -2,19 +2,19 @@
 Mountaineer Pulse - Game-Day Scouting Report
 ============================================
 A full preview of the next game: who the opponent is, how they've been playing, the
-head-to-head history, injuries, the line, the weather, and what to watch.
+head-to-head history, injuries, the weather, and what to watch.
 
 Two rules shape the design.
 
 FACTS WE OWN COME FROM OUR DATABASE. WVU's projected starters, stat leaders, recent roster
 moves and Pulse are read straight from Supabase and handed to the model as fixed context —
-it may not restate them differently. Only the OPPONENT and external facts (line, weather,
+it may not restate them differently. Only the OPPONENT and external facts (weather,
 injuries) come from web search. That keeps the half of the report we can verify verifiable.
 
-IT ONLY RUNS NEAR GAME DAY. A report generated three weeks out has stale injuries and no
-betting line, and burns web search for nothing. Nothing happens unless a game falls inside
+IT ONLY RUNS NEAR GAME DAY. A report generated three weeks out has stale injuries and a
+forecast that does not exist yet, and burns web search for nothing. Nothing happens unless a game falls inside
 LOOKAHEAD_DAYS, so this is safe to run daily year-round — most days it exits immediately.
-Inside the window it refreshes once a day, so injuries and the line stay current.
+Inside the window it refreshes as kickoff nears, so injuries and the forecast stay current.
 
 Writes to matchups (one row per game_id). Needs ANTHROPIC_API_KEY.
 Run:  python generate_matchup.py [--dry-run] [--force] [--game-id N]
@@ -46,14 +46,14 @@ MODEL = "claude-sonnet-5"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 6}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
 
-# Only preview a game this close. "A week or two out" — before that, injuries and the line
-# don't exist yet and anything written would be stale by kickoff.
+# Only preview a game this close. "A week or two out" — before that, injuries and the
+# forecast don't exist yet and anything written would be stale by kickoff.
 LOOKAHEAD_DAYS = 10
 
 SEARCH_BUDGET = (
     "\n\nSEARCH BUDGET: web search is the cost here. Spend it on what actually changes the "
     "report — the opponent's record and current form, the quarterback/lineup situation, the "
-    "line, the injury report, the forecast. Do NOT re-search to confirm something you already "
+    "injury report, the forecast. Do NOT re-search to confirm something you already "
     "found, and do not research WVU at all: those facts are given above. Aim for about 5 "
     "searches. Once you can fill the JSON, stop searching and write it."
 )
@@ -64,7 +64,7 @@ def refresh_hours(days_out: float) -> int:
 
     Regenerating daily for ten straight days costs roughly $5.60 per game — most of it
     re-researching a record and a series history that haven't changed. What actually moves
-    late is the line, the injury report and the weather, so the cadence tightens as the game
+    late is the injury report and the weather, so the cadence tightens as the game
     approaches: one report when it enters the window, another at midweek, then daily in the
     last two days. About four runs per game instead of ten.
     """
@@ -142,17 +142,21 @@ SYSTEM = (
     "You write the game-day scouting report for Mountaineer Pulse, a West Virginia University "
     "sports app. Voice: sharp, factual, a plugged-in fan who has done the homework. Never hype.\n\n"
     "You have web search. Use it to research the OPPONENT and the external facts — their record, "
-    "form, key players, injuries, the betting line, the forecast, and the series history.\n\n"
+    "form, key players, injuries, the forecast, and the series history.\n\n"
     "ABSOLUTE RULES — one wrong fact loses a fan's trust:\n"
     "1. WVU FACTS ARE GIVEN TO YOU. The projected starters, stat leaders, roster moves and Pulse "
     "in the DATA block are authoritative. Use those names and numbers exactly; never substitute a "
     "player you remember or found online, and never promote someone to starter who isn't listed.\n"
     "2. Everything about the OPPONENT must come from your searches, not memory. If you cannot "
     "confirm something, leave that field empty rather than guessing. An empty field is fine.\n"
-    "3. Injuries and betting lines move. Attribute them and note they're as-of today; never state "
-    "a line or an injury as settled fact if the source hedges.\n"
+    "3. Injury news moves. Attribute it and note it is as-of today; never state an injury as "
+    "settled fact if the source hedges.\n"
     "4. If the two teams have never played, say so plainly rather than inventing a series history.\n"
-    "5. No predictions of the final score. Analysis of what decides the game, not a guess at it.\n\n"
+    "5. No predictions of the final score. Analysis of what decides the game, not a guess at it.\n"
+    "6. NO BETTING CONTENT. Never mention point spreads, moneylines, over/unders, totals, "
+    "odds, sportsbooks, or who is favoured by how many points. The app is rated 4+ and "
+    "gambling content puts that rating at risk. Describe a mismatch in football terms — "
+    "depth, experience, returning starters — never in market terms.\n\n"
     "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
     "{\n"
     '  "headline": "<one sharp sentence framing the game>",\n'
@@ -162,7 +166,6 @@ SYSTEM = (
     '  "watch": [{"topic": "<3-6 words>", "body": "<2-3 sentences on a real matchup that decides '
     'the game>"}],\n'
     '  "injuries": "<notable availability for either side, attributed — or empty>",\n'
-    '  "line": "<betting line and total as of today, with the book — or empty>",\n'
     '  "weather": "<forecast at kickoff for outdoor games — or empty>"\n'
     "}\n"
     "Give 2-3 'watch' items. Keep every field tight."
@@ -180,7 +183,7 @@ def to_plaintext(obj: dict, game: dict) -> str:
         parts.append(f"\nHISTORY: {obj['history']}")
     for w in obj.get("watch", []):
         parts.append(f"\n• {w.get('topic', '')}: {w.get('body', '')}")
-    for k in ("injuries", "line", "weather"):
+    for k in ("injuries", "weather"):
         if obj.get(k):
             parts.append(f"\n{k.upper()}: {obj[k]}")
     return "\n".join(p for p in parts if p and p.strip()).strip()
@@ -196,8 +199,7 @@ def clean(obj: dict) -> dict:
         },
         "history": strip_tags(str(obj.get("history", ""))),
         "injuries": strip_tags(str(obj.get("injuries", ""))),
-        "line": strip_tags(str(obj.get("line", ""))),
-        "weather": strip_tags(str(obj.get("weather", ""))),
+                "weather": strip_tags(str(obj.get("weather", ""))),
         "watch": [],
     }
     for w in (obj.get("watch") or [])[:3]:
@@ -255,7 +257,7 @@ def main() -> None:
     instruction = (
         f"Research {opp} and write the scouting report JSON for this game. Today is "
         f"{datetime.now(timezone.utc).date().isoformat()}. Spend your searches on the OPPONENT, "
-        f"the injury report, the betting line and the forecast — the WVU facts above are already "
+        f"the injury report and the forecast — the WVU facts above are already "
         f"correct and must be used as given."
     ) + SEARCH_BUDGET
 

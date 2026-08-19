@@ -17,10 +17,15 @@ const c = surfaces(true);
 
 const SCRUB_DEMO_KEY = 'mp-scrub-demo-seen';
 
-// Every share carries the store link — a screenshot of a Pulse score is worth nothing to
+// Every share carries a download link — a screenshot of a Pulse score is worth nothing to
 // someone who can't find the app, and search won't find it for them ("WVU" isn't in the
 // subtitle). The link is the whole point of the share.
-const APP_STORE_URL = 'https://apps.apple.com/us/app/mountaineer-pulse/id6791230388';
+//
+// It points at the site rather than either store on purpose. A share crosses platforms far
+// more often than not: an iPhone user texts this to an Android friend, who would otherwise
+// land on a page they can't install from. The site carries both badges and sends each visitor
+// to the right one. (Which means the site must actually show both — see docs/index.html.)
+const SHARE_URL = 'https://tysongraham7.github.io/Mountaineer-Pulse/';
 
 const SPORT_NAME: Record<string, string> = {
   football: 'Football',
@@ -210,7 +215,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
       `WVU ${name} Pulse: ${current.score}/100${rank}`,
       noteForWindow || driver || null,
       '',
-      `via Mountaineer Pulse — ${APP_STORE_URL}`,
+      `via Mountaineer Pulse — ${SHARE_URL}`,
     ].filter(Boolean) as string[];
     try {
       await Share.share({ message: lines.join('\n') });

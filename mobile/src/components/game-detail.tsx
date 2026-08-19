@@ -18,8 +18,9 @@ type Matchup = {
   history: string;
   watch: { topic: string; body: string }[];
   injuries: string;
-  line: string;
   weather: string;
+  /** Set when the report was written. Its contents move, so the sheet says when. */
+  generated_at?: string;
 };
 
 const c = surfaces(true);
@@ -45,8 +46,13 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
   useEffect(() => {
     if (!game?.id) { setScout(null); return; }
     let live = true;
-    supabase.from('matchups').select('sections').eq('game_id', game.id).maybeSingle()
-      .then(({ data }) => { if (live) setScout((data?.sections as Matchup) ?? null); });
+    supabase.from('matchups').select('sections,generated_at').eq('game_id', game.id).maybeSingle()
+      .then(({ data }) => {
+        if (!live) return;
+        setScout(data?.sections
+          ? { ...(data.sections as Matchup), generated_at: data.generated_at as string }
+          : null);
+      });
     return () => { live = false; };
   }, [game?.id]);
 
@@ -159,7 +165,7 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                   ))}
 
                   {[['Series', scout.history], ['Injuries', scout.injuries],
-                    ['Line', scout.line], ['Weather', scout.weather]]
+                    ['Weather', scout.weather]]
                     .filter(([, v]) => !!(v || '').trim())
                     .map(([label, v]) => (
                       <View key={label} style={styles.scoutCard}>
@@ -169,8 +175,9 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                     ))}
 
                   <Text style={styles.scoutNote}>
-                    Opponent details are researched from public sources and can move — check the
-                    line and injuries close to kickoff.
+                    {scout.generated_at
+                      ? `Researched from public sources on ${easternDateLong(scout.generated_at)}. Injuries and availability can change before kickoff.`
+                      : 'Researched from public sources. Injuries and availability can change before kickoff.'}
                   </Text>
                 </>
               )}

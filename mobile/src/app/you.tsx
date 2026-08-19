@@ -1,7 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReportModal } from '@/components/report-modal';
@@ -19,9 +29,29 @@ const SPORTS = [
 ];
 
 const SITE_URL = 'https://tysongraham7.github.io/Mountaineer-Pulse/';
-// `?action=write-review` opens the App Store straight onto the review composer rather than
-// the product page, which is the difference between a tap and a scavenger hunt.
-const REVIEW_URL = 'https://apps.apple.com/app/id6791230388?action=write-review';
+const PLAY_ID = 'com.tysongraham.mountaineerpulse';
+const PLAY_WEB_URL = `https://play.google.com/store/apps/details?id=${PLAY_ID}`;
+
+// Apple's `?action=write-review` opens the App Store straight onto the review composer rather
+// than the product page, which is the difference between a tap and a scavenger hunt. Play has
+// no equivalent deep link outside its native in-app-review API (a native module, so a new
+// build), but `market://` at least opens the installed Play app directly on our listing, where
+// the rating stars sit above the fold.
+const REVIEW_URL = Platform.select({
+  ios: 'https://apps.apple.com/app/id6791230388?action=write-review',
+  android: `market://details?id=${PLAY_ID}`,
+  default: PLAY_WEB_URL,
+});
+
+// `market://` only resolves when the Play Store app is actually installed, which isn't a given
+// on every Android device. Fall back to the browser listing rather than dropping the tap.
+async function openReview(): Promise<void> {
+  try {
+    await Linking.openURL(REVIEW_URL);
+  } catch {
+    Linking.openURL(PLAY_WEB_URL).catch(() => {});
+  }
+}
 
 /**
  * The row appears from this app version onward.
@@ -171,7 +201,7 @@ export default function YouScreen() {
       <View style={styles.card}>
         <Pressable
           style={[styles.row, { borderBottomWidth: 0 }]}
-          onPress={() => Linking.openURL(REVIEW_URL)}>
+          onPress={openReview}>
           <View style={[styles.tile, { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }]}>
             <Ionicons name="star-outline" size={18} color={Brand.gold} />
           </View>

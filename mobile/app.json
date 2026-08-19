@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.tysongraham.mountaineerpulse",
+      "googleServicesFile": "./google-services.json",
       "userInterfaceStyle": "dark",
       "adaptiveIcon": {
         "backgroundColor": "#002855",
@@ -44,7 +45,8 @@
       [
         "expo-notifications",
         {
-          "color": "#EAA000"
+          "color": "#EAA000",
+          "icon": "./assets/images/notification-icon.png"
         }
       ],
       [

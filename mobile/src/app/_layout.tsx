@@ -27,7 +27,11 @@ import { Brand, Font, surfaces } from '@/constants/brand';
 import { trackAppOpen, trackPushOpen, trackScreen } from '@/lib/analytics';
 import { AlertsProvider } from '@/lib/alerts';
 import { FavoritesProvider } from '@/lib/favorites';
-import { configureNotificationHandler, syncPushRegistration } from '@/lib/notifications';
+import {
+  configureNotificationHandler,
+  ensureAndroidChannel,
+  syncPushRegistration,
+} from '@/lib/notifications';
 import { useOtaUpdates } from '@/lib/use-ota-updates';
 
 const c = surfaces(true);
@@ -91,9 +95,11 @@ function RootLayout() {
   // an update should land whether or not the rest of startup succeeded.
   useOtaUpdates();
 
-  // Show notification banners even when the app is open. Set once, at the root.
+  // Show notification banners even when the app is open, and make sure Android's channel
+  // exists before any push can land on it. Set once, at the root.
   useEffect(() => {
     configureNotificationHandler();
+    ensureAndroidChannel().catch(() => {}); // best-effort; a failed channel must not break startup
   }, []);
 
   // Keep this device's push token registered whenever the app opens or returns to the
