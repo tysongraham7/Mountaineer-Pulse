@@ -101,7 +101,7 @@ Reference lengths, high point of shoulder to hem, size L:
 | True crop top | 20–23" | Above the navel |
 
 Only 3–4" comes off versus standard, so this is a small adjustment, not a different
-layout. Holding the drop at 4.5" would push the print slightly below the visual centre
+layout. Holding the drop at 4.5" would push the print slightly below the visual center
 of a shorter body; 4.0" keeps it at the same proportional height as the oversized spec.
 
 **Crop before you print.** If you're cutting down a longer blank yourself rather than
@@ -145,7 +145,7 @@ so ask about setup cost at single quantity; some shops run it as a one-off, othe
 push you to DTG. DTG is the safe fallback and looks fine, just flat.
 
 **Polyester needs DTF, not screen print.** Poly dye migrates into plastisol ink and
-discolors it from the inside — white goes pink or grey over weeks. If a shop insists on
+discolors it from the inside — white goes pink or gray over weeks. If a shop insists on
 screen printing the workout tee, it must be low-bleed poly ink over a blocker base.
 DTF sidesteps the problem entirely and is cheaper at this quantity.
 

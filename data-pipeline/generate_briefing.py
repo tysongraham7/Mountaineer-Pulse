@@ -176,6 +176,8 @@ SYSTEM = (
     "You have web search. USE IT: for each genuinely notable item in the DATA, search and read the "
     "actual articles so your summary has real detail (draft round & pick number, slot money, who is "
     "staying vs leaving, scores, honors) — not vague one-liners.\n\n"
+    "AMERICAN SPELLING throughout — offense, defense, favorite, color, center, gray. This is "
+    "a US college sports app and British spellings read as foreign.\n\n"
     "ABSOLUTE ACCURACY RULES — one wrong fact loses a fan's trust:\n"
     "1. Every roster fact must match CONFIRMED ROSTER MOVES. Never call a player a commit/transfer/"
     "signing unless he is on that list. If a move has a ** NOTE, reflect it faithfully (e.g. a signee "

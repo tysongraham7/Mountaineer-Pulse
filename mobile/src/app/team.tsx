@@ -925,7 +925,7 @@ function MoveCard({
   const body = (
     <View style={[styles.moveCard, { backgroundColor: c.card, borderColor: c.border, borderLeftColor: accent }]}>
       <View style={styles.cardHead}>
-        {/* One chip, not two: the arrow carries direction by colour and the text says
+        {/* One chip, not two: the arrow carries direction by color and the text says
             exactly what happened. Since the list is date-ordered rather than grouped,
             this badge is what tells you a card is a signing vs. a departure. */}
         <View style={[styles.dirBadge, { backgroundColor: isIn ? Brand.greenTint : Brand.redTint }]}>
@@ -1120,7 +1120,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   // No vertical padding: on Android a TextInput adds its own, which would push the text
-  // off-centre inside the fixed-height row above.
+  // off-center inside the fixed-height row above.
   searchInput: { flex: 1, fontFamily: Font.body, fontSize: 14, padding: 0 },
   chip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   chipText: { fontSize: 12, fontFamily: Font.bodySemi },

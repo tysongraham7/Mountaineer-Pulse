@@ -165,7 +165,7 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
                 <SectionLabel style={{ color: c.blueLabel } as never}>
                   {[SPORT_LABEL[player.sport_id] ?? '', player.position].filter(Boolean).join(' · ')}
                 </SectionLabel>
-                {/* Balances the back button so the label stays centred. Sized, not
+                {/* Balances the back button so the label stays centered. Sized, not
                     styled — reusing circleBtn drew an empty circle in the corner. */}
                 <View style={styles.headerSpacer} />
               </View>

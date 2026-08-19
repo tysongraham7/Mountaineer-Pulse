@@ -193,7 +193,7 @@ export function Segmented({
   );
 }
 
-// Small sparkline. `data` are raw scores; auto-scaled. Colour defaults to gold.
+// Small sparkline. `data` are raw scores; auto-scaled. Color defaults to gold.
 export function Sparkline({
   data,
   color = Brand.gold,
@@ -231,7 +231,7 @@ export function Sparkline({
   );
 }
 
-// Trend glyph + delta, coloured by direction.
+// Trend glyph + delta, colored by direction.
 export function TrendTag({ trend, delta }: { trend: string; delta?: number }) {
   const up = trend === 'up';
   const down = trend === 'down';

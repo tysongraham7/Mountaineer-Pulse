@@ -184,7 +184,7 @@ def roster_index(sb) -> dict[str, set[str]]:
 
 def roster_block(idx: dict[str, set[str]], sb) -> str:
     """The rosters, formatted for the prompt. Names only — position and class add tokens
-    without helping the one judgement being made (is this person already here?)."""
+    without helping the one judgment being made (is this person already here?)."""
     rows = sb.table("players").select("first_name,last_name,sport_id").execute().data or []
     by_sport: dict[str, list[str]] = {s: [] for s in SPORTS}
     for r in rows:

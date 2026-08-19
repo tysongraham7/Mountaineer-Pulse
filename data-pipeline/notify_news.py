@@ -141,7 +141,7 @@ def candidates(sb) -> list[dict]:
 
 
 def recently_alerted(sb, days: int = 4) -> str:
-    """Headlines already pushed in the last few days, so the model can recognise a
+    """Headlines already pushed in the last few days, so the model can recognize a
     follow-up as the SAME event and decline it.
 
     Token overlap alone is not enough here: "BREAKING: Brenen Lorient plans to return to

@@ -3,7 +3,7 @@
  *
  * Kickoffs are announced in Eastern and fans talk about them in Eastern, so the app
  * shows Eastern and labels it — not device-local, which would quietly show the wrong
- * hour to anyone travelling.
+ * hour to anyone traveling.
  *
  * The offset is computed by hand rather than via `toLocaleString({ timeZone })`,
  * because Hermes' Intl time-zone support varies by platform and build; when it's

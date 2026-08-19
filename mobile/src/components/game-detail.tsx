@@ -97,7 +97,7 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                 <SectionLabel style={{ color: c.blueLabel } as never}>
                   {SPORT_LABEL[game.sport_id] ?? game.sport_id}
                 </SectionLabel>
-                {/* Balances the back button so the label stays centred. Sized, not
+                {/* Balances the back button so the label stays centered. Sized, not
                     styled — reusing circleBtn drew an empty circle in the corner. */}
                 <View style={styles.headerSpacer} />
               </View>

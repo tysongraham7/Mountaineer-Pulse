@@ -3,7 +3,7 @@ App Store "hero panel" screenshots — ESPN-style
 ===============================================
 Instead of shipping a raw device capture, each App Store slot becomes a designed panel:
 
-    - full-bleed brand colour background
+    - full-bleed brand color background
     - a big bold-italic all-caps headline at the top
     - a hairline rule running edge to edge THROUGH the headline (knocked out around the
       text) and a second rule lower down. Because both rules sit at the same y on every
@@ -39,7 +39,7 @@ FONT = os.path.join(
 GOLD, NAVY, WHITE = "#EAAA00", "#002855", "#FFFFFF"
 
 THEMES = {
-    # bg,   headline text,  rule colour
+    # bg,   headline text,  rule color
     "gold": (GOLD, NAVY, NAVY),
     "navy": (NAVY, GOLD, GOLD),
 }
@@ -51,7 +51,7 @@ LEADING = 0.95       # line height as a fraction of font size
 RULE_W = 6           # rule stroke weight
 RULE_GAP = 30        # clear space between the headline and the rule that flanks it
 RULE1_Y = 372        # first rule — FIXED, so it lines up panel to panel while swiping.
-                     # The headline block is centred on it, whether it runs 2 lines or 3.
+                     # The headline block is centered on it, whether it runs 2 lines or 3.
 RULE2_Y = 2285       # second rule — drawn behind the device
 PHONE_W = 1096       # outer width of the device frame
 PHONE_TOP = 742
@@ -98,7 +98,7 @@ def build(src, lines, theme, font, size):
     canvas = Image.new("RGB", (W, H), bg)
     d = ImageDraw.Draw(canvas)
 
-    # ---- headline, centred on the fixed rule ----
+    # ---- headline, centered on the fixed rule ----
     step = round(size * LEADING)
     cap = font.getbbox("H")[3] - font.getbbox("H")[1]
     widest = max(font.getbbox(t)[2] - font.getbbox(t)[0] for t in lines)
