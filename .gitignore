@@ -2,6 +2,14 @@
 .env
 **/.env
 
+# Service account private keys. Two different ones pass through this project — Firebase
+# (FCM push) and Google Play (eas submit) — and both are real credentials that live outside
+# the repo and get handed to EAS. Patterns are deliberately narrow so they can't swallow
+# mobile/google-services.json, which is client config and MUST stay tracked or EAS Build
+# won't receive it.
+*-firebase-adminsdk-*.json
+*service-account*.json
+
 # --- Python ---
 __pycache__/
 **/__pycache__/

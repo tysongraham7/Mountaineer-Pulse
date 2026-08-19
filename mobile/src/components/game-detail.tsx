@@ -18,6 +18,7 @@ type Matchup = {
   history: string;
   watch: { topic: string; body: string }[];
   injuries: string;
+  line: string;
   weather: string;
   /** Set when the report was written. Its contents move, so the sheet says when. */
   generated_at?: string;
@@ -164,8 +165,10 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                     </View>
                   ))}
 
+                  {/* "Expected Outcome", not "Line": the number is here so a fan knows what
+                      kind of game to expect, not as a betting tip. */}
                   {[['Series', scout.history], ['Injuries', scout.injuries],
-                    ['Weather', scout.weather]]
+                    ['Expected Outcome', scout.line], ['Weather', scout.weather]]
                     .filter(([, v]) => !!(v || '').trim())
                     .map(([label, v]) => (
                       <View key={label} style={styles.scoutCard}>

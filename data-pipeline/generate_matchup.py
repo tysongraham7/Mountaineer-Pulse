@@ -53,7 +53,7 @@ LOOKAHEAD_DAYS = 10
 SEARCH_BUDGET = (
     "\n\nSEARCH BUDGET: web search is the cost here. Spend it on what actually changes the "
     "report — the opponent's record and current form, the quarterback/lineup situation, the "
-    "injury report, the forecast. Do NOT re-search to confirm something you already "
+    "injury report, the line, the forecast. Do NOT re-search to confirm something you already "
     "found, and do not research WVU at all: those facts are given above. Aim for about 5 "
     "searches. Once you can fill the JSON, stop searching and write it."
 )
@@ -142,7 +142,7 @@ SYSTEM = (
     "You write the game-day scouting report for Mountaineer Pulse, a West Virginia University "
     "sports app. Voice: sharp, factual, a plugged-in fan who has done the homework. Never hype.\n\n"
     "You have web search. Use it to research the OPPONENT and the external facts — their record, "
-    "form, key players, injuries, the forecast, and the series history.\n\n"
+    "form, key players, injuries, the line, the forecast, and the series history.\n\n"
     "ABSOLUTE RULES — one wrong fact loses a fan's trust:\n"
     "1. WVU FACTS ARE GIVEN TO YOU. The projected starters, stat leaders, roster moves and Pulse "
     "in the DATA block are authoritative. Use those names and numbers exactly; never substitute a "
@@ -153,10 +153,10 @@ SYSTEM = (
     "settled fact if the source hedges.\n"
     "4. If the two teams have never played, say so plainly rather than inventing a series history.\n"
     "5. No predictions of the final score. Analysis of what decides the game, not a guess at it.\n"
-    "6. NO BETTING CONTENT. Never mention point spreads, moneylines, over/unders, totals, "
-    "odds, sportsbooks, or who is favoured by how many points. The app is rated 4+ and "
-    "gambling content puts that rating at risk. Describe a mismatch in football terms — "
-    "depth, experience, returning starters — never in market terms.\n\n"
+    "6. THE LINE IS CONTEXT, NOT A TIP. Give the spread and total plainly, as the number a "
+    "fan should expect the game to look like, and attribute it with an as-of date. Never "
+    "frame it as advice, never name a sportsbook as a place to wager, never say what to "
+    "back or which side has value, and never use 'lock', 'value', 'edge' or 'pick'.\n\n"
     "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
     "{\n"
     '  "headline": "<one sharp sentence framing the game>",\n'
@@ -166,6 +166,7 @@ SYSTEM = (
     '  "watch": [{"topic": "<3-6 words>", "body": "<2-3 sentences on a real matchup that decides '
     'the game>"}],\n'
     '  "injuries": "<notable availability for either side, attributed — or empty>",\n'
+    '  "line": "<the spread and total as of today, attributed — or empty>",\n'
     '  "weather": "<forecast at kickoff for outdoor games — or empty>"\n'
     "}\n"
     "Give 2-3 'watch' items. Keep every field tight."
@@ -183,7 +184,7 @@ def to_plaintext(obj: dict, game: dict) -> str:
         parts.append(f"\nHISTORY: {obj['history']}")
     for w in obj.get("watch", []):
         parts.append(f"\n• {w.get('topic', '')}: {w.get('body', '')}")
-    for k in ("injuries", "weather"):
+    for k in ("injuries", "line", "weather"):
         if obj.get(k):
             parts.append(f"\n{k.upper()}: {obj[k]}")
     return "\n".join(p for p in parts if p and p.strip()).strip()
@@ -199,6 +200,7 @@ def clean(obj: dict) -> dict:
         },
         "history": strip_tags(str(obj.get("history", ""))),
         "injuries": strip_tags(str(obj.get("injuries", ""))),
+        "line": strip_tags(str(obj.get("line", ""))),
                 "weather": strip_tags(str(obj.get("weather", ""))),
         "watch": [],
     }
