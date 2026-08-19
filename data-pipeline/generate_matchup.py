@@ -2,7 +2,8 @@
 Mountaineer Pulse - Game-Day Scouting Report
 ============================================
 A full preview of the next game: who the opponent is, how they've been playing, the
-head-to-head history, injuries, the weather, and what to watch.
+head-to-head history, keys to victory, what the opponent does well, where WVU can
+attack, injuries and the weather.
 
 Two rules shape the design.
 
@@ -163,13 +164,19 @@ SYSTEM = (
     '  "opponent": {"record": "<e.g. 8-5 (5-3 Sun Belt), 2025>", "snapshot": "<2-3 sentences: who '
     'they are, how they played last season, who runs the offense>"},\n'
     '  "history": "<series history, or \'First meeting.\'>",\n'
-    '  "watch": [{"topic": "<3-6 words>", "body": "<2-3 sentences on a real matchup that decides '
-    'the game>"}],\n'
+    '  "keys": [{"topic": "<3-6 words>", "body": "<2-3 sentences: something WVU must actually '
+    'DO to win, not a storyline>"}],\n'
+    '  "strengths": "<2-3 sentences on what the opponent genuinely does well and WVU has to '
+    'respect. Never empty flattery; if they are outmatched, say where they are least so>",\n'
+    '  "exploit": "<2-3 sentences on the opponent\'s clearest weakness and how WVU attacks '
+    'it, naming the WVU players from the DATA above>",\n'
     '  "injuries": "<notable availability for either side, attributed — or empty>",\n'
     '  "line": "<the spread and total as of today, attributed — or empty>",\n'
     '  "weather": "<forecast at kickoff for outdoor games — or empty>"\n'
     "}\n"
-    "Give 2-3 'watch' items. Keep every field tight."
+    "Give 2-3 'keys'. Keep every field tight. 'strengths' and 'exploit' are two halves of one "
+    "judgement — what they can hurt you with, and what you can hurt them with — so neither may "
+    "be a restatement of the other."
 )
 
 
@@ -182,8 +189,12 @@ def to_plaintext(obj: dict, game: dict) -> str:
         parts.append(op["snapshot"])
     if obj.get("history"):
         parts.append(f"\nHISTORY: {obj['history']}")
-    for w in obj.get("watch", []):
+    for w in obj.get("keys", []):
         parts.append(f"\n• {w.get('topic', '')}: {w.get('body', '')}")
+    if obj.get("strengths"):
+        parts.append(f"\nWHAT THEY DO WELL: {obj['strengths']}")
+    if obj.get("exploit"):
+        parts.append(f"\nWHERE TO ATTACK: {obj['exploit']}")
     for k in ("injuries", "line", "weather"):
         if obj.get(k):
             parts.append(f"\n{k.upper()}: {obj[k]}")
@@ -191,7 +202,7 @@ def to_plaintext(obj: dict, game: dict) -> str:
 
 
 def clean(obj: dict) -> dict:
-    """Strip web-search cite tags everywhere, and drop malformed watch items."""
+    """Strip web-search cite tags everywhere, and drop malformed keys."""
     out = {
         "headline": strip_tags(str(obj.get("headline", ""))),
         "opponent": {
@@ -202,13 +213,15 @@ def clean(obj: dict) -> dict:
         "injuries": strip_tags(str(obj.get("injuries", ""))),
         "line": strip_tags(str(obj.get("line", ""))),
                 "weather": strip_tags(str(obj.get("weather", ""))),
-        "watch": [],
+        "strengths": strip_tags(str(obj.get("strengths", ""))),
+        "exploit": strip_tags(str(obj.get("exploit", ""))),
+        "keys": [],
     }
-    for w in (obj.get("watch") or [])[:3]:
+    for w in (obj.get("keys") or [])[:3]:
         topic = strip_tags(str(w.get("topic", "")))
         body = strip_tags(str(w.get("body", "")))
         if topic and body:
-            out["watch"].append({"topic": topic, "body": body})
+            out["keys"].append({"topic": topic, "body": body})
     return out
 
 
@@ -283,7 +296,7 @@ def main() -> None:
     if not obj:
         die(f"No parseable JSON. Tail: ...{text[-300:]!r}")
     report = clean(obj)
-    if not report["headline"] and not report["watch"]:
+    if not report["headline"] and not report["keys"]:
         die("Report came back empty.")
 
     content = to_plaintext(report, game)

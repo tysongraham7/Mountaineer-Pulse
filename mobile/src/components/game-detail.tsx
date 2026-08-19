@@ -16,7 +16,9 @@ type Matchup = {
   headline: string;
   opponent: { record: string; snapshot: string };
   history: string;
-  watch: { topic: string; body: string }[];
+  keys: { topic: string; body: string }[];
+  strengths: string;
+  exploit: string;
   injuries: string;
   line: string;
   weather: string;
@@ -158,12 +160,24 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                     </View>
                   )}
 
-                  {scout.watch?.map((w, i) => (
+                  {!!scout.keys?.length && (
+                    <Text style={styles.scoutSub}>Keys to Victory</Text>
+                  )}
+                  {scout.keys?.map((w, i) => (
                     <View key={i} style={styles.scoutCard}>
                       <Text style={styles.scoutTopic}>{w.topic}</Text>
                       <Text style={styles.scoutBody}>{w.body}</Text>
                     </View>
                   ))}
+
+                  {[['What They Do Well', scout.strengths], ['Where to Attack', scout.exploit]]
+                    .filter(([, v]) => !!(v || '').trim())
+                    .map(([label, v]) => (
+                      <View key={label} style={styles.scoutCard}>
+                        <Text style={styles.scoutTopic}>{label}</Text>
+                        <Text style={styles.scoutBody}>{v}</Text>
+                      </View>
+                    ))}
 
                   {/* "Expected Outcome", not "Line": the number is here so a fan knows what
                       kind of game to expect, not as a betting tip. */}
@@ -234,6 +248,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
+  scoutSub: { fontFamily: Font.bodyBold, fontSize: 11, letterSpacing: 1.3, color: c.textMuted, marginTop: 6, marginBottom: 8 },
   scoutRecord: { fontFamily: Font.bodyBold, fontSize: 12, letterSpacing: 0.6, color: Brand.gold, marginBottom: 6 },
   scoutTopic: { fontFamily: Font.displaySemi, fontSize: 14.5, color: c.text, marginBottom: 5 },
   scoutBody: { fontFamily: Font.body, fontSize: 13.5, lineHeight: 20, color: c.textSecondary },
