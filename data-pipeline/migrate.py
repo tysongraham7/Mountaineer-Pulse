@@ -158,6 +158,22 @@ ALTERS = [
     # the daily-cap counter (count today's non-null rows), so no separate push log is needed.
     "alter table news_items add column if not exists notified_at timestamptz;",
     "create index if not exists news_items_notified_idx on news_items (notified_at desc);",
+    # --- Game-day scouting report (generate_matchup.py) ---
+    # One row per upcoming game. Keyed by game_id so a regenerated preview overwrites rather
+    # than accumulating, and so it disappears naturally if a game is ever removed.
+    """create table if not exists matchups (
+        game_id      bigint primary key,
+        sport_id     text references sports(id),
+        kickoff      timestamptz,
+        opponent     text,
+        sections     jsonb,                 -- structured report the app renders
+        content      text,                  -- plain-text fallback for older clients
+        generated_at timestamptz not null default now()
+    );""",
+    "create index if not exists matchups_kickoff_idx on matchups (kickoff);",
+    "alter table matchups enable row level security;",
+    "drop policy if exists \"public read matchups\" on matchups;",
+    "create policy \"public read matchups\" on matchups for select using (true);",
 ]
 
 

@@ -109,6 +109,14 @@ jobs:
         if: ${{ !cancelled() }}
         run: python generate_briefing.py
 
+      # Game-day scouting report. Self-limiting: exits immediately unless a game is within
+      # ~10 days, and inside that window only regenerates on the cadence in the script (a
+      # handful of runs per game, tightening as kickoff nears). Costs nothing in the offseason.
+      - name: Game-day scouting report
+        if: ${{ !cancelled() }}
+        run: python generate_matchup.py
+        continue-on-error: true
+
       # Cheap, no-AI sweep for facts that have gone stale (a passed deadline, a still-'pending'
       # decision). Emails a short review list only if something turns up and Gmail secrets exist.
       - name: Stale-fact check
