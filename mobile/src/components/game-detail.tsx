@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,7 +8,19 @@ import { ReportModal } from '@/components/report-modal';
 import { SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
 import { countdownLabel, easternDateLong, easternTime } from '@/lib/eastern';
+import { supabase } from '@/lib/supabase';
 import { Game } from '@/lib/types';
+
+/** The scouting report generate_matchup.py writes, ~10 days out from kickoff. */
+type Matchup = {
+  headline: string;
+  opponent: { record: string; snapshot: string };
+  history: string;
+  watch: { topic: string; body: string }[];
+  injuries: string;
+  line: string;
+  weather: string;
+};
 
 const c = surfaces(true);
 
@@ -26,6 +38,17 @@ function shortTeam(name: string): string {
 export function GameDetail({ game, onClose }: { game: Game | null; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [reportOpen, setReportOpen] = useState(false);
+  // Absent for most of the year — the report is only written near kickoff, so every field
+  // below renders conditionally and the sheet looks normal when there is nothing yet.
+  const [scout, setScout] = useState<Matchup | null>(null);
+
+  useEffect(() => {
+    if (!game?.id) { setScout(null); return; }
+    let live = true;
+    supabase.from('matchups').select('sections').eq('game_id', game.id).maybeSingle()
+      .then(({ data }) => { if (live) setScout((data?.sections as Matchup) ?? null); });
+    return () => { live = false; };
+  }, [game?.id]);
 
   const wvuHome = !!game?.is_wvu_home;
   const opponent = game ? shortTeam(wvuHome ? game.away_team : game.home_team) : '';
@@ -112,6 +135,46 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                 </Text>
               )}
 
+              {scout && (
+                <>
+                  <SectionLabel style={styles.head as never}>Scouting Report</SectionLabel>
+                  {!!scout.headline && <Text style={styles.scoutLede}>{scout.headline}</Text>}
+
+                  {(!!scout.opponent?.record || !!scout.opponent?.snapshot) && (
+                    <View style={styles.scoutCard}>
+                      {!!scout.opponent.record && (
+                        <Text style={styles.scoutRecord}>{scout.opponent.record}</Text>
+                      )}
+                      {!!scout.opponent.snapshot && (
+                        <Text style={styles.scoutBody}>{scout.opponent.snapshot}</Text>
+                      )}
+                    </View>
+                  )}
+
+                  {scout.watch?.map((w, i) => (
+                    <View key={i} style={styles.scoutCard}>
+                      <Text style={styles.scoutTopic}>{w.topic}</Text>
+                      <Text style={styles.scoutBody}>{w.body}</Text>
+                    </View>
+                  ))}
+
+                  {[['Series', scout.history], ['Injuries', scout.injuries],
+                    ['Line', scout.line], ['Weather', scout.weather]]
+                    .filter(([, v]) => !!(v || '').trim())
+                    .map(([label, v]) => (
+                      <View key={label} style={styles.scoutCard}>
+                        <Text style={styles.scoutTopic}>{label}</Text>
+                        <Text style={styles.scoutBody}>{v}</Text>
+                      </View>
+                    ))}
+
+                  <Text style={styles.scoutNote}>
+                    Opponent details are researched from public sources and can move — check the
+                    line and injuries close to kickoff.
+                  </Text>
+                </>
+              )}
+
               <Pressable style={styles.reportBtn} onPress={() => setReportOpen(true)} hitSlop={8}>
                 <Ionicons name="flag-outline" size={13} color={c.textMuted} />
                 <Text style={styles.reportText}>Report incorrect info</Text>
@@ -150,4 +213,19 @@ const styles = StyleSheet.create({
   note: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, lineHeight: 18, fontFamily: Font.body },
   reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24, paddingVertical: 8 },
   reportText: { fontSize: 12.5, color: c.textMuted, fontFamily: Font.bodyMed },
+
+  // Scouting report. Same card language as Game Info above so it reads as one sheet.
+  scoutLede: { fontFamily: Font.displaySemi, fontSize: 16, lineHeight: 23, color: c.text, marginBottom: 12 },
+  scoutCard: {
+    backgroundColor: c.card,
+    borderColor: c.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  scoutRecord: { fontFamily: Font.bodyBold, fontSize: 12, letterSpacing: 0.6, color: Brand.gold, marginBottom: 6 },
+  scoutTopic: { fontFamily: Font.displaySemi, fontSize: 14.5, color: c.text, marginBottom: 5 },
+  scoutBody: { fontFamily: Font.body, fontSize: 13.5, lineHeight: 20, color: c.textSecondary },
+  scoutNote: { fontFamily: Font.body, fontSize: 11.5, lineHeight: 17, color: c.textMuted, marginTop: 4 },
 });
