@@ -1,0 +1,33 @@
+name: Weekly Digest
+
+# Monday-morning email with the week's usage, bug reports, spend, and what's coming —
+# so the numbers reach you instead of waiting for you to remember read_analytics.py.
+# Manual button included for when you want it mid-week.
+on:
+  schedule:
+    - cron: "0 12 * * 1" # Mondays 12:00 UTC (8am ET)
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Send weekly digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
+        run: python weekly_digest.py
