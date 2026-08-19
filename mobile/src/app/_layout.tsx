@@ -28,6 +28,7 @@ import { trackAppOpen, trackPushOpen, trackScreen } from '@/lib/analytics';
 import { AlertsProvider } from '@/lib/alerts';
 import { FavoritesProvider } from '@/lib/favorites';
 import { configureNotificationHandler, syncPushRegistration } from '@/lib/notifications';
+import { useOtaUpdates } from '@/lib/use-ota-updates';
 
 const c = surfaces(true);
 
@@ -84,6 +85,11 @@ function RootLayout() {
     InstrumentSans_600SemiBold,
     InstrumentSans_700Bold,
   });
+
+  // Pull over-the-air updates in on foreground rather than waiting for a cold start that
+  // may never come. Root level so it runs for every screen, and before fonts resolve —
+  // an update should land whether or not the rest of startup succeeded.
+  useOtaUpdates();
 
   // Show notification banners even when the app is open. Set once, at the root.
   useEffect(() => {
