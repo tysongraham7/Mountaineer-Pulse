@@ -153,8 +153,15 @@ ALTERS = [
         app_version text,
         created_at  timestamptz not null default now()
     );""",
+    # How long a foreground session lasted, sent with event='session_end'. Without a measured
+    # number the dashboard can only infer session length from the gaps between events, which
+    # can't tell a five-second glance from a five-minute read -- both are a single timestamp.
+    "alter table analytics_events add column if not exists duration_ms bigint;",
     "create index if not exists analytics_events_created_idx on analytics_events (created_at desc);",
     "create index if not exists analytics_events_anon_idx on analytics_events (anon_id);",
+    # The dashboard slices almost everything by (event, day), and scans the whole retention
+    # window on every refresh. Without this it re-reads every row in the table to do it.
+    "create index if not exists analytics_events_event_idx on analytics_events (event, created_at desc);",
     "alter table analytics_events enable row level security;",
     "drop policy if exists analytics_insert on analytics_events;",
     "create policy analytics_insert on analytics_events for insert to public with check (true);",
@@ -170,6 +177,10 @@ ALTERS = [
     "alter table news_items add column if not exists summary text;",
     "alter table news_items add column if not exists summary_section text;",
     "alter table news_items add column if not exists summary_headline text;",
+    # Who a pushed story was about, when the research found a name the headline withheld.
+    # The duplicate guard keys on this: a teaser headline and a later named report share no
+    # words, so without the name there is nothing to match them on.
+    "alter table news_items add column if not exists summary_player text;",
     # notify_games.py: one kickoff reminder and one final score per game, never repeated.
     "alter table games add column if not exists notified_kickoff_at timestamptz;",
     "alter table games add column if not exists notified_final_at timestamptz;",

@@ -38,6 +38,7 @@ import usage
 from send_push import send_push
 # Same near-duplicate detection the news sync uses to collapse syndicated copies, so a
 # story we already pushed can't come back tomorrow under another outlet's headline.
+from names import norm_name, split_name
 from sync_news import near_duplicate, story_tokens
 
 load_dotenv()
@@ -162,24 +163,68 @@ def candidates(sb) -> list[dict]:
             .order("published_at", desc=True).limit(40).execute().data or [])
 
 
-def recently_alerted(sb, days: int = 4) -> str:
-    """Headlines already pushed in the last few days, so the model can recognize a
-    follow-up as the SAME event and decline it.
-
-    Token overlap alone is not enough here: "BREAKING: Brenen Lorient plans to return to
-    WVU" and "Lorient to return to WVU for fifth season of eligibility" share only two
-    distinctive words and score well under the near-duplicate threshold, yet they are
-    plainly one story. Judging sameness is the model's job; near_duplicate stays as a
-    cheap backstop for verbatim syndication.
-    """
+def alerted_rows(sb, days: int = 4) -> list[dict]:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
-    rows = (sb.table("news_items").select("headline,notified_at")
+    return (sb.table("news_items")
+            .select("headline,notified_at,summary,summary_headline,summary_player")
             .gte("notified_at", cutoff).order("notified_at", desc=True)
             .limit(20).execute().data or [])
+
+
+def recently_alerted(rows: list[dict]) -> str:
+    """What we already pushed in the last few days, so the model can recognize a follow-up
+    as the SAME event and decline it.
+
+    Token overlap alone is not enough: "BREAKING: Brenen Lorient plans to return to WVU" and
+    "Lorient to return to WVU for fifth season of eligibility" share two distinctive words
+    and score under the near-duplicate threshold, yet are plainly one story.
+
+    The headline alone is not enough EITHER, which cost users a duplicate alert. We pushed
+    "SOURCE: WVU Basketball player is no longer with the program" one evening, and the next
+    morning a second outlet published "Evans Barning Jr. exits WVU Men's Basketball". Same
+    event. But the first headline never names anyone — a teaser written to sell a
+    subscription — so the two share nothing, and nothing in this list said who it was about.
+    We knew: the summary written minutes after that push named him. It just wasn't shown
+    here. So the summary comes along now, and the name most of all.
+    """
     if not rows:
         return ""
-    lines = "\n".join(f'- [{(r["notified_at"] or "")[:10]}] {r["headline"]}' for r in rows)
-    return f"\n\nALREADY ALERTED (do NOT alert the same event again):\n{lines}"
+    lines = []
+    for r in rows:
+        lines.append(f'- [{(r["notified_at"] or "")[:10]}] {r["headline"]}')
+        if r.get("summary_player"):
+            lines.append(f'    this was about: {r["summary_player"]}')
+        if r.get("summary_headline"):
+            lines.append(f'    we told users: {r["summary_headline"]}')
+        if r.get("summary"):
+            lines.append(f'    detail: {r["summary"][:220]}')
+    return ("\n\nALREADY ALERTED (do NOT alert the same event again, however differently "
+            "it is worded, and however much more detail a later report adds):\n"
+            + "\n".join(lines))
+
+
+def blocked_by_prior_alert(headline: str, rows: list[dict]) -> str | None:
+    """A hard, model-free block: this headline is about someone we already alerted on.
+
+    The prompt asks the model not to re-alert, and it mostly won't — but a named follow-up
+    to an unnamed scoop reads like brand-new information, and it slipped through once. A
+    person is only 'no longer with the program' once, so a second alert naming them days
+    later is a repeat by definition. Deterministic guard, same shape as the roster checks in
+    extract_moves.py that stopped the phantom transfers.
+    """
+    hay = f" {norm_name(headline)} "
+    for r in rows:
+        who = (r.get("summary_player") or "").strip()
+        if not who:
+            continue
+        first, last = split_name(who)
+        # Match on the full name, and on a surname distinctive enough not to collide.
+        needles = [norm_name(who)]
+        if len(last) >= 5:
+            needles.append(norm_name(last))
+        if any(f" {n} " in hay for n in needles if n):
+            return who
+    return None
 
 
 def age_label(published_at: str | None) -> str:
@@ -196,7 +241,7 @@ def age_label(published_at: str | None) -> str:
     return f"{mins // 60}h ago"
 
 
-def decide(sb, items: list[dict]) -> dict | None:
+def decide(sb, items: list[dict], prior: list[dict]) -> dict | None:
     import anthropic
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
@@ -211,7 +256,7 @@ def decide(sb, items: list[dict]) -> dict | None:
         model=MODEL, max_tokens=400, system=SYSTEM,
         messages=[{"role": "user", "content":
                    f"Today is {date.today().isoformat()}. New WVU headlines since the "
-                   f"morning briefing:\n\n{listing}{recently_alerted(sb)}\n\nDecide."}],
+                   f"morning briefing:\n\n{listing}{recently_alerted(prior)}\n\nDecide."}],
     )
     usage.log(sb, "notify_news", MODEL, resp)
     raw = "".join(b.text for b in resp.content if b.type == "text")
@@ -361,12 +406,14 @@ def summarize(sb, chosen: dict) -> dict:
     if headline:
         print(f"  headline: {headline}")
     print(f"  summary ({searches} searches): {summary[:150]}")
-    if obj.get("player"):
-        # The name a teaser headline withheld. extract_moves.py can't see it (it reads
-        # headlines), so surfacing it here is what turns "a player" into something curatable.
-        print(f"  player named by search: {obj['player']}")
+    player = (obj.get("player") or "").strip()[:80]
+    if player:
+        # The name a teaser headline withheld. Printed for the log, but STORED because the
+        # duplicate guard needs it: without it, "a player is no longer with the program" and
+        # "Evans Barning Jr. exits WVU" are unrelated strings.
+        print(f"  player named by search: {player}")
     return {"summary": summary, "summary_section": section or None,
-            "summary_headline": headline or None}
+            "summary_headline": headline or None, "summary_player": player or None}
 
 
 def mark_notified(sb, chosen: dict, pool: list[dict], stamp: str) -> int:
@@ -407,10 +454,31 @@ def main() -> None:
     if not items:
         print(f"No new headlines in the last {LOOKBACK_HOURS}h — nothing to consider.")
         return
+
+    # Drop follow-ups to something we already alerted on before the model ever sees them.
+    # Doing it here rather than trusting the prompt: a named follow-up to an unnamed scoop
+    # reads like new information, and that is exactly how users got a second alert about
+    # Evans Barning Jr. the morning after the first.
+    prior = alerted_rows(sb)
+    kept = []
+    for i in items:
+        who = blocked_by_prior_alert(i["headline"], prior)
+        if who:
+            print(f"  skipping (already alerted about {who}): {i['headline'][:70]}")
+            # Stamp it, so it stops reappearing in every scan for the rest of the window.
+            sb.table("news_items").update(
+                {"notified_at": datetime.now(timezone.utc).isoformat()}).eq("id", i["id"]).execute()
+        else:
+            kept.append(i)
+    items = kept
+    if not items:
+        print("Everything new is a follow-up to a story already pushed — nothing to consider.")
+        return
+
     print(f"Considering {len(items)} headline(s) from the last {LOOKBACK_HOURS}h "
           f"({already}/{MAX_PER_DAY} pushed today)...")
 
-    obj = decide(sb, items)
+    obj = decide(sb, items, prior)
     if not obj:
         return
     if not obj.get("notify"):
