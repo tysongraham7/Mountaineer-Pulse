@@ -20,9 +20,16 @@ Two alerts per game, each fired at most once:
 `notified_kickoff_at` / `notified_final_at` on the row are what make it once-only, so
 running this every ten minutes is safe.
 
-Run:  python notify_games.py [--dry-run] [--force]
+Run:  python notify_games.py [--dry-run] [--force] [--at <iso-utc>]
         --dry-run  decide and print, send nothing, write nothing
         --force    ignore the daily cap
+        --at       pretend it is some other moment, e.g. --at 2026-09-05T14:45Z
+
+`--at` exists because there is no way to rehearse this otherwise. Run it on an ordinary
+Tuesday and it correctly reports that nothing is happening, which tells you the script
+starts but nothing about whether it would fire on a Saturday. Pointing it at a real
+kickoff exercises the actual decision path against the actual schedule. It always implies
+--dry-run: a run that reports on a moment other than now must never send or stamp anything.
 """
 
 import os
@@ -188,17 +195,48 @@ def final_alert(g: dict) -> tuple[str, str]:
     return title, f"{sport} final {where}."
 
 
+def parse_at(argv: list[str]) -> datetime | None:
+    """`--at 2026-09-05T14:45Z` or `--at=2026-09-05T14:45Z`. Returns None if not given."""
+    raw = None
+    for i, a in enumerate(argv):
+        if a == "--at" and i + 1 < len(argv):
+            raw = argv[i + 1]
+        elif a.startswith("--at="):
+            raw = a.split("=", 1)[1]
+    if not raw:
+        return None
+    try:
+        at = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        die(f"--at wants an ISO timestamp like 2026-09-05T14:45Z, got {raw!r}")
+    return at if at.tzinfo else at.replace(tzinfo=timezone.utc)
+
+
 def main() -> None:
-    dry = "--dry-run" in sys.argv
+    at = parse_at(sys.argv)
+    # A rehearsal must never send or stamp: the times it is reasoning about are not now.
+    dry = "--dry-run" in sys.argv or at is not None
     force = "--force" in sys.argv
     if not SB_URL or not SB_KEY:
         die("Missing SUPABASE_URL or SUPABASE_SECRET_KEY")
 
     sb = create_client(SB_URL, SB_KEY)
-    now = datetime.now(timezone.utc)
+    now = at or datetime.now(timezone.utc)
     now_et = now.astimezone(ET)
+    if at:
+        print(f"[rehearsal] pretending it is {now_et:%a %d %b %Y, %I:%M %p} ET "
+              f"— dry run, nothing will be sent\n")
 
-    refresh_scores(sb, now)
+    if dry:
+        # refresh_scores writes real scores to the table. Correct in production, wrong in a
+        # rehearsal, so print the decision instead of acting on it.
+        started = (now - timedelta(hours=FINAL_MAX_AGE_H)).isoformat()
+        live = (sb.table("games").select("sport_id").neq("status", "final")
+                .gte("start_date", started).lte("start_date", now.isoformat())
+                .execute().data or [])
+        print(f"  [dry] score refresh would {'run for ' + ', '.join(sorted({g['sport_id'] for g in live})) if live else 'be skipped (no game under way)'}")
+    else:
+        refresh_scores(sb, now)
 
     # Finals first: a result is more wanted than a reminder, so if the cap only allows one
     # alert through, it should be the score.
