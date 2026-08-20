@@ -56,14 +56,17 @@ SUMMARY_MODEL = "claude-sonnet-5"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 3}
 ET = ZoneInfo("America/New_York")
 
-# Wide on purpose, even though breaking-scan.yml now runs every three hours. The 8am run has
-# to cover everything that broke overnight while quiet hours held alerts back, which is a
-# ten-hour hole; a window sized to the gap between runs would silently drop it.
+# Slightly wider than the two-hour gap between scans, so a failed scan doesn't punch a hole
+# in the coverage — but no wider. This used to be 10 hours, sized for a single daily run, and
+# left at 10 it would have meant every story sitting in the candidate list for five
+# consecutive scans: five independent chances for the model to talk itself into pushing
+# something it had already, correctly, passed on.
 #
-# The cost of the overlap is that a midday run re-examines stories it already passed on, so
-# every candidate is labelled with its age below and the model is told not to interrupt
-# anyone for something half a day old.
-LOOKBACK_HOURS = 10
+# It does NOT need to reach back across the night. The 11:00 UTC briefing covers everything
+# that broke while quiet hours held alerts back, and by 8am that news is the morning
+# briefing's, not breaking. A scan that reached back twelve hours would just re-alert on what
+# users had already read over breakfast.
+LOOKBACK_HOURS = 3
 MAX_PER_DAY = 2          # counting the morning briefing's own push, this is the ceiling
 QUIET_START_HOUR = 22    # 10pm ET
 QUIET_END_HOUR = 8       # 8am ET
@@ -106,13 +109,12 @@ NOT PUSH-WORTHY (the overwhelming majority):
 
 If several headlines cover the SAME event, choose the single clearest one.
 
-AGE. Every candidate is labelled with how long ago it was published, and you are run every
-few hours — so most of what you see, you have already passed on at least once. Something
-more than about six hours old is not breaking any more; it will be in tomorrow's briefing,
-and interrupting someone for it now just makes the alerts feel random. Alert on an older
-item only if it is genuinely major (a coaching change, a starter leaving) AND it plainly
-broke while alerts were held back overnight. When two headlines cover the same event, prefer
-the newer one.
+AGE. Every candidate is labelled with how long ago it was published, and you run every two
+hours — so some of what you see, you have already passed on once. That earlier judgment was
+probably right; do not change your mind just because a story is still there. Nothing more
+than about four hours old is breaking any more: it will be in tomorrow's briefing, and
+interrupting someone for it now makes the alerts feel random. When two headlines cover the
+same event, prefer the newer one.
 
 NEVER RE-ALERT. You may be shown an ALREADY ALERTED list of stories pushed in recent days.
 If today's candidate is the same EVENT as one of those — even worded completely differently,

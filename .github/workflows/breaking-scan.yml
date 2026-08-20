@@ -1,38 +1,43 @@
 name: Breaking News Scan
 
-# Checks for news worth interrupting someone for, every three hours through the day.
+# Checks for news worth interrupting someone for, every two hours through the day.
 #
-# This used to run once a day, on the 5pm afternoon scan, with a ten-hour lookback. That
-# meant anything breaking after ~5pm ET was never seen by ANY run: the next one, 5pm the
-# following day, looked back only as far as that morning. Evening news could reach the
-# briefing but could never fire an alert. Evans Barning Jr.'s departure broke at 4:31pm and
-# pushed at 4:56pm — half an hour from disappearing into that gap.
+# This used to run once a day, on the 5pm afternoon scan. Anything breaking after ~5pm ET was
+# never seen by ANY run: the next one, 5pm the following day, looked back only as far as that
+# morning. Evening news could reach the briefing but could never fire an alert. Evans Barning
+# Jr.'s departure broke at 4:31pm and pushed at 4:56pm — half an hour from that gap.
 #
-# Cheap enough to justify the frequency: sync_news is free (RSS), and the decision is one
-# Haiku call at ~$0.0004. Most runs decide "no" and cost less than a twentieth of a cent.
-# The expensive part — researching and summarizing — only happens when an alert actually
-# goes out, which is a handful of times a month.
+# Two hours rather than one. Hourly would buy about thirty minutes of average latency on the
+# three or so alerts that fire in a month, while doubling both the feed requests and the
+# number of independent model judgments made against a two-per-day cap. The gap that actually
+# mattered was the four-hour evening hole, and two hours closes it.
+#
+# Cheap enough to justify: sync_news is free (RSS) and the decision is one Haiku call at
+# ~$0.001. Most scans decide "no". Researching and summarizing — the part that costs real
+# money — only happens when an alert actually goes out.
 #
 # TIMES. GitHub cron is UTC with no DST handling, so every slot lands an hour earlier in
-# winter. What each one actually works out to:
+# winter:
 #
 #   UTC    summer (EDT)   winter (EST)
 #   12:00  8am            7am  -> blocked by quiet hours
-#   15:00  11am           10am
+#   14:00  10am           9am
+#   16:00  12pm           11am
 #   18:00  2pm            1pm
-#   21:00  5pm            4pm
-#   01:00  9pm            8pm
+#   20:00  4pm            3pm
+#   22:00  6pm            5pm
+#   00:00  8pm            7pm
 #
-# The last slot is 01:00 rather than 00:00 so winter keeps an evening scan. At 00:00 UTC the
-# winter equivalent is 7pm, and the gap this whole workflow exists to close — news breaking
-# after the last scan of the day — would have reopened every November.
+# Winter losing the 8pm slot is deliberate rather than overlooked: after 7pm ET in winter the
+# thing people want is a score, and notify_games.py covers that every ten minutes regardless
+# of season. Overnight news reaches them through the 7am briefing.
 #
-# The 8am–10pm bound doesn't rely on any of that being right: notify_news.py checks quiet
-# hours against real Eastern time via zoneinfo, so a shifted run outside the window exits
-# without sending. Its daily cap applies across every run here, not per run.
+# The 8am-10pm bound doesn't rely on any of that: notify_news.py checks quiet hours against
+# real Eastern time via zoneinfo, so a shifted run outside the window exits without sending.
+# Its daily cap applies across every run here, not per run.
 on:
   schedule:
-    - cron: "0 12,15,18,21,1 * * *"
+    - cron: "0 12,14,16,18,20,22,0 * * *"
   workflow_dispatch:
 
 # Two overlapping runs could both decide to alert on the same story before either has
