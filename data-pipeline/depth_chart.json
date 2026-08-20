@@ -450,8 +450,8 @@
   {
     "sport_id": "football",
     "unit": "Offense",
-    "position": "SE",
-    "pos_order": 4,
+    "position": "FL",
+    "pos_order": 5,
     "rank": 2,
     "player_name": "TaRon Francis",
     "class_year": "R-Fr.",
@@ -483,8 +483,8 @@
   {
     "sport_id": "football",
     "unit": "Offense",
-    "position": "FL",
-    "pos_order": 5,
+    "position": "SE",
+    "pos_order": 4,
     "rank": 2,
     "player_name": "John Neider",
     "class_year": "R-Jr.",
@@ -917,8 +917,8 @@
     "rank": 2,
     "player_name": "Ashton Woods",
     "class_year": "R-So.",
-    "status": "questionable",
-    "note": "Listed INJ on the latest 247Sports projection"
+    "status": "active",
+    "note": ""
   },
   {
     "sport_id": "football",
@@ -930,18 +930,6 @@
     "class_year": "Fr.",
     "status": "active",
     "note": ""
-  },
-  {
-    "sport_id": "football",
-    "unit": "Defense",
-    "position": "OLB",
-    "pos_order": 18,
-    "rank": 4,
-    "player_name": "Destin Achi",
-    "class_year": "So.",
-    "status": "questionable",
-    "note": "JUCO addition — not yet on the official roster",
-    "alert": "Just signed out of junior college — no camp reps to judge yet, so where he actually lands is a guess"
   },
   {
     "sport_id": "football",
