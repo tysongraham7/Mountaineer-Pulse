@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Pressable,
@@ -76,6 +77,19 @@ export default function ScoresScreen() {
     load();
   }, [load]);
   useForegroundRefresh(load);
+
+  // Set when a kickoff or final-score alert brought us here (notify_games.py sends the id).
+  // Opening the game's own sheet is the point of the alert — landing on the Scores list and
+  // making someone find the row defeats it, and the sheet is where the scouting report is.
+  const { game: linkedGame } = useLocalSearchParams<{ game?: string }>();
+  useEffect(() => {
+    if (!linkedGame || games.length === 0) return;
+    const hit = games.find((g) => String(g.id) === String(linkedGame));
+    if (!hit) return;
+    setFilter(hit.sport_id); // otherwise the list behind the sheet is the wrong sport
+    setSelected(hit);
+    // Games load after the param arrives on a cold start, so this runs on `games` too.
+  }, [linkedGame, games]);
 
   const visible = filter === 'all' ? games : games.filter((g) => g.sport_id === filter);
   const showTag = filter === 'all';

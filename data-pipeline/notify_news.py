@@ -231,8 +231,15 @@ Also decide where in the app this change shows up, for a "see it in the app" but
   "scores"   - a game result
   ""         - nothing in the app reflects this story
 
+Write a headline for it too. The source's own headline is often a teaser written to sell a
+subscription ("SOURCE: a player is no longer with the program") and by now you usually know
+more than it does. Yours should say the actual news in under 60 characters — plain, specific,
+no colon-prefix, no outlet name. If you never learned more than the source headline said,
+return an empty string and we'll use theirs.
+
 Reply with ONLY a JSON object:
-{"summary": "<2-4 sentences>", "section": "movement"|"roster"|"scores"|"",
+{"headline": "<under 60 chars, or empty>", "summary": "<2-4 sentences>",
+ "section": "movement"|"roster"|"scores"|"",
  "player": "<the player's name if you found it, else empty>"}"""
 
 
@@ -315,12 +322,18 @@ def summarize(sb, chosen: dict) -> dict:
     section = (obj.get("section") or "").strip().lower()
     if section not in ("movement", "roster", "scores"):
         section = ""
+    # Empty is a valid answer meaning "I learned nothing the source headline didn't say" —
+    # the card falls back to theirs rather than printing a worse paraphrase.
+    headline = (obj.get("headline") or "").strip()[:90]
+    if headline:
+        print(f"  headline: {headline}")
     print(f"  summary ({searches} searches): {summary[:150]}")
     if obj.get("player"):
         # The name a teaser headline withheld. extract_moves.py can't see it (it reads
         # headlines), so surfacing it here is what turns "a player" into something curatable.
         print(f"  player named by search: {obj['player']}")
-    return {"summary": summary, "summary_section": section or None}
+    return {"summary": summary, "summary_section": section or None,
+            "summary_headline": headline or None}
 
 
 def mark_notified(sb, chosen: dict, pool: list[dict], stamp: str) -> int:

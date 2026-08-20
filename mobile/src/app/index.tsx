@@ -58,6 +58,9 @@ type Breaking = {
   id: string;
   sport_id: string | null;
   headline: string;
+  /** Written by the pipeline once it knows more than the source's teaser headline did.
+   *  Null means it learned nothing extra, so the source's own headline stands. */
+  summary_headline: string | null;
   source_name: string | null;
   url: string;
   summary: string | null;
@@ -65,10 +68,9 @@ type Breaking = {
   notified_at: string | null;
 };
 
-// How long a breaking card stays on the home screen. Long enough that someone who opens the
-// app the next morning still sees what they were alerted about overnight, short enough that
-// it never becomes permanent furniture — after this it lives on the News tab like everything
-// else. The daily briefing has usually absorbed the story by then anyway.
+// Outer bound on how long a breaking card can sit on the home screen. The real retirement
+// rule is the next briefing (see `breaking` below) — this only catches the case where the
+// briefing fails to run for a day, so a card can't get stranded there indefinitely.
 const BREAKING_HOURS = 36;
 
 // Where the change shows up in the app, for the "see it in the app" button. Matches the
@@ -196,7 +198,7 @@ export default function PulseScreen() {
       // the notification, or never had alerts on in the first place.
       supabase
         .from('news_items')
-        .select('id,sport_id,headline,source_name,url,summary,summary_section,notified_at')
+        .select('id,sport_id,headline,summary_headline,source_name,url,summary,summary_section,notified_at')
         .not('notified_at', 'is', null)
         .gte('notified_at', new Date(Date.now() - BREAKING_HOURS * 3600 * 1000).toISOString())
         .order('notified_at', { ascending: false })
@@ -204,8 +206,16 @@ export default function PulseScreen() {
     ]);
     if (snapRes.error) throw snapRes.error; // no connection → show the offline state
 
-    setBriefing((briefingRes.data?.[0] as Briefing) ?? null);
-    setBreaking((breakingRes.data?.[0] as Breaking) ?? null);
+    const brief = (briefingRes.data?.[0] as Briefing) ?? null;
+    setBriefing(brief);
+
+    // Retire the card once a briefing written AFTER the alert exists — at that point the
+    // briefing below is carrying the same story, and leaving both up says it twice on one
+    // screen. In practice a 5pm alert clears at the next 7am briefing.
+    const hit = (breakingRes.data?.[0] as Breaking) ?? null;
+    const supersededBy = brief?.generated_at ? new Date(brief.generated_at).getTime() : 0;
+    const alertedAt = hit?.notified_at ? new Date(hit.notified_at).getTime() : 0;
+    setBreaking(hit && alertedAt > supersededBy ? hit : null);
 
     const latest: Record<string, Snapshot> = {};
     const ser: Record<string, { date: string; score: number }[]> = {};
@@ -534,7 +544,9 @@ function BreakingCard({ item, onOpenSource, onGoToSection }: {
         </Text>
       </View>
 
-      <Text style={styles.breakingHeadline}>{item.headline}</Text>
+      {/* Ours when we have it: the source's is often a teaser written to sell a
+          subscription, and by the time the summary is written we know the actual news. */}
+      <Text style={styles.breakingHeadline}>{item.summary_headline || item.headline}</Text>
 
       {/* Our own summary. Without it the card is just the headline again, which is the
           problem this card was built to solve. */}

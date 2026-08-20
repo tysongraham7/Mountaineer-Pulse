@@ -35,7 +35,7 @@ const TAB_FOR_SCREEN: Record<string, string> = {
   you: '/you',
 };
 
-type PushData = { screen?: string; newsId?: string };
+type PushData = { screen?: string; newsId?: string; gameId?: string };
 
 export function usePushRouting(): void {
   // expo-router throws if you navigate before the root navigator has mounted. On a cold start
@@ -60,9 +60,12 @@ export function usePushRouting(): void {
       if (!path) return; // unknown or absent screen — just open the app, don't guess
 
       try {
-        // newsId rides along so the News tab can pin and mark the exact story we alerted on.
+        // An id rides along so the destination can open the exact thing the alert was about,
+        // rather than dropping the reader on a list to find it themselves.
         if (path === '/news' && data.newsId) {
           router.navigate({ pathname: '/news', params: { highlight: String(data.newsId) } });
+        } else if (path === '/scores' && data.gameId) {
+          router.navigate({ pathname: '/scores', params: { game: String(data.gameId) } });
         } else {
           router.navigate(path as '/');
         }

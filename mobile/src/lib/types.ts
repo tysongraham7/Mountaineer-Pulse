@@ -77,6 +77,9 @@ export type Briefing = {
   date: string;
   content: string;
   sections: BriefingSections | null;
+  /** When the pipeline wrote it. A breaking-news card retires once a briefing newer than
+   *  the alert exists, since by then the briefing is carrying the same story. */
+  generated_at: string | null;
 };
 
 export type PlayerStat = {

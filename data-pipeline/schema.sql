@@ -47,6 +47,12 @@ create table if not exists games (
 create index if not exists games_sport_season_idx on games (sport_id, season);
 create index if not exists games_start_idx on games (start_date);
 
+-- notify_games.py: when this game's kickoff reminder and final score went out. NULL = not
+-- sent. Being on the row is what makes each alert once-only, so the job can run every few
+-- minutes without a separate log or any risk of a repeat.
+alter table games add column if not exists notified_kickoff_at timestamptz;
+alter table games add column if not exists notified_final_at timestamptz;
+
 -- ---------------------------------------------------------------------------
 -- players: roster
 -- ---------------------------------------------------------------------------

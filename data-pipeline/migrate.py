@@ -169,6 +169,10 @@ ALTERS = [
     # notify_news.py: in-app context for a pushed story, so tapping an alert doesn't dead-end.
     "alter table news_items add column if not exists summary text;",
     "alter table news_items add column if not exists summary_section text;",
+    "alter table news_items add column if not exists summary_headline text;",
+    # notify_games.py: one kickoff reminder and one final score per game, never repeated.
+    "alter table games add column if not exists notified_kickoff_at timestamptz;",
+    "alter table games add column if not exists notified_final_at timestamptz;",
     # --- Game-day scouting report (generate_matchup.py) ---
     # One row per upcoming game. Keyed by game_id so a regenerated preview overwrites rather
     # than accumulating, and so it disappears naturally if a game is ever removed.

@@ -214,13 +214,22 @@ SYSTEM = (
     "OUTPUT — reply with ONLY a JSON object, no prose around it:\n"
     "{\n"
     '  "intro": "<one short, warm greeting line>",\n'
+    '  "notify": true|false,\n'
     '  "sections": [\n'
     '    {"sport": "football|mbb|baseball|program",\n'
     '     "items": [{"topic": "<3-6 word headline>", "body": "<2-3 factual sentences with real detail>"}]}\n'
     "  ]\n"
     "}\n"
     "Include a section ONLY where there is real news (0-3 topics each). Order sections football, then "
-    "men's basketball, then baseball, then program. Keep each body tight (~2-3 sentences)."
+    "men's basketball, then baseball, then program. Keep each body tight (~2-3 sentences).\n\n"
+    "`notify` decides whether this briefing is worth a phone notification. The briefing is written "
+    "and shown in the app either way — this only controls the buzz in someone's pocket.\n"
+    "DEFAULT TO TRUE. Most days a fan is glad to be nudged, and the point of a daily briefing is "
+    "that it is daily. Return false ONLY on a genuinely dead day: every item is a preview, a "
+    "projection, a ranking, a column, a practice report or a recruiting rumor, and nothing actually "
+    "HAPPENED — nobody joined or left, no game was played, no announcement was made. If even one "
+    "item reports a real event, return true. A dead-day notification is what teaches people to "
+    "swipe your alerts away, and then they miss the one that matters."
 )
 
 
@@ -408,13 +417,27 @@ def main() -> None:
         on_conflict="date",
     ).execute()
 
-    # Notify subscribers that the morning briefing is ready (best-effort — never fail the run).
-    try:
-        from send_push import send_push
-        teaser = (intro or "Your morning WVU rundown is ready.").strip()
-        send_push("Your Mountaineer briefing 🏔️", teaser[:160], data={"screen": "pulse"})
-    except Exception as e:
-        print(f"    (push notify skipped: {str(e)[:120]})")
+    # Notify subscribers that the morning briefing is ready — but not on a dead day.
+    #
+    # A notification every single morning, including August mornings when nothing happened,
+    # is how people learn to swipe the app away; then they miss the alert that mattered. The
+    # briefing itself is always written and always in the app. This is only the buzz.
+    #
+    # The model defaults to true and is told to withhold only when nothing actually happened,
+    # so this stays a daily habit rather than becoming occasional. `notify` missing entirely
+    # (an older reply shape) is treated as true — silence should never be the accident.
+    #
+    # Best-effort throughout: a push failure must never fail the run.
+    notify = obj.get("notify", True) is not False
+    if not notify:
+        print("    (no push: nothing actually happened today — the briefing is still in the app)")
+    else:
+        try:
+            from send_push import send_push
+            teaser = (intro or "Your morning WVU rundown is ready.").strip()
+            send_push("Your Mountaineer briefing 🏔️", teaser[:160], data={"screen": "pulse"})
+        except Exception as e:
+            print(f"    (push notify skipped: {str(e)[:120]})")
 
     print(f"Daily Briefing ({today}) — {MODEL}, {searches} searches\n" + "-" * 60)
     print(intro)

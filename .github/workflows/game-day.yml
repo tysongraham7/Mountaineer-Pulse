@@ -1,0 +1,47 @@
+name: Game Day Alerts
+
+# Kickoff reminders and final scores. Runs every 10 minutes because a game ends when it
+# ends — a half-hourly check would deliver a final up to 30 minutes late, which for the
+# one alert people most want is the difference between useful and pointless.
+#
+# Cheap enough to justify that: no Claude call at all, just a couple of indexed queries
+# against games, and it exits in seconds when nothing is due (most of the year, always).
+# The repo is public, so Actions minutes are free.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+# A run that overlaps the previous one could send the same alert twice before the first
+# has stamped the row. Never cancel-in-progress here — a half-finished send is worse than
+# a skipped tick, and the next tick is only ten minutes out.
+concurrency:
+  group: game-day-alerts
+  cancel-in-progress: false
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      # notify_games.py needs only these three; the full requirements.txt would add a
+      # minute to a job that usually has nothing to do.
+      - name: Install dependencies
+        run: pip install requests supabase python-dotenv
+
+      # CFBD_API_KEY is here because a live game triggers a score refresh from inside the
+      # script — the daily sync is far too slow to catch a final while it's still news.
+      - name: Kickoff reminders and final scores
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
+        run: python notify_games.py
