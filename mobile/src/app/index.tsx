@@ -56,6 +56,7 @@ type Rec = { w: number; l: number; season: number };
 // (see notify_news.py) so the news is readable here rather than behind the source's paywall.
 type Breaking = {
   id: string;
+  sport_id: string | null;
   headline: string;
   source_name: string | null;
   url: string;
@@ -72,16 +73,24 @@ const BREAKING_HOURS = 36;
 
 // Where the change shows up in the app, for the "see it in the app" button. Matches the
 // `summary_section` values notify_news.py writes.
-const SECTION_LABEL: Record<string, string> = {
-  movement: 'See it on the Team tab',
-  roster: 'See the roster',
-  scores: 'See the score',
-};
-const SECTION_ROUTE: Record<string, string> = {
-  movement: '/team',
-  roster: '/team',
-  scores: '/scores',
-};
+// Which sub-view of the Team tab the story is reflected in. The Team tab opens on football's
+// roster by default, so a basketball story has to say so explicitly or the button lands the
+// reader on the wrong team with no hint of where to go next.
+const SECTION_MODE: Record<string, string> = { movement: 'movement', roster: 'roster' };
+
+function sectionButton(section: string, sport: string | null): { label: string; href: string } | null {
+  const sportName = sport ? SPORT_TAG[sport] : null;
+  if (section === 'scores') return { label: 'See the score', href: '/scores' };
+  const mode = SECTION_MODE[section];
+  if (!mode) return null;
+  const what = mode === 'movement' ? 'roster moves' : 'roster';
+  return {
+    label: sportName ? `See ${sportName.toLowerCase()} ${what}` : `See the ${what}`,
+    // Falls back to football only when the story has no sport, which is what the tab would
+    // have shown anyway — never a silent wrong-team landing for a story that does have one.
+    href: `/team?sport=${sport ?? 'football'}&mode=${mode}`,
+  };
+}
 
 // A record is shown only while its season is actually being played. Out of season it's
 // last year's news sitting under today's Pulse — WVU football read "4–8 · 2025" all
@@ -187,7 +196,7 @@ export default function PulseScreen() {
       // the notification, or never had alerts on in the first place.
       supabase
         .from('news_items')
-        .select('id,headline,source_name,url,summary,summary_section,notified_at')
+        .select('id,sport_id,headline,source_name,url,summary,summary_section,notified_at')
         .not('notified_at', 'is', null)
         .gte('notified_at', new Date(Date.now() - BREAKING_HOURS * 3600 * 1000).toISOString())
         .order('notified_at', { ascending: false })
@@ -513,9 +522,7 @@ function BreakingCard({ item, onOpenSource, onGoToSection }: {
   onOpenSource: () => void;
   onGoToSection: (route: string) => void;
 }) {
-  const section = item.summary_section ?? '';
-  const sectionLabel = SECTION_LABEL[section];
-  const sectionRoute = SECTION_ROUTE[section];
+  const jump = sectionButton(item.summary_section ?? '', item.sport_id);
   return (
     <Card style={styles.breaking}>
       <View style={styles.breakingTop}>
@@ -534,11 +541,11 @@ function BreakingCard({ item, onOpenSource, onGoToSection }: {
       {item.summary ? <Text style={styles.breakingBody}>{item.summary}</Text> : null}
 
       <View style={styles.breakingActions}>
-        {sectionLabel && sectionRoute ? (
+        {jump ? (
           <Pressable
-            onPress={() => onGoToSection(sectionRoute)}
+            onPress={() => onGoToSection(jump.href)}
             style={({ pressed }) => [styles.breakingBtn, pressed && { opacity: 0.75 }]}>
-            <Text style={styles.breakingBtnText}>{sectionLabel}</Text>
+            <Text style={styles.breakingBtnText}>{jump.label}</Text>
             <Ionicons name="arrow-forward" size={13} color={Brand.onGold} />
           </Pressable>
         ) : null}

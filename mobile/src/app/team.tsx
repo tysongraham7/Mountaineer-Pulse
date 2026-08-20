@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -232,8 +233,22 @@ export default function TeamScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('football');
-  const [mode, setMode] = useState<(typeof MODES)[number]['id']>('roster');
+  // Set when something deep-linked here — a breaking-news card sending you to the roster
+  // change it's about. Without them this screen always opened on football's roster, so a
+  // basketball story sent you to the wrong team and left you to find it yourself.
+  const params = useLocalSearchParams<{ sport?: string; mode?: string }>();
+  const linkedSport = FILTERS.find((f) => f.id === params.sport)?.id;
+  const linkedMode = MODES.find((m) => m.id === params.mode)?.id;
+
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>(linkedSport ?? 'football');
+  const [mode, setMode] = useState<(typeof MODES)[number]['id']>(linkedMode ?? 'roster');
+
+  // The tab stays mounted, so arriving a second time with different params has to move the
+  // controls — the initial state above only applies to the very first render.
+  useEffect(() => {
+    if (linkedSport) setFilter(linkedSport);
+    if (linkedMode) setMode(linkedMode);
+  }, [linkedSport, linkedMode]);
   const [leaderSeason, setLeaderSeason] = useState<number>(2025);
   const [rosterView, setRosterView] = useState<'projected' | 'last'>('projected');
   // One query drives every roster section on screen, so searching with the sport filter on
