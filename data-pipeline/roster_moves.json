@@ -1034,5 +1034,37 @@
     "source_name": "247Sports / On3",
     "source_url": "https://247sports.com/college/west-virginia/article/juco-linebacker-talks-late-addition-to-wvus-2026-roster-288603263/",
     "notes": "Late JUCO addition to the linebacker room ahead of fall camp"
+  },
+  {
+    "sport_id": "mbb",
+    "player_name": "Evans Barning Jr.",
+    "position": "F",
+    "class_year": "So.",
+    "direction": "out",
+    "category": "departure",
+    "status": "left program",
+    "other_school": "",
+    "move_date": "2026-08-19",
+    "source_name": "247Sports",
+    "source_url": "",
+    "notes": "No longer with the program",
+    "pulse_neutral": true
+  },
+  {
+    "sport_id": "mbb",
+    "player_name": "Jelani McKoy",
+    "position": "G",
+    "class_year": "",
+    "direction": "in",
+    "category": "addition",
+    "status": "committed",
+    "other_school": "",
+    "move_date": "2026-08-19",
+    "source_name": "247Sports",
+    "source_url": "",
+    "notes": "Guard added as WVU fills its final roster spot",
+    "pulse_neutral": true,
+    "provisional": true,
+    "_why_provisional": "Reported Aug 19 but not yet on wvusports.com or in the news feed; a feed row supersedes this once the story is picked up."
   }
 ]

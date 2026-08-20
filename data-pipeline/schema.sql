@@ -126,6 +126,11 @@ create index if not exists news_published_idx on news_items (published_at desc);
 alter table news_items add column if not exists notified_at timestamptz;
 create index if not exists news_items_notified_idx on news_items (notified_at desc);
 
+-- When check_unlanded_alerts.py reviewed this pushed alert against the app's roster data.
+-- NULL = not yet reviewed. Stamped whether or not a gap was found, so each alert produces at
+-- most one "the app didn't catch up" email rather than one every four hours.
+alter table news_items add column if not exists unlanded_flagged_at timestamptz;
+
 alter table news_items enable row level security;
 create policy "public read news" on news_items for select using (true);
 

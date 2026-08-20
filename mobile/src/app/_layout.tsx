@@ -33,6 +33,7 @@ import {
   syncPushRegistration,
 } from '@/lib/notifications';
 import { useOtaUpdates } from '@/lib/use-ota-updates';
+import { usePushRouting } from '@/lib/use-push-routing';
 
 const c = surfaces(true);
 
@@ -94,6 +95,10 @@ function RootLayout() {
   // may never come. Root level so it runs for every screen, and before fonts resolve —
   // an update should land whether or not the rest of startup succeeded.
   useOtaUpdates();
+
+  // Send a notification tap to the screen it's about. Without this every alert dropped you on
+  // whichever tab happened to be open last, with nothing on screen about the story you tapped.
+  usePushRouting();
 
   // Show notification banners even when the app is open, and make sure Android's channel
   // exists before any push can land on it. Set once, at the root.

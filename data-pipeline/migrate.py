@@ -164,6 +164,8 @@ ALTERS = [
     # the daily-cap counter (count today's non-null rows), so no separate push log is needed.
     "alter table news_items add column if not exists notified_at timestamptz;",
     "create index if not exists news_items_notified_idx on news_items (notified_at desc);",
+    # check_unlanded_alerts.py: one "the app didn't catch up" nag per pushed alert.
+    "alter table news_items add column if not exists unlanded_flagged_at timestamptz;",
     # --- Game-day scouting report (generate_matchup.py) ---
     # One row per upcoming game. Keyed by game_id so a regenerated preview overwrites rather
     # than accumulating, and so it disappears naturally if a game is ever removed.

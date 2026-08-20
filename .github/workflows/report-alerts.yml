@@ -2,6 +2,9 @@ name: Bug Report Alerts
 
 # Emails you when new in-app reports arrive, so you don't have to run read_reports.py to
 # notice. Runs every few hours (reports are rare, so this is cheap) plus a manual button.
+# Also checks that breaking-news pushes actually landed in the app — same cadence, same
+# inbox, and the 4-hour gap gives the news feed time to publish a headline that names the
+# player before a human is asked to curate the move by hand.
 on:
   schedule:
     - cron: "0 */4 * * *" # every 4 hours
@@ -30,3 +33,14 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
         run: python notify_reports.py
+
+      # A push about a roster change that the roster never reflected. Never guesses a name —
+      # it emails so the move can be curated by hand.
+      - name: Alerts the app never caught up with
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
+        run: python check_unlanded_alerts.py

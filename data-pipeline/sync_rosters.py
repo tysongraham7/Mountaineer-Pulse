@@ -212,6 +212,34 @@ def main() -> None:
         print(f"  curated additions: {len(fresh)} added, {len(additions) - len(fresh)} "
               f"already on the official roster")
 
+    # The mirror of additions: players wvusports.com STILL lists who have actually left.
+    # The official page lags a departure by days — Evans Barning Jr. was reported gone on
+    # 2026-08-19 and was still on the page that night — so without this the scrape puts a
+    # departed player back on the roster every single run, contradicting the Movement tab.
+    # Matched on NAME, not id: a scraped id is only stable while the page keeps listing him,
+    # and the whole point here is that the page will eventually drop him. Delete an entry
+    # once the official page catches up; a stale entry is harmless (it matches nobody).
+    rm_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "roster_removals.json")
+    try:
+        with open(rm_path, encoding="utf-8") as f:
+            removals = json.load(f)
+    except (OSError, ValueError):
+        removals = []
+    gone = 0
+    for r in removals:
+        sport, name = r.get("sport_id"), (r.get("player_name") or "").strip()
+        if not sport or not name:
+            continue
+        first, _, last = name.partition(" ")
+        hit = (sb.table("players").select("id,first_name,last_name")
+               .eq("sport_id", sport).eq("first_name", first).execute().data or [])
+        for row in hit:
+            if f'{row["first_name"]} {row["last_name"]}'.strip().lower() == name.lower():
+                sb.table("players").delete().eq("id", row["id"]).execute()
+                gone += 1
+    if removals:
+        print(f"  curated removals: {gone} of {len(removals)} still on the official page")
+
     print(f"  bios carried across the rebuild: {carried}/{len(kept)}")
     print("\n[OK] Official rosters scraped to Supabase.")
 

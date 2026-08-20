@@ -1,0 +1,7 @@
+[
+  {
+    "sport_id": "mbb",
+    "player_name": "Evans Barning Jr.",
+    "_reason": "Reported no longer with the program 2026-08-19 (247Sports). wvusports.com still listed him that night, so the nightly scrape would otherwise keep re-adding him. Delete this entry once the official roster page drops him."
+  }
+]

@@ -250,7 +250,9 @@ def main() -> None:
         print("\n[dry run] Nothing sent, nothing marked.")
         return
 
-    sent = send_push(title, body, data={"screen": "news"})
+    # newsId lets the app pin THIS story to the top of the News tab and mark it, instead of
+    # dropping the reader into an undifferentiated list and hoping they spot it.
+    sent = send_push(title, body, data={"screen": "news", "newsId": chosen["id"]})
     stamp = datetime.now(timezone.utc).isoformat()
     n = mark_notified(sb, chosen, items, stamp)
     print(f"\n[OK] Pushed to {sent} device(s); marked {n} headline(s) as notified.")

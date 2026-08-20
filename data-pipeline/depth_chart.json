@@ -279,18 +279,6 @@
     "sport_id": "mbb",
     "season": 2027,
     "unit": "Projected Lineup",
-    "position": "SF",
-    "pos_order": 3,
-    "rank": 3,
-    "player_name": "Evans Barning Jr.",
-    "class_year": "So.",
-    "status": "active",
-    "note": "Returning forward"
-  },
-  {
-    "sport_id": "mbb",
-    "season": 2027,
-    "unit": "Projected Lineup",
     "position": "PF",
     "pos_order": 4,
     "rank": 1,

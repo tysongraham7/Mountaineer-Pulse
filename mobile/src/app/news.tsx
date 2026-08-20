@@ -1,5 +1,6 @@
+import { useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -54,6 +55,11 @@ export default function NewsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
 
+  // Set when a breaking-news push brought us here (see lib/use-push-routing.ts). The alerted
+  // story gets pinned to the top and marked, so the tap lands on the thing it promised rather
+  // than somewhere in a list of eighty headlines.
+  const { highlight } = useLocalSearchParams<{ highlight?: string }>();
+
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('news_items')
@@ -75,7 +81,18 @@ export default function NewsScreen() {
   }, [load]);
   useForegroundRefresh(load);
 
-  const visible = filter === 'all' ? items : items.filter((n) => n.sport_id === filter);
+  const filtered = filter === 'all' ? items : items.filter((n) => n.sport_id === filter);
+
+  // Pin the alerted story to the top of whatever filter is showing. Sorting rather than
+  // scrolling: the story is minutes old and already near the top, and a scroll-to-index would
+  // fight the pull-to-refresh and land on nothing if the filter excludes it.
+  const visible = useMemo(() => {
+    if (!highlight) return filtered;
+    const hit = filtered.find((n) => n.id === highlight);
+    return hit ? [hit, ...filtered.filter((n) => n.id !== highlight)] : filtered;
+  }, [filtered, highlight]);
+
+  const alerted = highlight ? items.find((n) => n.id === highlight) : undefined;
   const updated = items[0] ? relativeTime(items[0].published_at) : '';
 
   return (
@@ -114,24 +131,51 @@ export default function NewsScreen() {
         {!loading && !loadError && visible.length === 0 && (
           <Text style={styles.empty}>No headlines in this filter yet.</Text>
         )}
-        {!loading && visible.map((n) => (
-          <Pressable
-            key={n.id}
-            onPress={() => WebBrowser.openBrowserAsync(n.url)}
-            style={({ pressed }) => [styles.card, { opacity: pressed ? 0.75 : 1 }]}>
-            <View style={styles.metaRow}>
-              {n.sport_id && SPORT_LABEL[n.sport_id] && (
-                <View style={styles.tag}>
-                  <Text style={styles.tagText}>{SPORT_LABEL[n.sport_id]}</Text>
-                </View>
+        {!loading && visible.map((n) => {
+          const isAlerted = !!highlight && n.id === highlight;
+          return (
+            <Pressable
+              key={n.id}
+              onPress={() => WebBrowser.openBrowserAsync(n.url)}
+              style={({ pressed }) => [
+                styles.card,
+                isAlerted && styles.cardAlerted,
+                { opacity: pressed ? 0.75 : 1 },
+              ]}>
+              <View style={styles.metaRow}>
+                {isAlerted && (
+                  <View style={styles.breakingTag}>
+                    <Text style={styles.breakingText}>ALERTED</Text>
+                  </View>
+                )}
+                {n.sport_id && SPORT_LABEL[n.sport_id] && (
+                  <View style={styles.tag}>
+                    <Text style={styles.tagText}>{SPORT_LABEL[n.sport_id]}</Text>
+                  </View>
+                )}
+                <Text style={styles.source} numberOfLines={1}>
+                  {n.source_name ?? 'News'} · {relativeTime(n.published_at)}
+                </Text>
+              </View>
+              <Text style={styles.headline}>{n.headline}</Text>
+              {/* The headline alone doesn't say the article lives elsewhere. On a story someone
+                  was just interrupted for, spell out that the tap leaves the app. */}
+              {isAlerted && (
+                <Text style={styles.readAt}>Tap to read at {n.source_name ?? 'the source'} →</Text>
               )}
-              <Text style={styles.source} numberOfLines={1}>
-                {n.source_name ?? 'News'} · {relativeTime(n.published_at)}
-              </Text>
-            </View>
-            <Text style={styles.headline}>{n.headline}</Text>
+            </Pressable>
+          );
+        })}
+        {/* The alerted story exists but the active filter hides it — say so instead of
+            showing a list that silently doesn't contain what the push was about. */}
+        {!loading && !!alerted && !visible.some((n) => n.id === highlight) && (
+          <Pressable onPress={() => setFilter('all')} style={styles.missingBanner}>
+            <Text style={styles.missingText}>
+              The story you were alerted about is filed under{' '}
+              {SPORT_LABEL[alerted.sport_id ?? ''] ?? 'another sport'}. Tap to show all news.
+            </Text>
           </Pressable>
-        ))}
+        )}
       </View>
       </ScrollView>
     </View>
@@ -147,6 +191,12 @@ const styles = StyleSheet.create({
   headerMeta: { fontFamily: Font.body, fontSize: 12, color: c.textMuted },
   empty: { textAlign: 'center', marginTop: 24, fontSize: 14, color: c.textSecondary, fontFamily: Font.body },
   card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, borderRadius: 16, padding: 14 },
+  cardAlerted: { borderColor: Brand.gold, borderWidth: 1.5, backgroundColor: Brand.goldTint },
+  breakingTag: { backgroundColor: Brand.gold, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  breakingText: { color: Brand.onGold, fontSize: 10, fontFamily: Font.bodyBold, letterSpacing: 0.6 },
+  readAt: { marginTop: 8, fontSize: 12, color: Brand.gold, fontFamily: Font.bodySemi },
+  missingBanner: { backgroundColor: Brand.goldTint, borderWidth: 1, borderColor: Brand.gold, borderRadius: 14, padding: 12 },
+  missingText: { fontSize: 13, color: c.text, fontFamily: Font.body, lineHeight: 18 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   tag: { backgroundColor: Brand.goldTint, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   tagText: { color: Brand.gold, fontSize: 10, fontFamily: Font.bodyBold },
