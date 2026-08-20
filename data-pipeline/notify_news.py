@@ -56,8 +56,13 @@ SUMMARY_MODEL = "claude-sonnet-5"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 3}
 ET = ZoneInfo("America/New_York")
 
-# The gap between the 11:00 UTC morning run and the 21:00 UTC afternoon run. Anything
-# older than this was already in today's briefing, so it isn't "breaking" to anyone.
+# Wide on purpose, even though breaking-scan.yml now runs every three hours. The 8am run has
+# to cover everything that broke overnight while quiet hours held alerts back, which is a
+# ten-hour hole; a window sized to the gap between runs would silently drop it.
+#
+# The cost of the overlap is that a midday run re-examines stories it already passed on, so
+# every candidate is labelled with its age below and the model is told not to interrupt
+# anyone for something half a day old.
 LOOKBACK_HOURS = 10
 MAX_PER_DAY = 2          # counting the morning briefing's own push, this is the ceiling
 QUIET_START_HOUR = 22    # 10pm ET
@@ -100,6 +105,14 @@ NOT PUSH-WORTHY (the overwhelming majority):
 - Off-field, legal, or personal stories about individuals.
 
 If several headlines cover the SAME event, choose the single clearest one.
+
+AGE. Every candidate is labelled with how long ago it was published, and you are run every
+few hours — so most of what you see, you have already passed on at least once. Something
+more than about six hours old is not breaking any more; it will be in tomorrow's briefing,
+and interrupting someone for it now just makes the alerts feel random. Alert on an older
+item only if it is genuinely major (a coaching change, a starter leaving) AND it plainly
+broke while alerts were held back overnight. When two headlines cover the same event, prefer
+the newer one.
 
 NEVER RE-ALERT. You may be shown an ALREADY ALERTED list of stories pushed in recent days.
 If today's candidate is the same EVENT as one of those — even worded completely differently,
@@ -167,12 +180,30 @@ def recently_alerted(sb, days: int = 4) -> str:
     return f"\n\nALREADY ALERTED (do NOT alert the same event again):\n{lines}"
 
 
+def age_label(published_at: str | None) -> str:
+    """How long ago this headline was published, for the candidate list."""
+    if not published_at:
+        return "age unknown"
+    try:
+        pub = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
+    except ValueError:
+        return "age unknown"
+    mins = int((datetime.now(timezone.utc) - pub).total_seconds() // 60)
+    if mins < 90:
+        return f"{max(0, mins)}m ago"
+    return f"{mins // 60}h ago"
+
+
 def decide(sb, items: list[dict]) -> dict | None:
     import anthropic
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+    # Age matters now that this runs every three hours: the same story sits in the candidate
+    # list for several consecutive runs, and without a timestamp the model can't tell a
+    # twenty-minute-old scoop from one it already declined this morning.
     listing = "\n".join(
-        f'- id={i["id"]} | {i["headline"]} ({i.get("source_name") or "source"})' for i in items
+        f'- id={i["id"]} | [{age_label(i.get("published_at"))}] {i["headline"]} '
+        f'({i.get("source_name") or "source"})' for i in items
     )
     resp = client.messages.create(
         model=MODEL, max_tokens=400, system=SYSTEM,

@@ -5,7 +5,9 @@ name: Afternoon Scan
 # Deliberately does NOT regenerate the daily briefing. The briefing is the expensive call
 # (~$0.50 of web search) and it's meant to be one artifact a day — rewriting it at 5pm
 # would change what users read that morning, under them. This run refreshes the DATA
-# (news, roster moves, notes, Pulse) and may fire ONE breaking-news alert.
+# (news, roster moves, notes, Pulse).
+#
+# Breaking-news alerts are NOT here any more — see breaking-scan.yml.
 #
 # Cost is a few cents: no web search, and the AI steps are Haiku plus a single Opus
 # extraction.
@@ -64,8 +66,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: python compute_pulse.py
 
-      # Last, so it judges against fully-synced data. Sends at most one push, and only if
-      # something genuinely broke since this morning — most days this is a no-op.
-      - name: Breaking-news alert
-        if: ${{ !cancelled() }}
-        run: python notify_news.py
+      # The breaking-news alert used to run here. It now lives in breaking-scan.yml, which
+      # fires every three hours — this run's 21:00 UTC slot is one of them, so leaving a copy
+      # here would have judged the same headlines twice within a minute.

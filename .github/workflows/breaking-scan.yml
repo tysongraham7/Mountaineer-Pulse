@@ -1,0 +1,78 @@
+name: Breaking News Scan
+
+# Checks for news worth interrupting someone for, every three hours through the day.
+#
+# This used to run once a day, on the 5pm afternoon scan, with a ten-hour lookback. That
+# meant anything breaking after ~5pm ET was never seen by ANY run: the next one, 5pm the
+# following day, looked back only as far as that morning. Evening news could reach the
+# briefing but could never fire an alert. Evans Barning Jr.'s departure broke at 4:31pm and
+# pushed at 4:56pm — half an hour from disappearing into that gap.
+#
+# Cheap enough to justify the frequency: sync_news is free (RSS), and the decision is one
+# Haiku call at ~$0.0004. Most runs decide "no" and cost less than a twentieth of a cent.
+# The expensive part — researching and summarizing — only happens when an alert actually
+# goes out, which is a handful of times a month.
+#
+# TIMES. GitHub cron is UTC with no DST handling, so every slot lands an hour earlier in
+# winter. What each one actually works out to:
+#
+#   UTC    summer (EDT)   winter (EST)
+#   12:00  8am            7am  -> blocked by quiet hours
+#   15:00  11am           10am
+#   18:00  2pm            1pm
+#   21:00  5pm            4pm
+#   01:00  9pm            8pm
+#
+# The last slot is 01:00 rather than 00:00 so winter keeps an evening scan. At 00:00 UTC the
+# winter equivalent is 7pm, and the gap this whole workflow exists to close — news breaking
+# after the last scan of the day — would have reopened every November.
+#
+# The 8am–10pm bound doesn't rely on any of that being right: notify_news.py checks quiet
+# hours against real Eastern time via zoneinfo, so a shifted run outside the window exits
+# without sending. Its daily cap applies across every run here, not per run.
+on:
+  schedule:
+    - cron: "0 12,15,18,21,1 * * *"
+  workflow_dispatch:
+
+# Two overlapping runs could both decide to alert on the same story before either has
+# stamped notified_at. Never cancel-in-progress — a half-finished run may already have
+# pushed, and the next slot is only three hours out.
+concurrency:
+  group: breaking-news-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # notify_news reads headlines out of the database, so without this the scan would keep
+      # re-reading the same stories the last full pipeline run happened to fetch.
+      - name: News feed (Google News)
+        run: python sync_news.py
+        continue-on-error: true
+
+      # Deliberately NOT running extract_moves here. It's an Opus call, and five times a day
+      # it would cost more than everything else in the pipeline combined. Roster rows still
+      # catch up on the morning and afternoon runs; in the meantime the alert's own summary
+      # names the player on the home screen, and check_unlanded_alerts emails if a pushed
+      # roster change never lands.
+      - name: Breaking-news alert
+        if: ${{ !cancelled() }}
+        run: python notify_news.py
