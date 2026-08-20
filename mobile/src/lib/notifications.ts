@@ -11,6 +11,15 @@ import { supabase } from '@/lib/supabase';
 // re-enable a token the user chose to turn off.
 const ALERTS_PREF = 'mp-alerts-enabled';
 
+// "<token>|<iso>" for the last registration that succeeded. syncPushRegistration runs on every
+// launch and every foreground, which meant a database write every time someone glanced at the
+// app. Keyed on the TOKEN rather than a timer, so a token that actually changes re-registers
+// immediately instead of waiting out a cooldown — the whole point of the self-heal.
+const REGISTERED = 'mp-push-registered';
+// Re-register anyway once a week, so a row lost server-side can't leave a device silently
+// unreachable forever just because its token never changed.
+const REREGISTER_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+
 async function permissionGranted(): Promise<boolean> {
   const { status } = await Notifications.getPermissionsAsync();
   return status === 'granted';
@@ -68,24 +77,24 @@ async function currentToken(retries = 2): Promise<string | null> {
 
 /** Register/enable this device's token in Supabase (idempotent). Returns success. */
 async function saveToken(token: string): Promise<boolean> {
-  const nowIso = new Date().toISOString();
-  // NOTE: don't use upsert() here. PostgREST upsert emits INSERT ... ON CONFLICT, which needs a
-  // SELECT policy to identify the conflicting row — and push_tokens has none by design (a readable
-  // token table is a spam vector), so any ON CONFLICT write fails RLS. Instead: plain insert, and
-  // on a duplicate-key error (token already registered) fall back to an update.
-  const ins = await supabase
-    .from('push_tokens')
-    .insert({ token, platform: Platform.OS, enabled: true, updated_at: nowIso });
-  if (ins.error) {
-    const upd = await supabase
-      .from('push_tokens')
-      .update({ enabled: true, platform: Platform.OS, updated_at: nowIso })
-      .eq('token', token);
-    if (upd.error) {
-      console.warn('push token registration failed:', upd.error.message);
-      return false;
-    }
+  // One RPC, no failure expected. This used to be a plain insert with an update fallback,
+  // because PostgREST's upsert emits INSERT ... ON CONFLICT and that needs a SELECT policy to
+  // identify the conflicting row — which push_tokens deliberately doesn't have (a readable
+  // token table lets anyone notify any device). The catch was that the insert was *expected*
+  // to fail for every already-registered device, so every app open logged a duplicate-key
+  // error in Postgres. Nobody saw it, but the log filled with them.
+  //
+  // register_push_token does the same upsert server-side as security definer, so it bypasses
+  // the missing SELECT policy without exposing the table.
+  const { error } = await supabase.rpc('register_push_token', {
+    p_token: token,
+    p_platform: Platform.OS,
+  });
+  if (error) {
+    console.warn('push token registration failed:', error.message);
+    return false;
   }
+  await AsyncStorage.setItem(REGISTERED, `${token}|${new Date().toISOString()}`);
   return true;
 }
 
@@ -106,7 +115,13 @@ export async function syncPushRegistration(): Promise<void> {
   if (!(await permissionGranted())) return;
   if ((await AsyncStorage.getItem(ALERTS_PREF)) === 'false') return; // user turned alerts off
   const token = await currentToken();
-  if (token) await saveToken(token);
+  if (!token) return;
+  // Nothing to do if this exact token registered successfully and recently. A changed token
+  // falls straight through and re-registers, which is the case this function exists for.
+  const [lastToken, lastAt] = ((await AsyncStorage.getItem(REGISTERED)) ?? '').split('|');
+  const at = lastAt ? new Date(lastAt).getTime() : 0;
+  if (lastToken === token && at && Date.now() - at < REREGISTER_AFTER_MS) return;
+  await saveToken(token);
 }
 
 /**
@@ -138,6 +153,9 @@ export async function enableAlerts(): Promise<string | null> {
 /** Mark this device's token disabled (best-effort) when the user turns alerts off. */
 export async function disableAlerts(): Promise<void> {
   await AsyncStorage.setItem(ALERTS_PREF, 'false'); // persist intent so it survives restarts
+  // Drop the cache too, so the invariant stays "cached => the server has this token enabled".
+  // Turning alerts back on re-registers unconditionally anyway; this just keeps the two honest.
+  await AsyncStorage.removeItem(REGISTERED);
   const token = await currentToken();
   if (!token) return;
   await supabase

@@ -173,6 +173,46 @@ ALTERS = [
     # notify_games.py: one kickoff reminder and one final score per game, never repeated.
     "alter table games add column if not exists notified_kickoff_at timestamptz;",
     "alter table games add column if not exists notified_final_at timestamptz;",
+    # --- Push token registration, without the deliberate failure ---
+    # The app used to INSERT and, on the duplicate-key error that every already-registered
+    # device produces, fall back to UPDATE. It worked and users never saw anything, but it
+    # logged a Postgres error on every single app open — which is what the errors on the
+    # dashboard were.
+    #
+    # The obvious fix, upsert, isn't available from the client: PostgREST emits
+    # INSERT ... ON CONFLICT, which needs a SELECT policy to identify the conflicting row,
+    # and push_tokens deliberately has none (a readable token table lets anyone notify any
+    # device). So the upsert happens here instead, as security definer — it runs as the
+    # owner, so it bypasses the missing SELECT policy without exposing the table.
+    #
+    # search_path is pinned: a security definer function that resolves unqualified names
+    # through the caller's search_path can be tricked into running someone else's `insert`.
+    #
+    # No new exposure. It only ever touches the row for the token passed in, and the existing
+    # update policy already lets the client enable a token it knows. The length guard is a
+    # small improvement on that policy's `with check (true)` — it can't be used to fill the
+    # table with junk rows.
+    """create or replace function public.register_push_token(p_token text, p_platform text)
+       returns void
+       language plpgsql
+       security definer
+       set search_path = public, pg_temp
+       as $$
+       begin
+         if p_token is null or length(p_token) < 10 or length(p_token) > 255 then
+           return;
+         end if;
+         insert into public.push_tokens (token, platform, enabled, updated_at)
+         values (p_token, p_platform, true, now())
+         on conflict (token) do update
+           set enabled    = true,
+               platform   = excluded.platform,
+               updated_at = now();
+       end;
+       $$;""",
+    # `public`, not `anon`: the sb_publishable_ key resolves to a role matched by `public`
+    # but not by `anon` — the same reason the table's own policies target public.
+    "grant execute on function public.register_push_token(text, text) to public;",
     # --- Game-day scouting report (generate_matchup.py) ---
     # One row per upcoming game. Keyed by game_id so a regenerated preview overwrites rather
     # than accumulating, and so it disappears naturally if a game is ever removed.
