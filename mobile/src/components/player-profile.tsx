@@ -2,10 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReportModal } from '@/components/report-modal';
-import { SectionLabel } from '@/components/ui';
+import { SectionLabel, SheetHeader } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
 import { supabase } from '@/lib/supabase';
 import { Player, PlayerStat } from '@/lib/types';
@@ -75,7 +74,6 @@ type ProfilePlayer = Player & { incoming?: boolean; note?: string | null; fromSc
 const BIO_PREVIEW_LINES = 7;
 
 export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | null; onClose: () => void }) {
-  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<PlayerStat[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -151,24 +149,22 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
     <Modal visible={!!player} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         {player && (
+          <>
+          {/* Pinned: a full stat line plus a bio runs well past one screen, and the back
+              button used to scroll away with the gradient below. */}
+          <SheetHeader title={fullName(player)} onClose={onClose} />
           <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             {/* Gradient hero header */}
             <LinearGradient
               colors={Gradients.hero}
               start={{ x: 0.2, y: 0 }}
               end={{ x: 0.9, y: 1 }}
-              style={[styles.hero, { paddingTop: insets.top + 8 }]}>
-              <View style={styles.heroTop}>
-                <Pressable onPress={onClose} hitSlop={12} style={styles.circleBtn}>
-                  <Ionicons name="chevron-back" size={20} color="#C8D4E4" />
-                </Pressable>
-                <SectionLabel style={{ color: c.blueLabel } as never}>
-                  {[SPORT_LABEL[player.sport_id] ?? '', player.position].filter(Boolean).join(' · ')}
-                </SectionLabel>
-                {/* Balances the back button so the label stays centered. Sized, not
-                    styled — reusing circleBtn drew an empty circle in the corner. */}
-                <View style={styles.headerSpacer} />
-              </View>
+              style={styles.hero}>
+              {/* Was the centered label in the old scrolling header. The pinned bar now
+                  carries the name, so this keeps the sport and position visible. */}
+              <SectionLabel style={{ color: c.blueLabel } as never}>
+                {[SPORT_LABEL[player.sport_id] ?? '', player.position].filter(Boolean).join(' · ')}
+              </SectionLabel>
 
               <View style={styles.heroBody}>
                 {player.photo_url ? (
@@ -311,6 +307,7 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
               </Pressable>
             </View>
           </ScrollView>
+          </>
         )}
         <ReportModal
           visible={reportOpen}
@@ -327,11 +324,9 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 20, paddingBottom: 20 },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  circleBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  headerSpacer: { width: 32, height: 32 },
-  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 16 },
+  // No top inset any more — SheetHeader sits above this and owns the safe area.
+  hero: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 14 },
   photo: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, borderColor: Brand.gold, backgroundColor: c.card },
   photoFallback: { alignItems: 'center', justifyContent: 'center' },
   photoInitials: { color: Brand.gold, fontSize: 24, fontFamily: Font.black },

@@ -3,11 +3,75 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Polyline } from 'react-native-svg';
 
 import { Brand, Font, surfaces } from '@/constants/brand';
 
 const c = surfaces(true);
+
+/**
+ * The pinned title bar for a full-screen sheet: back button, what you're looking at, and an
+ * optional action on the right.
+ *
+ * It must sit OUTSIDE the sheet's ScrollView. Both the game sheet and the player sheet used
+ * to keep their back button inside the scroll, at the top of a gradient hero — so on a long
+ * scouting report or a full stat line it scrolled away, leaving no title and no way out
+ * without swiping back to the top first. The Pulse sheet already pinned its header; this is
+ * that pattern extracted so all three match.
+ *
+ * `title` should identify the subject ("vs Ohio", a player's name), not the category — when
+ * the hero has scrolled off, this is the only thing saying what you're reading.
+ */
+export function SheetHeader({
+  title,
+  onClose,
+  right,
+}: {
+  title: string;
+  onClose: () => void;
+  right?: ReactNode;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[sheetStyles.bar, { paddingTop: insets.top + 8 }]}>
+      <Pressable onPress={onClose} hitSlop={12} style={sheetStyles.circleBtn}>
+        <Ionicons name="chevron-back" size={20} color={c.textSecondary} />
+      </Pressable>
+      {/* numberOfLines so a long opponent or player name can't wrap the bar to two rows and
+          push the content down. */}
+      <Text style={sheetStyles.title} numberOfLines={1}>
+        {title}
+      </Text>
+      {/* Balances the back button so the title stays centered. A plain sized View, not a
+          styled one — reusing circleBtn draws an empty circle in the corner. */}
+      {right ?? <View style={{ width: 32, height: 32 }} />}
+    </View>
+  );
+}
+
+const sheetStyles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    backgroundColor: c.bg,
+  },
+  title: { flex: 1, textAlign: 'center', color: c.text, fontSize: 15, fontFamily: Font.display, letterSpacing: -0.2 },
+  circleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: c.surface3,
+    borderWidth: 1,
+    borderColor: c.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
 
 // Professional per-sport icons (Ionicons, tintable) — one source of truth so
 // every tile across the app shows the same mark. Replaces the old emoji.

@@ -2,10 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ReportModal } from '@/components/report-modal';
-import { SectionLabel, SportIcon } from '@/components/ui';
+import { SectionLabel, SheetHeader, SportIcon } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
 import { countdownLabel, easternDateLong, easternTime } from '@/lib/eastern';
 import { supabase } from '@/lib/supabase';
@@ -40,7 +39,6 @@ function shortTeam(name: string): string {
 }
 
 export function GameDetail({ game, onClose }: { game: Game | null; onClose: () => void }) {
-  const insets = useSafeAreaInsets();
   const [reportOpen, setReportOpen] = useState(false);
   // Absent for most of the year — the report is only written near kickoff, so every field
   // below renders conditionally and the sheet looks normal when there is nothing yet.
@@ -84,23 +82,21 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
     <Modal visible={!!game} animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         {game && (
+          <>
+          {/* Pinned: the scouting report runs long, and the back button used to live at the
+              top of the gradient below and scroll out of reach with it. */}
+          <SheetHeader title={`${wvuHome ? 'vs' : 'at'} ${opponent}`} onClose={onClose} />
           <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             <LinearGradient
               colors={Gradients.hero}
               start={{ x: 0.2, y: 0 }}
               end={{ x: 0.9, y: 1 }}
-              style={[styles.hero, { paddingTop: insets.top + 8 }]}>
-              <View style={styles.heroTop}>
-                <Pressable onPress={onClose} hitSlop={12} style={styles.circleBtn}>
-                  <Ionicons name="chevron-back" size={20} color="#C8D4E4" />
-                </Pressable>
-                <SectionLabel style={{ color: c.blueLabel } as never}>
-                  {SPORT_LABEL[game.sport_id] ?? game.sport_id}
-                </SectionLabel>
-                {/* Balances the back button so the label stays centered. Sized, not
-                    styled — reusing circleBtn drew an empty circle in the corner. */}
-                <View style={styles.headerSpacer} />
-              </View>
+              style={styles.hero}>
+              {/* Was the centered label in the old scrolling header. Kept here rather than in
+                  the pinned bar, which now carries the game itself. */}
+              <SectionLabel style={{ color: c.blueLabel } as never}>
+                {SPORT_LABEL[game.sport_id] ?? game.sport_id}
+              </SectionLabel>
 
               <View style={styles.heroBody}>
                 <View style={styles.tile}>
@@ -205,6 +201,7 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
               </Pressable>
             </View>
           </ScrollView>
+          </>
         )}
         <ReportModal
           visible={reportOpen}
@@ -217,11 +214,9 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 20, paddingBottom: 22 },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  circleBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  headerSpacer: { width: 32, height: 32 },
-  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 18 },
+  // No top inset any more — SheetHeader sits above this and owns the safe area.
+  hero: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 22 },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 },
   tile: { width: 48, height: 48, borderRadius: 13, backgroundColor: Brand.goldTint, borderWidth: 1, borderColor: Brand.goldBorder, alignItems: 'center', justifyContent: 'center' },
   locator: { fontFamily: Font.body, fontSize: 13, color: c.blueLabel },
   opponent: { fontFamily: Font.black, fontSize: 24, color: c.text, letterSpacing: -0.4, marginTop: 1 },
