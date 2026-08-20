@@ -166,6 +166,9 @@ ALTERS = [
     "create index if not exists news_items_notified_idx on news_items (notified_at desc);",
     # check_unlanded_alerts.py: one "the app didn't catch up" nag per pushed alert.
     "alter table news_items add column if not exists unlanded_flagged_at timestamptz;",
+    # notify_news.py: in-app context for a pushed story, so tapping an alert doesn't dead-end.
+    "alter table news_items add column if not exists summary text;",
+    "alter table news_items add column if not exists summary_section text;",
     # --- Game-day scouting report (generate_matchup.py) ---
     # One row per upcoming game. Keyed by game_id so a regenerated preview overwrites rather
     # than accumulating, and so it disappears naturally if a game is ever removed.

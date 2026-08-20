@@ -1151,5 +1151,17 @@
     "class_year": "R-Sr.",
     "status": "active",
     "note": ""
+  },
+  {
+    "sport_id": "mbb",
+    "season": 2027,
+    "unit": "Projected Lineup",
+    "position": "SG",
+    "pos_order": 2,
+    "rank": 4,
+    "player_name": "Jelani McKoy",
+    "class_year": "Fr.",
+    "status": "active",
+    "note": "Late signee (Bella Vista Prep)"
   }
 ]

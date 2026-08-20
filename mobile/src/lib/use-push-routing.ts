@@ -25,6 +25,10 @@ import { useEffect, useRef } from 'react';
 const TAB_FOR_SCREEN: Record<string, string> = {
   pulse: '/',
   index: '/',
+  // Breaking news lands on the HOME screen, not the News tab. The News tab is a list of
+  // outbound links — a new user has no way to know the story they were alerted about is
+  // behind one of those headlines. Home shows the story itself, written out.
+  breaking: '/',
   scores: '/scores',
   news: '/news',
   team: '/team',

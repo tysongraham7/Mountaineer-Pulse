@@ -23,6 +23,9 @@ on:
         type: choice
         options:
           - pulse
+          - news
+          - team
+          - scores
           - none
 
 jobs:

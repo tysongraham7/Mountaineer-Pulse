@@ -47,6 +47,13 @@ SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 MODEL = "claude-haiku-4-5"
+# Writing the in-app summary is a research job, not a classification one, so it gets the
+# better model. It runs at most MAX_PER_DAY times a day and only after a push is already
+# committed, which bounds the cost to a couple of dollars a month.
+SUMMARY_MODEL = "claude-sonnet-5"
+# Three, not six: a breaking headline has little coverage yet, so extra searches return the
+# same two aggregator posts and cost real money for nothing.
+WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 3}
 ET = ZoneInfo("America/New_York")
 
 # The gap between the 11:00 UTC morning run and the 21:00 UTC afternoon run. Anything
@@ -186,6 +193,136 @@ def decide(sb, items: list[dict]) -> dict | None:
         return None
 
 
+SUMMARY_SYSTEM = """You write the short in-app explainer that a WVU fan reads right after
+tapping a breaking-news alert on their phone.
+
+Why this exists: the alert links to an article that is often paywalled or vague on purpose
+("SOURCE: a player is no longer with the program"). A fan who taps and hits a login wall
+learns nothing. Your job is to tell them what actually happened, in the app, in plain
+language, so they never have to leave.
+
+Search the web to find out what the headline is actually about — especially the NAME of any
+player involved, which teaser headlines withhold. Free aggregators and local outlets usually
+carry the same story.
+
+WRITE IN YOUR OWN WORDS. Never reproduce sentences from any article you find. You are
+stating the facts of an event, not republishing someone's reporting.
+
+RULES
+- 2 to 4 short sentences. A fan on a phone, not a press release.
+- Lead with the concrete fact: who, and what happened.
+- State ONLY what your sources support. If searching turned up nothing beyond the headline,
+  say plainly what is known and that details have not been reported yet. NEVER invent a
+  name, a school, a number, or a reason. An honest "the player has not been named yet" is a
+  correct answer and far better than a guess.
+- NEVER NAME A CANDIDATE. Name a player only if a source ties that person to THIS event. Do
+  not reason about who it is likely to be, do not raise a player whose situation was
+  unresolved, do not write "possibly X" or "the most recent situation involved X". Naming
+  the wrong player is the worst thing you can do here: the fan believes it, and it sits in
+  the app next to roster data that says otherwise. If the story does not name anyone, then
+  neither do you — two sentences saying so is the right answer.
+- No hype, no speculation about what it means for the season, no "stay tuned".
+- Do not tell the reader to check back or follow the story. Just say what is known.
+- American spellings throughout (offense, defense, canceled, traveled).
+
+Also decide where in the app this change shows up, for a "see it in the app" button:
+  "movement" - a player joining or leaving (Team tab, Movement)
+  "roster"   - a change to who is on the roster (Team tab)
+  "scores"   - a game result
+  ""         - nothing in the app reflects this story
+
+Reply with ONLY a JSON object:
+{"summary": "<2-4 sentences>", "section": "movement"|"roster"|"scores"|"",
+ "player": "<the player's name if you found it, else empty>"}"""
+
+
+def app_context(sb, sport_id: str | None) -> str:
+    """Roster moves the app already shows for this sport, as grounding.
+
+    Two jobs. It stops the summary contradicting the app — a card reading "it may involve
+    Player X" sitting above a Movement tab that says Player Y left is worse than no card at
+    all. And when the move has already been curated, the summary can simply name the player
+    the teaser headline withheld."""
+    if not sport_id:
+        return ""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=14)).date().isoformat()
+    rows = (sb.table("roster_moves")
+            .select("player_name,direction,category,move_date,notes")
+            .eq("sport_id", sport_id).gte("move_date", cutoff)
+            .order("move_date", desc=True).limit(10).execute().data or [])
+    if not rows:
+        return ""
+    lines = "\n".join(
+        f'- {r["player_name"]} ({"joined" if r["direction"] == "in" else "left"}, '
+        f'{r.get("move_date")}){": " + r["notes"] if r.get("notes") else ""}' for r in rows)
+    return ("\nWhat the app already shows for this sport in the last two weeks. These are "
+            "confirmed and may well be the event in the headline — but do NOT assume it; only "
+            "connect one to the story if your sources actually do:\n" + lines + "\n")
+
+
+def summarize(sb, chosen: dict) -> dict:
+    """Research the pushed story and write the explainer the home screen shows.
+
+    Best-effort by design: this runs AFTER the push has gone out, so a failure here must
+    never look like a failed alert. A story with no summary just renders as the headline."""
+    import anthropic
+
+    from generate_briefing import extract_json
+
+    client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+    kwargs = dict(
+        model=SUMMARY_MODEL,
+        max_tokens=1200,
+        system=SUMMARY_SYSTEM,
+        messages=[{"role": "user", "content":
+                   f"Today is {date.today().isoformat()}.\n\n"
+                   f'Headline: "{chosen["headline"]}"\n'
+                   f'Source: {chosen.get("source_name") or "unknown"}\n'
+                   f"{app_context(sb, chosen.get('sport_id'))}\n"
+                   "Find out what happened and write the JSON."}],
+        tools=[WEB_SEARCH_TOOL],
+    )
+    # Deliberately NOT _create_resilient here. Its pause_turn loop re-sends the whole
+    # conversation on every resume, search results included, so input tokens compound: a
+    # single summary came back at 384k input and cost $1.00. Bounded at two calls instead —
+    # one that may search, then at most one tool-free call to write the JSON from what it
+    # found. That keeps a summary near 20k input and a couple of cents.
+    try:
+        resp = client.messages.create(**kwargs)
+        blocks = list(resp.content)
+        searches = getattr(resp.usage, "server_tool_use", None)
+        searches = getattr(searches, "web_search_requests", 0) or 0
+        usage.log_raw(sb, "notify_news.summary", SUMMARY_MODEL, resp.usage, searches)
+
+        if resp.stop_reason == "pause_turn":
+            print("    (searching done — writing the summary)")
+            follow = {k: v for k, v in kwargs.items() if k != "tools"}
+            follow["messages"] = list(kwargs["messages"]) + [
+                {"role": "assistant", "content": resp.content}]
+            resp2 = client.messages.create(**follow)
+            blocks += list(resp2.content)
+            usage.log_raw(sb, "notify_news.summary", SUMMARY_MODEL, resp2.usage, 0)
+    except Exception as e:
+        print(f"  (summary failed, alert already sent: {str(e)[:120]})")
+        return {}
+    text = "".join(b.text for b in blocks if getattr(b, "type", "") == "text").strip()
+
+    obj = extract_json(text) or {}
+    summary = (obj.get("summary") or "").strip()
+    if not summary:
+        print("  (no summary returned)")
+        return {}
+    section = (obj.get("section") or "").strip().lower()
+    if section not in ("movement", "roster", "scores"):
+        section = ""
+    print(f"  summary ({searches} searches): {summary[:150]}")
+    if obj.get("player"):
+        # The name a teaser headline withheld. extract_moves.py can't see it (it reads
+        # headlines), so surfacing it here is what turns "a player" into something curatable.
+        print(f"  player named by search: {obj['player']}")
+    return {"summary": summary, "summary_section": section or None}
+
+
 def mark_notified(sb, chosen: dict, pool: list[dict], stamp: str) -> int:
     """Stamp the pushed item and every near-duplicate of it, so the same story cannot
     fire again tomorrow when another outlet reposts it."""
@@ -250,12 +387,21 @@ def main() -> None:
         print("\n[dry run] Nothing sent, nothing marked.")
         return
 
-    # newsId lets the app pin THIS story to the top of the News tab and mark it, instead of
-    # dropping the reader into an undifferentiated list and hoping they spot it.
-    sent = send_push(title, body, data={"screen": "news", "newsId": chosen["id"]})
+    # "breaking" lands on the home screen, where the story appears as a card with the summary
+    # written below — not on the News tab, where a new user has to work out that the headline
+    # is a link to somewhere else. newsId tells the card which story to open on.
+    sent = send_push(title, body, data={"screen": "breaking", "newsId": chosen["id"]})
     stamp = datetime.now(timezone.utc).isoformat()
     n = mark_notified(sb, chosen, items, stamp)
     print(f"\n[OK] Pushed to {sent} device(s); marked {n} headline(s) as notified.")
+
+    # Research the story only after the push is out. It costs a few cents and takes ~30s, and
+    # nothing about the alert should wait on it — the card falls back to the headline alone.
+    print("\nWriting the in-app summary...")
+    extra = summarize(sb, chosen)
+    if extra:
+        sb.table("news_items").update(extra).eq("id", chosen["id"]).execute()
+        print("[OK] Summary stored — the home screen will show it.")
 
 
 if __name__ == "__main__":

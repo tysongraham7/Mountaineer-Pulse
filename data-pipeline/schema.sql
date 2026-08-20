@@ -126,6 +126,14 @@ create index if not exists news_published_idx on news_items (published_at desc);
 alter table news_items add column if not exists notified_at timestamptz;
 create index if not exists news_items_notified_idx on news_items (notified_at desc);
 
+-- A few sentences of plain-English context for a story we pushed, written by notify_news.py
+-- from web search IN OUR OWN WORDS (we never copy article text — see the note above). The
+-- home screen shows it so a reader who taps the alert gets the news without being bounced to
+-- a paywall. `summary_section` names the tab where the change is reflected ('movement',
+-- 'scores', 'roster') so the card can point there, or NULL when nothing in the app changed.
+alter table news_items add column if not exists summary text;
+alter table news_items add column if not exists summary_section text;
+
 -- When check_unlanded_alerts.py reviewed this pushed alert against the app's roster data.
 -- NULL = not yet reviewed. Stamped whether or not a gap was found, so each alert produces at
 -- most one "the app didn't catch up" email rather than one every four hours.

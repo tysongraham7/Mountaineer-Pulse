@@ -268,7 +268,7 @@ def call_model(client, context: str, recent: str, use_search: bool):
     return text, searches, resp.usage
 
 
-def _create_resilient(client, kwargs, max_attempts: int = 4):
+def _create_resilient(client, kwargs, max_attempts: int = 4, search_budget: int | None = None):
     """One flaky API call used to cost a whole day's briefing — this step had no retry, so
     a single 529 or dropped connection meant users saw yesterday's briefing under today's
     date with nothing to indicate it was stale.
@@ -278,10 +278,21 @@ def _create_resilient(client, kwargs, max_attempts: int = 4):
       * `pause_turn` -> the server-side web-search loop hit its iteration cap mid-answer.
         Re-send so it can finish; otherwise we'd parse a half-written briefing and die.
 
+    `search_budget` caps web searches across the WHOLE call, resumes included. Without it,
+    every resume re-sends the original tools block and so gets a FRESH max_uses: a run capped
+    at 3 actually spent 18 searches and $1.00. Pass it wherever the cost has to be bounded;
+    leaving it None keeps the old per-call behavior.
+
     Returns (all content blocks across resumes, final response). On a resumed turn the
     returned `usage` covers the final call only, so the cost readout can under-report.
     """
     import anthropic
+
+    def _with_uses(kw: dict, remaining: int) -> dict:
+        """Re-issue the tools block with only the searches still owed."""
+        tools = [{**t, "max_uses": max(1, remaining)} if t.get("name") == "web_search" else t
+                 for t in kw.get("tools", [])]
+        return {**kw, "tools": tools}
 
     delay = 5.0
     last_err = None
@@ -293,9 +304,21 @@ def _create_resilient(client, kwargs, max_attempts: int = 4):
             for _ in range(3):  # bounded, so a stuck search loop can't spin forever
                 if resp.stop_reason != "pause_turn":
                     break
+                used = sum(1 for b in blocks if getattr(b, "type", "") == "server_tool_use")
+                if search_budget is not None and used >= search_budget:
+                    # Out of budget. Resume once WITHOUT tools so it writes its answer from
+                    # what it already found — breaking here instead would return a paused
+                    # turn with no text in it, which parses as nothing at all.
+                    print(f"    (search budget spent: {used}/{search_budget} — answering now)")
+                    msgs = msgs + [{"role": "assistant", "content": resp.content}]
+                    final = {k: v for k, v in kwargs.items() if k != "tools"}
+                    resp = client.messages.create(**{**final, "messages": msgs})
+                    blocks += list(resp.content)
+                    break
                 print("    (search loop paused — resuming)")
                 msgs = msgs + [{"role": "assistant", "content": resp.content}]
-                resp = client.messages.create(**{**kwargs, "messages": msgs})
+                nxt = kwargs if search_budget is None else _with_uses(kwargs, search_budget - used)
+                resp = client.messages.create(**{**nxt, "messages": msgs})
                 blocks += list(resp.content)
             return blocks, resp
         except (anthropic.RateLimitError, anthropic.InternalServerError,

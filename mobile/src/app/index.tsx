@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
@@ -50,6 +52,37 @@ type Snapshot = {
 };
 type Rec = { w: number; l: number; season: number };
 
+// A story we interrupted people for. `summary` is written by the pipeline in our own words
+// (see notify_news.py) so the news is readable here rather than behind the source's paywall.
+type Breaking = {
+  id: string;
+  headline: string;
+  source_name: string | null;
+  url: string;
+  summary: string | null;
+  summary_section: string | null;
+  notified_at: string | null;
+};
+
+// How long a breaking card stays on the home screen. Long enough that someone who opens the
+// app the next morning still sees what they were alerted about overnight, short enough that
+// it never becomes permanent furniture — after this it lives on the News tab like everything
+// else. The daily briefing has usually absorbed the story by then anyway.
+const BREAKING_HOURS = 36;
+
+// Where the change shows up in the app, for the "see it in the app" button. Matches the
+// `summary_section` values notify_news.py writes.
+const SECTION_LABEL: Record<string, string> = {
+  movement: 'See it on the Team tab',
+  roster: 'See the roster',
+  scores: 'See the score',
+};
+const SECTION_ROUTE: Record<string, string> = {
+  movement: '/team',
+  roster: '/team',
+  scores: '/scores',
+};
+
 // A record is shown only while its season is actually being played. Out of season it's
 // last year's news sitting under today's Pulse — WVU football read "4–8 · 2025" all
 // summer. A sport qualifies if it has played a game in the last STALE_RECORD_DAYS; the
@@ -94,6 +127,7 @@ export default function PulseScreen() {
   const [records, setRecords] = useState<Record<string, Rec>>({});
   const [series, setSeries] = useState<Record<string, { date: string; score: number }[]>>({});
   const [briefing, setBriefing] = useState<Briefing | null>(null);
+  const [breaking, setBreaking] = useState<Breaking | null>(null);
   const [nextGame, setNextGame] = useState<Game | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -126,7 +160,7 @@ export default function PulseScreen() {
 
   const load = useCallback(async () => {
     try {
-    const [snapRes, briefingRes, gamesRes, nextRes] = await Promise.all([
+    const [snapRes, briefingRes, gamesRes, nextRes, breakingRes] = await Promise.all([
       supabase.from('pulse_snapshots').select('*').order('date', { ascending: true }),
       supabase.from('daily_briefings').select('*').order('date', { ascending: false }).limit(1),
       // Only the last ~13 months: enough to cover any season in progress, and a record
@@ -148,10 +182,21 @@ export default function PulseScreen() {
         .gte('start_date', new Date(Date.now() - 36 * 3600 * 1000).toISOString())
         .order('start_date', { ascending: true })
         .limit(5),
+      // The story we last interrupted people for, while it's still recent. Shown at the top
+      // of the home screen so it reaches everyone — including the people who never tapped
+      // the notification, or never had alerts on in the first place.
+      supabase
+        .from('news_items')
+        .select('id,headline,source_name,url,summary,summary_section,notified_at')
+        .not('notified_at', 'is', null)
+        .gte('notified_at', new Date(Date.now() - BREAKING_HOURS * 3600 * 1000).toISOString())
+        .order('notified_at', { ascending: false })
+        .limit(1),
     ]);
     if (snapRes.error) throw snapRes.error; // no connection → show the offline state
 
     setBriefing((briefingRes.data?.[0] as Briefing) ?? null);
+    setBreaking((breakingRes.data?.[0] as Breaking) ?? null);
 
     const latest: Record<string, Snapshot> = {};
     const ser: Record<string, { date: string; score: number }[]> = {};
@@ -292,6 +337,17 @@ export default function PulseScreen() {
         <OfflineNotice onRetry={() => { setLoading(true); load(); }} />
       ) : (
         <>
+      {/* Breaking news, above everything. It's the newest thing on the screen and the only
+          thing someone may have been interrupted for — it outranks even the next game. Gone
+          on its own after BREAKING_HOURS. */}
+      {breaking && (
+        <BreakingCard
+          item={breaking}
+          onOpenSource={() => WebBrowser.openBrowserAsync(breaking.url)}
+          onGoToSection={(route) => router.navigate(route as '/')}
+        />
+      )}
+
       {/* Next game. Sits above the briefing because it's the only thing here about what
           hasn't happened yet — everything below reports on what has. */}
       {nextGame && <NextGameCard game={nextGame} onOpen={() => setGameOpen(true)} />}
@@ -438,6 +494,76 @@ export default function PulseScreen() {
 const SPORT_TAG: Record<string, string> = { football: 'Football', mbb: 'Basketball', baseball: 'Baseball' };
 
 /**
+ * The story we last pushed an alert about, for as long as it's still news.
+ *
+ * This exists because tapping a notification used to dead-end. You'd read "WVU Basketball
+ * player is no longer with the program" on your lock screen, open the app, and be left to
+ * work out on your own that the story lived behind a headline on the News tab, which is
+ * itself just a link to a paywall. Someone who installed the app yesterday had no chance.
+ *
+ * So the news comes to the reader instead: the actual story, in our own words, on the first
+ * screen they see — with the source one tap away for anyone who wants it, and a pointer to
+ * wherever in the app the change is reflected.
+ *
+ * It also reaches everyone who never tapped the alert, and everyone who has notifications
+ * turned off entirely. That's most people, and they were getting nothing before.
+ */
+function BreakingCard({ item, onOpenSource, onGoToSection }: {
+  item: Breaking;
+  onOpenSource: () => void;
+  onGoToSection: (route: string) => void;
+}) {
+  const section = item.summary_section ?? '';
+  const sectionLabel = SECTION_LABEL[section];
+  const sectionRoute = SECTION_ROUTE[section];
+  return (
+    <Card style={styles.breaking}>
+      <View style={styles.breakingTop}>
+        <View style={styles.breakingPill}>
+          <Text style={styles.breakingPillText}>BREAKING</Text>
+        </View>
+        <Text style={styles.breakingWhen}>
+          {item.notified_at ? relativeHours(item.notified_at) : ''}
+        </Text>
+      </View>
+
+      <Text style={styles.breakingHeadline}>{item.headline}</Text>
+
+      {/* Our own summary. Without it the card is just the headline again, which is the
+          problem this card was built to solve. */}
+      {item.summary ? <Text style={styles.breakingBody}>{item.summary}</Text> : null}
+
+      <View style={styles.breakingActions}>
+        {sectionLabel && sectionRoute ? (
+          <Pressable
+            onPress={() => onGoToSection(sectionRoute)}
+            style={({ pressed }) => [styles.breakingBtn, pressed && { opacity: 0.75 }]}>
+            <Text style={styles.breakingBtnText}>{sectionLabel}</Text>
+            <Ionicons name="arrow-forward" size={13} color={Brand.onGold} />
+          </Pressable>
+        ) : null}
+        {/* Says where the tap goes. "Read more" would hide that this leaves the app. */}
+        <Pressable
+          onPress={onOpenSource}
+          style={({ pressed }) => [styles.breakingLink, pressed && { opacity: 0.75 }]}>
+          <Text style={styles.breakingLinkText}>
+            Full story at {item.source_name ?? 'the source'}
+          </Text>
+          <Ionicons name="open-outline" size={13} color={Brand.gold} />
+        </Pressable>
+      </View>
+    </Card>
+  );
+}
+
+function relativeHours(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs < 24 ? `${hrs}h ago` : 'Yesterday';
+}
+
+/**
  * The next game, as a hook rather than a schedule row: who, when, where, how soon.
  * Tapping opens the same detail sheet the Scores tab uses.
  */
@@ -522,6 +648,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Gold border rather than a gold fill: this card sits directly above the Next Up card, and
+  // two solid gold blocks in a row make neither one read as urgent.
+  breaking: { padding: 18, marginTop: 16, gap: 10, borderColor: Brand.gold, borderWidth: 1.5 },
+  breakingTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  breakingPill: { backgroundColor: Brand.gold, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  breakingPillText: { fontFamily: Font.bodyBold, fontSize: 10, color: Brand.onGold, letterSpacing: 1 },
+  breakingWhen: { fontFamily: Font.body, fontSize: 11.5, color: c.textMuted },
+  breakingHeadline: { fontFamily: Font.display, fontSize: 18, color: c.text, lineHeight: 24, letterSpacing: -0.3 },
+  breakingBody: { fontFamily: Font.body, fontSize: 14.5, color: c.textSecondary, lineHeight: 21 },
+  breakingActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 2 },
+  breakingBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Brand.gold, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9 },
+  breakingBtnText: { fontFamily: Font.displaySemi, fontSize: 13.5, color: Brand.onGold },
+  breakingLink: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 9 },
+  breakingLinkText: { fontFamily: Font.bodySemi, fontSize: 13, color: Brand.gold },
   nextGame: { padding: 18, marginTop: 16, gap: 14 },
   // Game day earns the gold edge; every other day stays quiet so it means something.
   nextGameToday: { borderColor: Brand.goldBorder, backgroundColor: Brand.goldTint },
