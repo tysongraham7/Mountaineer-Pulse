@@ -86,6 +86,10 @@ NOTE_SYSTEM = (
     "a major injury to a star, a stunning off-field loss to the roster).\n"
     "NEVER assign a negative delta for a normal game LOSS — game results already move the Pulse "
     "elsewhere; delta is for roster/off-field program news only. Be strict and default to 0.\n"
+    "SPECIALISTS (punter, kicker, long snapper) move the Pulse far less than the label suggests. "
+    "A punter leaving is delta 0 unless he is the starter AND there is no replacement on the "
+    "roster; even then -1 is the floor, never -2. Teams replace specialists in a weekend, and a "
+    "fanbase does not feel it the way it feels losing a starting quarterback.\n"
     "A DEPARTURE ONLY COUNTS IF THE PLAYER IS ON THE CURRENT ROSTER, which you are given below. "
     "If someone entering the portal, transferring out, or leaving is NOT on that roster, he already "
     "left or his eligibility already ended — this year's team loses nothing it had, so delta is 0. "
@@ -155,10 +159,18 @@ def recent_notes(sb, sport: str, today: str, days: int = 7) -> str:
 
 # Phrases that mean "a player is leaving the program". Deliberately excludes decommits
 # and flips: a recruit was never on the roster, so that check doesn't apply to them.
+# STEMS, not phrases. This was a list of exact phrases and it missed by a single word:
+# "Punter Oliver Straw granted restraining order, set to transfer from WVU program" contains
+# none of "transfer out" / "transferring" / "transfer portal", so the guard below returned
+# early and a player who was never on the 2026 roster took a point off the Pulse. Any list of
+# phrasings will keep losing this race; a stem catches the variants a headline can invent.
+#
+# Broad matching is safe here because the guard only runs when the delta is already NEGATIVE.
+# A signing that happens to contain "transfer" carries a positive delta and never reaches it.
 DEPARTURE_WORDS = (
-    "transfer portal", "enter the portal", "enters the portal", "entering the portal",
-    "transferring", "transfers out", "transfer out", "leaving the program",
-    "departs", "departing", "exits the program",
+    "transfer", "portal", "depart", "exit", "leaving", "leaves", "left the",
+    "no longer with", "off the roster", "dismissed", "released", "opts out", "opt out",
+    "moving on", "steps away", "retires", "retiring",
 )
 
 
