@@ -30,6 +30,17 @@ SB_URL = os.getenv("SUPABASE_URL")
 SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
+# GLOBAL KILL SWITCH. True = no notification leaves this process, whatever calls it.
+#
+# Set on 2026-08-23 after two bad alerts out of three ever sent: a duplicate about Evans
+# Barning Jr., then one announcing a basketball win that was actually a SOCCER result. A push
+# cannot be unsent, and at this size a wrong one costs more trust than a missed one earns.
+#
+# One switch rather than disabling each workflow, because the whole point is that nothing gets
+# through — the briefing, the breaking scan, game day, and the manual workflow all send from
+# here. Flip to False to resume.
+PUSH_PAUSED = True
+
 
 def _enabled_tokens(sb) -> list[str]:
     rows = sb.table("push_tokens").select("token").eq("enabled", True).execute().data
@@ -39,6 +50,11 @@ def _enabled_tokens(sb) -> list[str]:
 def send_push(title: str, body: str, data: dict | None = None) -> int:
     """Send one notification to every enabled device. Returns how many were accepted.
     Safe to call anytime: a no-op (returns 0) if creds or devices are missing."""
+    if PUSH_PAUSED:
+        # Loud, and prints what WOULD have gone out, so a paused run is still reviewable in
+        # the Actions log — that is how you find out whether the judgment is improving.
+        print(f"  PUSH PAUSED — nothing sent. Would have been:\n    {title}\n    {body}")
+        return 0
     if not SB_URL or not SB_KEY:
         print("  (push skipped: missing Supabase creds)")
         return 0
