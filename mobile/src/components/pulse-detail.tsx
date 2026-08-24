@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/skeleton';
 import { SectionLabel, Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { trackFeature } from '@/lib/analytics';
+import { COACH_SCRUB_KEY } from '@/lib/coach-keys';
 import { useCountUp } from '@/lib/count-up';
 import { supabase } from '@/lib/supabase';
 import { Briefing, Game, RosterMove } from '@/lib/types';
@@ -16,7 +17,6 @@ import { PulseExplainer } from './pulse-explainer';
 
 const c = surfaces(true);
 
-const SCRUB_DEMO_KEY = 'mp-scrub-demo-seen';
 
 // Every share carries a download link — a screenshot of a Pulse score is worth nothing to
 // someone who can't find the app, and search won't find it for them ("WVU" isn't in the
@@ -92,7 +92,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
 
   // First-ever Pulse open: run the one-time scrub demo. A saved flag keeps it to once.
   useEffect(() => {
-    AsyncStorage.getItem(SCRUB_DEMO_KEY).then((seen) => {
+    AsyncStorage.getItem(COACH_SCRUB_KEY).then((seen) => {
       if (!seen) setRunScrubDemo(true);
     });
   }, []);
@@ -345,7 +345,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
                     runDemo={runScrubDemo}
                     onDemoComplete={() => {
                       setRunScrubDemo(false);
-                      AsyncStorage.setItem(SCRUB_DEMO_KEY, '1');
+                      AsyncStorage.setItem(COACH_SCRUB_KEY, '1');
                     }}
                   />
                   {!everScrubbed && (

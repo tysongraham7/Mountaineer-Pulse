@@ -105,6 +105,15 @@ export const FEATURES = [
   'team_mode_switch',
   'favorite_toggle',
   'report_open',
+  // Onboarding / comprehension. The beta shipped with the Pulse detail opened by only ~4% of
+  // sessions, so these measure the funnel into it rather than just the destination:
+  // was the home-screen coachmark seen, did it get tapped through, and does anyone go
+  // looking for the explainer on their own.
+  'coach_pulse_shown',
+  'coach_pulse_tapped',
+  'coach_pulse_dismissed',
+  'pulse_explainer_open',
+  'help_open',
 ] as const;
 export type Feature = (typeof FEATURES)[number];
 

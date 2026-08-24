@@ -14,10 +14,14 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HelpSheet } from '@/components/help-sheet';
+import { Onboarding } from '@/components/onboarding';
+import { PulseExplainer } from '@/components/pulse-explainer';
 import { ReportModal } from '@/components/report-modal';
 import { RidgeMark, SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useAlerts } from '@/lib/alerts';
+import { trackFeature } from '@/lib/analytics';
 import { useFavorites } from '@/lib/favorites';
 
 const c = surfaces(true);
@@ -83,6 +87,9 @@ export default function YouScreen() {
   const version = Constants.expoConfig?.version ?? '2.0.0';
 
   const [reportOpen, setReportOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [introOpen, setIntroOpen] = useState(false);
+  const [explainerOpen, setExplainerOpen] = useState(false);
   // Shared alerts state (null until read) — kept in sync with the home bell and onboarding.
   const { alertsOn, busy, enable, disable } = useAlerts();
 
@@ -134,6 +141,26 @@ export default function YouScreen() {
             </Pressable>
           );
         })}
+      </View>
+
+      {/* Sits directly under the first card rather than down with About: this is the row
+          someone opens the You tab *looking* for, and burying it under five sections is the
+          same mistake that left the Pulse explainer two taps deep. */}
+      <SectionLabel style={{ marginTop: 22, marginBottom: 4 } as never}>Help</SectionLabel>
+      <Text style={styles.hint}>New here, or not sure what something does? Start here.</Text>
+      <View style={styles.card}>
+        <Pressable
+          style={[styles.row, { borderBottomWidth: 0 }]}
+          onPress={() => {
+            trackFeature('help_open');
+            setHelpOpen(true);
+          }}>
+          <View style={[styles.tile, { backgroundColor: Brand.goldTint, borderColor: Brand.goldBorder }]}>
+            <Ionicons name="help-circle-outline" size={18} color={Brand.gold} />
+          </View>
+          <Text style={styles.rowLabel}>How the app works</Text>
+          <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
+        </Pressable>
       </View>
 
       <SectionLabel style={{ marginTop: 22, marginBottom: 8 } as never}>Account &amp; Alerts</SectionLabel>
@@ -233,6 +260,23 @@ export default function YouScreen() {
         onClose={() => setReportOpen(false)}
         context={{ screen: 'you' }}
       />
+      <HelpSheet
+        visible={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        // Both hand off to another sheet, so the help sheet closes first — two modals
+        // stacked at once is an iOS presentation the second one loses.
+        onReplayIntro={() => {
+          setHelpOpen(false);
+          setIntroOpen(true);
+        }}
+        onOpenPulseExplainer={() => {
+          setHelpOpen(false);
+          trackFeature('pulse_explainer_open');
+          setExplainerOpen(true);
+        }}
+      />
+      <Onboarding visible={introOpen} onDone={() => setIntroOpen(false)} replay />
+      <PulseExplainer visible={explainerOpen} onClose={() => setExplainerOpen(false)} />
     </View>
   );
 }

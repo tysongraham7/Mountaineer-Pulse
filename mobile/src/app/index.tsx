@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useFocusEffect } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,13 +17,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AttentionRing, ScrollNudge, TapCallout } from '@/components/coach-mark';
 import { GameDetail } from '@/components/game-detail';
 import { PulseDetail } from '@/components/pulse-detail';
+import { PulseExplainer } from '@/components/pulse-explainer';
 import { OfflineNotice } from '@/components/offline-notice';
 import { BriefingSkeleton, PulseRowSkeleton, Skeleton } from '@/components/skeleton';
 import { Card, RidgeMark, SectionLabel, Sparkline, SportIcon, TrendTag, Wordmark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { useAlerts } from '@/lib/alerts';
+import { trackFeature } from '@/lib/analytics';
+import { COACH_PULSE_KEY } from '@/lib/coach-keys';
 import { countdownLabel, daysUntil, easternDateShort, easternTime } from '@/lib/eastern';
 import { useKickoffCountdown } from '@/lib/use-kickoff';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
@@ -145,7 +153,65 @@ export default function PulseScreen() {
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSport, setSelectedSport] = useState<string | null>(null);
+  const [explainerOpen, setExplainerOpen] = useState(false);
   const { favorites } = useFavorites();
+
+  // --- First-run Pulse coaching -------------------------------------------------
+  // Two stages, driven by whether the Pulse section has actually been scrolled into view:
+  // a floating nudge while it's below the fold, then an inline callout pointing at row one.
+  const [coachOn, setCoachOn] = useState(false);
+  const [pulseY, setPulseY] = useState<number | null>(null);
+  const [scrollY, setScrollY] = useState(0);
+  const [viewportH, setViewportH] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+  const coachShownLogged = useRef(false);
+
+  // Re-read on every focus, not just on mount. Tabs stay mounted, so "Show the in-app tips
+  // again" in the You tab would otherwise clear the flag and change nothing until a restart.
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(COACH_PULSE_KEY)
+        .then((seen) => setCoachOn(!seen))
+        .catch(() => {});
+    }, []),
+  );
+
+  // Retire the coaching for good — on tap-through or on an explicit dismiss. It deliberately
+  // does NOT expire on its own: someone who keeps scrolling past it is precisely the user it
+  // was built for, and the card carries a close button for anyone who wants it gone.
+  const finishCoach = useCallback((why: 'tapped' | 'dismissed') => {
+    setCoachOn(false);
+    trackFeature(why === 'tapped' ? 'coach_pulse_tapped' : 'coach_pulse_dismissed');
+    AsyncStorage.setItem(COACH_PULSE_KEY, '1').catch(() => {});
+  }, []);
+
+  const openPulse = useCallback(
+    (sport: string) => {
+      if (coachOn) finishCoach('tapped');
+      setSelectedSport(sport);
+    },
+    [coachOn, finishCoach],
+  );
+
+  // Is the first Pulse row on screen? The 90px margin means "comfortably visible", not
+  // "one pixel in" — otherwise the callout swaps in while it's still clipped by the fold.
+  const pulseVisible = pulseY !== null && viewportH > 0 && pulseY < scrollY + viewportH - 90;
+  const showNudge = coachOn && !loading && !pulseVisible && pulseY !== null;
+  const showCallout = coachOn && !loading && pulseVisible;
+
+  useEffect(() => {
+    if (coachOn && !loading && pulseY !== null && !coachShownLogged.current) {
+      coachShownLogged.current = true;
+      trackFeature('coach_pulse_shown');
+    }
+  }, [coachOn, loading, pulseY]);
+
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setScrollY(e.nativeEvent.contentOffset.y);
+  }, []);
+  const onPulseLayout = useCallback((e: LayoutChangeEvent) => {
+    setPulseY(e.nativeEvent.layout.y);
+  }, []);
   const { alertsOn, busy: bellBusy, enable, disable } = useAlerts();
 
   // The header bell doubles as a status light: filled/gold = alerts on, outline = off.
@@ -326,8 +392,12 @@ export default function PulseScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         style={{ backgroundColor: c.bg }}
         contentContainerStyle={styles.content}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -410,12 +480,35 @@ export default function PulseScreen() {
         </Card>
       )}
 
-      {/* Program pulse */}
-      <View style={styles.sectionRow}>
+      {/* Program pulse. onLayout gives the coach mark something to aim at — it's the y of
+          the section inside the scroll content, compared against the scroll offset below. */}
+      <View style={styles.sectionRow} onLayout={onPulseLayout}>
         <Text style={styles.sectionTitle}>Program Pulse</Text>
+        {/* The explainer used to be reachable only from inside the Pulse sheet — two taps
+            deep, behind the very tap most people weren't making. It belongs next to the
+            number it explains. */}
+        <Pressable
+          hitSlop={8}
+          onPress={() => {
+            trackFeature('pulse_explainer_open');
+            setExplainerOpen(true);
+          }}
+          style={({ pressed }) => [styles.whatIsThis, pressed && { opacity: 0.7 }]}>
+          <Ionicons name="help-circle-outline" size={14} color={Brand.gold} />
+          <Text style={styles.whatIsThisText}>What's this?</Text>
+        </Pressable>
       </View>
 
-      {orderedSports.map((sport) => {
+      {/* Above the rows, not below them. As a footer this line sat under all three cards,
+          off the bottom of most phones — read only by people who'd already scrolled past
+          the thing it was explaining. */}
+      <Text style={styles.pulseHint}>
+        A live 0–100 score per program. Tap one to see what's moving it.
+      </Text>
+
+      {showCallout && <TapCallout onDismiss={() => finishCoach('dismissed')} />}
+
+      {orderedSports.map((sport, sportIdx) => {
         const s = snaps[sport];
         const rec = records[sport];
         const meta: string[] = [];
@@ -430,8 +523,10 @@ export default function PulseScreen() {
         return (
           <Pressable
             key={sport}
-            onPress={() => setSelectedSport(sport)}
+            onPress={() => openPulse(sport)}
             style={({ pressed }) => [styles.sportCard, { opacity: pressed ? 0.75 : 1 }]}>
+            {/* Breathes over the first row only, and only while the callout is up. */}
+            {showCallout && sportIdx === 0 && <AttentionRing />}
             <View
               style={[
                 styles.tile,
@@ -490,14 +585,26 @@ export default function PulseScreen() {
                 </View>
               )}
             </View>
+            {/* The row has always been a Pressable and never looked like one: a number, a
+                sparkline, and nothing saying it opens. This is the whole tell. */}
+            <Ionicons name="chevron-forward" size={18} color={c.textMuted} />
           </Pressable>
         );
       })}
 
-      <Text style={styles.footer}>Tap a program to see its Pulse over time, day by day.</Text>
         </>
       )}
       </ScrollView>
+
+      {/* Stage one of the coaching: you can't point at a row nobody has scrolled to. */}
+      {showNudge && (
+        <ScrollNudge
+          bottom={insets.bottom + 22}
+          onPress={() =>
+            scrollRef.current?.scrollTo({ y: Math.max(0, (pulseY ?? 0) - 24), animated: true })
+          }
+        />
+      )}
     </View>
   );
 
@@ -506,6 +613,7 @@ export default function PulseScreen() {
       {body}
       <PulseDetail sport={selectedSport} onClose={() => setSelectedSport(null)} />
       <GameDetail game={gameOpen ? nextGame : null} onClose={() => setGameOpen(false)} />
+      <PulseExplainer visible={explainerOpen} onClose={() => setExplainerOpen(false)} />
     </>
   );
 }
@@ -724,5 +832,7 @@ const styles = StyleSheet.create({
   driverRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 7 },
   driverChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   sportScore: { fontFamily: Font.black, fontSize: 30, lineHeight: 32 },
-  footer: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, fontFamily: Font.body },
+  whatIsThis: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' },
+  whatIsThisText: { fontFamily: Font.bodySemi, fontSize: 12, color: Brand.gold },
+  pulseHint: { fontFamily: Font.body, fontSize: 12, color: c.textMuted, marginTop: -4, marginBottom: 10 },
 });

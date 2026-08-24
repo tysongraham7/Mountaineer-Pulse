@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,12 +15,35 @@ const SAMPLE = [
   { sport: 'baseball', n: 85 },
 ];
 
-export function Onboarding({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+/**
+ * `replay` marks a run launched from the You tab's help sheet rather than first launch.
+ * Same three screens; the difference is the ending, which must not read as a second attempt
+ * to turn on notifications for someone who already has them on. See `alreadyOn` below.
+ */
+export function Onboarding({
+  visible,
+  onDone,
+  replay = false,
+}: {
+  visible: boolean;
+  onDone: () => void;
+  replay?: boolean;
+}) {
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const last = step === 2;
-  const { enable: enableAlertsShared } = useAlerts();
+  const { alertsOn, enable: enableAlertsShared } = useAlerts();
+
+  // Asking someone to "Enable alerts" when they already did reads as though the app lost the
+  // setting. On a replay with alerts already on, the last screen just confirms and closes.
+  const alreadyOn = replay && alertsOn === true;
+
+  // The modal is kept mounted and toggled with `visible`, so `step` survives a close. Without
+  // this, replaying from the You tab would reopen on the last screen the user left on.
+  useEffect(() => {
+    if (visible) setStep(0);
+  }, [visible]);
 
   const enable = async () => {
     setBusy(true);
@@ -81,8 +104,9 @@ export function Onboarding({ visible, onDone }: { visible: boolean; onDone: () =
               </View>
               <Text style={styles.title}>Never miss a moment</Text>
               <Text style={styles.sub}>
-                Turn on alerts to get the morning briefing and breaking WVU news the second it drops.
-                You can change this anytime in the You tab.
+                {alreadyOn
+                  ? "You're all set — the morning briefing and breaking WVU news will reach you the second they drop. You can turn this off anytime in the You tab."
+                  : 'Turn on alerts to get the morning briefing and breaking WVU news the second it drops. You can change this anytime in the You tab.'}
               </Text>
             </>
           )}
@@ -100,16 +124,21 @@ export function Onboarding({ visible, onDone }: { visible: boolean; onDone: () =
             </>
           ) : (
             <>
-              <Pressable style={[styles.primary, busy && { opacity: 0.7 }]} disabled={busy} onPress={enable}>
+              <Pressable
+                style={[styles.primary, busy && { opacity: 0.7 }]}
+                disabled={busy}
+                onPress={alreadyOn ? onDone : enable}>
                 {busy ? (
                   <ActivityIndicator color={Brand.onGold} />
                 ) : (
-                  <Text style={styles.primaryText}>Enable alerts</Text>
+                  <Text style={styles.primaryText}>{alreadyOn ? 'Done' : 'Enable alerts'}</Text>
                 )}
               </Pressable>
-              <Pressable hitSlop={10} onPress={onDone} disabled={busy}>
-                <Text style={styles.skip}>Maybe later</Text>
-              </Pressable>
+              {!alreadyOn && (
+                <Pressable hitSlop={10} onPress={onDone} disabled={busy}>
+                  <Text style={styles.skip}>Maybe later</Text>
+                </Pressable>
+              )}
             </>
           )}
         </View>
