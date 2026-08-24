@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skeleton } from '@/components/skeleton';
 import { SectionLabel, Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { trackFeature } from '@/lib/analytics';
 import { useCountUp } from '@/lib/count-up';
 import { supabase } from '@/lib/supabase';
 import { Briefing, Game, RosterMove } from '@/lib/types';
@@ -81,6 +82,8 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
   const [runScrubDemo, setRunScrubDemo] = useState(false);
+
+  useEffect(() => { if (sport) trackFeature('pulse_detail_open'); }, [sport]);
   const [everScrubbed, setEverScrubbed] = useState(false);
 
   // The big score rolls up in sync with the chart's draw-in (same duration/easing

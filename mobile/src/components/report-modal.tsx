@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { trackFeature } from '@/lib/analytics';
 import { ReportCategory, ReportContext, submitErrorReport } from '@/lib/reports';
 
 const c = surfaces(true);
@@ -45,6 +46,8 @@ export function ReportModal({
 }) {
   const insets = useSafeAreaInsets();
   const [category, setCategory] = useState<ReportCategory>(initialCategory);
+
+  useEffect(() => { if (visible) trackFeature('report_open'); }, [visible]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);

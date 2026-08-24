@@ -24,7 +24,7 @@ import { AppState, Pressable, Text, View } from 'react-native';
 import { Onboarding } from '@/components/onboarding';
 import { RidgeMark } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
-import { trackAppOpen, trackPushOpen, trackScreen } from '@/lib/analytics';
+import { endSession, startSession, trackAppOpen, trackPushOpen, trackScreen } from '@/lib/analytics';
 import { AlertsProvider } from '@/lib/alerts';
 import { FavoritesProvider } from '@/lib/favorites';
 import {
@@ -110,12 +110,24 @@ function RootLayout() {
   // Keep this device's push token registered whenever the app opens or returns to the
   // foreground (only if permission is already granted — never prompts). Self-heals the case
   // where the first token fetch right after granting raced with iOS APNs registration.
+  //
+  // The same listener starts and stops the session clock, because "in the foreground" is
+  // exactly the span we want to measure.
   useEffect(() => {
     syncPushRegistration();
+    startSession(); // the launch itself is the first session; AppState won't fire for it
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') {
         syncPushRegistration();
         trackAppOpen(); // returning to the foreground (throttled inside)
+        startSession();
+      } else if (s === 'background') {
+        // 'background' only, never 'inactive'. iOS reports 'inactive' for a notification
+        // banner, Control Centre, or a peek at the app switcher -- moments when the user
+        // hasn't left at all. Ending there would chop one real visit into several stubs
+        // and drag the average session length down. Leaving for real always passes
+        // through 'background' first, including a force-quit, so nothing is lost.
+        endSession();
       }
     });
     return () => sub.remove();

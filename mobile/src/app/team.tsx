@@ -18,6 +18,7 @@ import { OfflineNotice } from '@/components/offline-notice';
 import { PlayerProfile } from '@/components/player-profile';
 import { ListRowSkeleton, SkeletonList } from '@/components/skeleton';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { trackFeature } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { DepthEntry, Player, RosterMove } from '@/lib/types';
@@ -328,7 +329,7 @@ export default function TeamScreen() {
           return (
             <Pressable
               key={m.id}
-              onPress={() => setMode(m.id)}
+              onPress={() => { trackFeature('team_mode_switch'); setMode(m.id); }}
               style={[styles.segBtn, active ? { backgroundColor: Brand.gold } : { backgroundColor: c.card, borderWidth: 1, borderColor: c.border }]}>
               <Text style={[styles.segText, { color: active ? Brand.onGold : c.textSecondary }]}>
                 {m.label}
@@ -983,7 +984,15 @@ function MoveCard({
   );
 
   if (move.source_url) {
-    return <Pressable onPress={() => WebBrowser.openBrowserAsync(move.source_url!)}>{body}</Pressable>;
+    return (
+      <Pressable
+        onPress={() => {
+          trackFeature('roster_move_source_open');
+          WebBrowser.openBrowserAsync(move.source_url!);
+        }}>
+        {body}
+      </Pressable>
+    );
   }
   return body;
 }

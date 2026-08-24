@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
+import { trackFeature } from '@/lib/analytics';
+
 const KEY = 'mp_favorite_sports';
 
 type FavoritesContextValue = {
@@ -30,6 +32,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggle = (sport: string) => {
+    trackFeature('favorite_toggle');
     setFavorites((prev) => {
       const next = prev.includes(sport) ? prev.filter((s) => s !== sport) : [...prev, sport];
       AsyncStorage.setItem(KEY, JSON.stringify(next));

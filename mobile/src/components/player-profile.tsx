@@ -6,6 +6,7 @@ import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } 
 import { ReportModal } from '@/components/report-modal';
 import { SectionLabel, SheetHeader } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
+import { trackFeature } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { Player, PlayerStat } from '@/lib/types';
 
@@ -79,6 +80,10 @@ export function PlayerProfile({ player, onClose }: { player: ProfilePlayer | nul
   const [reportOpen, setReportOpen] = useState(false);
   const [bio, setBio] = useState<{ text: string; url: string | null } | null>(null);
   const [bioOpen, setBioOpen] = useState(false);
+
+  // Keyed on the id, not the object -- one count per player opened. See GameDetail.
+  const openPlayerId = player?.id;
+  useEffect(() => { if (openPlayerId) trackFeature('player_profile_open'); }, [openPlayerId]);
 
   useEffect(() => {
     if (!player) return;

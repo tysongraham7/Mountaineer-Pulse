@@ -6,6 +6,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { ReportModal } from '@/components/report-modal';
 import { SectionLabel, SheetHeader, SportIcon } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
+import { trackFeature } from '@/lib/analytics';
 import { countdownLabel, easternDateLong, easternTime } from '@/lib/eastern';
 import { supabase } from '@/lib/supabase';
 import { Game } from '@/lib/types';
@@ -40,6 +41,12 @@ function shortTeam(name: string): string {
 
 export function GameDetail({ game, onClose }: { game: Game | null; onClose: () => void }) {
   const [reportOpen, setReportOpen] = useState(false);
+  // Counted here rather than at the call sites so a tap from Scores, the home card, and a
+  // kickoff alert all land in the same bucket -- and so a new way in gets counted for free.
+  // Keyed on the id, not the object: one count per game opened, however many times the
+  // sheet re-renders while it's up.
+  const openGameId = game?.id;
+  useEffect(() => { if (openGameId) trackFeature('game_sheet_open'); }, [openGameId]);
   // Absent for most of the year — the report is only written near kickoff, so every field
   // below renders conditionally and the sheet looks normal when there is nothing yet.
   const [scout, setScout] = useState<Matchup | null>(null);

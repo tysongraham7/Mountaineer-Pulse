@@ -181,6 +181,24 @@ ALTERS = [
     # The duplicate guard keys on this: a teaser headline and a later named report share no
     # words, so without the name there is nothing to match them on.
     "alter table news_items add column if not exists summary_player text;",
+    # --- Breaking alerts wait for a human now ---
+    # Two of the first three alerts were wrong: a duplicate, then a soccer result announced as
+    # a basketball win. The model writes the alert; a person decides whether it goes out.
+    # Nothing here is ever read by the app -- RLS on with no policy, like error_reports.
+    """create table if not exists pending_alerts (
+        id          bigserial primary key,
+        news_id     text,
+        title       text not null,
+        body        text not null,
+        headline    text,
+        source_name text,
+        why         text,
+        status      text not null default 'pending',  -- pending | sent | discarded | expired
+        created_at  timestamptz not null default now(),
+        decided_at  timestamptz
+    );""",
+    "create index if not exists pending_alerts_status_idx on pending_alerts (status, created_at desc);",
+    "alter table pending_alerts enable row level security;",
     # notify_games.py: one kickoff reminder and one final score per game, never repeated.
     "alter table games add column if not exists notified_kickoff_at timestamptz;",
     "alter table games add column if not exists notified_final_at timestamptz;",

@@ -15,6 +15,7 @@ import { OfflineNotice } from '@/components/offline-notice';
 import { NewsCardSkeleton, SkeletonList } from '@/components/skeleton';
 import { Segmented } from '@/components/ui';
 import { Brand, Font, surfaces } from '@/constants/brand';
+import { trackFeature } from '@/lib/analytics';
 import { supabase } from '@/lib/supabase';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 
@@ -136,7 +137,7 @@ export default function NewsScreen() {
           return (
             <Pressable
               key={n.id}
-              onPress={() => WebBrowser.openBrowserAsync(n.url)}
+              onPress={() => { trackFeature('news_story_open'); WebBrowser.openBrowserAsync(n.url); }}
               style={({ pressed }) => [
                 styles.card,
                 isAlerted && styles.cardAlerted,

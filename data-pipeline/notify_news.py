@@ -35,7 +35,7 @@ from dotenv import load_dotenv
 from supabase import create_client
 
 import usage
-from send_push import send_push
+from emailer import email_configured, send_email
 # Same near-duplicate detection the news sync uses to collapse syndicated copies, so a
 # story we already pushed can't come back tomorrow under another outlet's headline.
 from names import norm_name, split_name
@@ -71,6 +71,9 @@ LOOKBACK_HOURS = 3
 MAX_PER_DAY = 2          # counting the morning briefing's own push, this is the ceiling
 QUIET_START_HOUR = 22    # 10pm ET
 QUIET_END_HOUR = 8       # 8am ET
+# A queued alert older than this isn't breaking any more, so approving it late would push
+# stale news. Doing nothing is therefore a safe way to decline.
+PENDING_TTL_HOURS = 6
 MAX_TITLE = 60
 MAX_BODY = 155           # Expo truncates past ~160; leave headroom
 
@@ -161,6 +164,43 @@ def candidates(sb) -> list[dict]:
             .select("id,headline,source_name,sport_id,published_at")
             .gte("published_at", cutoff).is_("notified_at", "null")
             .order("published_at", desc=True).limit(40).execute().data or [])
+
+
+# Words that mean a game was played and somebody won. Deliberately broad — this only gates
+# whether we go and CHECK the schedule, and the schedule is the thing that decides.
+RESULT_WORDS = (
+    "beat", "beats", "defeat", "downing", "downs", "tops", "topped", "upset", "routs",
+    "rout", "falls to", "fell to", "loses to", "lost to", "win over", "wins over",
+    "victory", "shuts out", "shut out", "knock off", "knocks off", "sweeps", "sweep",
+    "outlasts", "holds off", "rallies past", "comeback win", "final score",
+)
+
+
+def looks_like_result(headline: str) -> bool:
+    low = f" {headline.lower()} "
+    return any(f"{w}" in low for w in RESULT_WORDS)
+
+
+def we_played_recently(sb, hours: int = 36) -> bool:
+    """Did football, men's basketball or baseball actually play in the last day and a half?
+
+    This is the guard that would have stopped the worst alert we have sent. "WVU again
+    fashions strong second half in downing Duquesne" never names a sport, and the classifier
+    had left the row with a null sport_id, so the model read a generic winning headline and
+    guessed basketball. It was SOCCER.
+
+    No amount of prompt wording fixes that, because the headline genuinely does not say. The
+    schedule does. On the day that alert fired, none of the three sports this app covers had
+    played a game in months — football's opener was still two weeks out. So a result headline
+    on that day could only have been a sport we do not cover.
+    """
+    now = datetime.now(timezone.utc)
+    rows = (sb.table("games").select("id,sport_id,start_date")
+            .in_("sport_id", ["football", "mbb", "baseball"])
+            .gte("start_date", (now - timedelta(hours=hours)).isoformat())
+            .lte("start_date", now.isoformat())
+            .limit(1).execute().data or [])
+    return bool(rows)
 
 
 def alerted_rows(sb, days: int = 4) -> list[dict]:
@@ -416,6 +456,41 @@ def summarize(sb, chosen: dict) -> dict:
             "summary_headline": headline or None, "summary_player": player or None}
 
 
+def notify_founder(pid, title: str, body: str, chosen: dict, why: str) -> None:
+    """Email the proposed alert so it can be approved from a phone. Best-effort — a mail
+    failure must not lose the pending row, which is safe in the queue either way."""
+    if not email_configured():
+        print("  (no RESEND_API_KEY / REPORT_ALERT_TO — the alert is queued but nobody was told)")
+        return
+    lines = [
+        "An alert is waiting for your approval. Nothing has been sent.",
+        "",
+        "THIS IS WHAT WOULD GO TO EVERY PHONE:",
+        "",
+        f"    {title}",
+        f"    {body}",
+        "",
+        "-" * 60,
+        f"headline : {chosen['headline']}",
+        f"source   : {chosen.get('source_name') or 'unknown'}",
+        f"sport    : {chosen.get('sport_id') or 'NOT CLASSIFIED — check which sport this is'}",
+        f"link     : {chosen.get('url') or ''}",
+        f"reasoning: {why[:300]}",
+        "-" * 60,
+        "",
+        "TO SEND IT, from the GitHub app:",
+        "  Actions -> Approve Breaking Alert -> Run workflow -> decision: send",
+        "",
+        "To bin it, choose discard. Doing nothing also works — it expires in "
+        f"{PENDING_TTL_HOURS} hours, because by then it isn't breaking news any more.",
+    ]
+    try:
+        send_email(f"Approve? {title}", "\n".join(lines))
+        print("  emailed for approval")
+    except Exception as e:
+        print(f"  (approval email failed: {str(e)[:120]})")
+
+
 def mark_notified(sb, chosen: dict, pool: list[dict], stamp: str) -> int:
     """Stamp the pushed item and every near-duplicate of it, so the same story cannot
     fire again tomorrow when another outlet reposts it."""
@@ -460,8 +535,18 @@ def main() -> None:
     # reads like new information, and that is exactly how users got a second alert about
     # Evans Barning Jr. the morning after the first.
     prior = alerted_rows(sb)
+    # Checked once, not per item: either our sports played recently or they didn't.
+    played = we_played_recently(sb)
     kept = []
     for i in items:
+        # A result headline on a day none of our three sports played is another program's
+        # game. The classifier can leave sport_id null and the headline can omit the sport
+        # entirely — the schedule cannot be argued with.
+        if looks_like_result(i["headline"]) and not played:
+            print(f"  skipping (no football/mbb/baseball game in 36h): {i['headline'][:65]}")
+            sb.table("news_items").update(
+                {"notified_at": datetime.now(timezone.utc).isoformat()}).eq("id", i["id"]).execute()
+            continue
         who = blocked_by_prior_alert(i["headline"], prior)
         if who:
             print(f"  skipping (already alerted about {who}): {i['headline'][:70]}")
@@ -498,24 +583,28 @@ def main() -> None:
     print(f"         why: {str(obj.get('why', ''))[:160]}")
 
     if dry:
-        print("\n[dry run] Nothing sent, nothing marked.")
+        print("\n[dry run] Nothing queued.")
         return
 
-    # "breaking" lands on the home screen, where the story appears as a card with the summary
-    # written below — not on the News tab, where a new user has to work out that the headline
-    # is a link to somewhere else. newsId tells the card which story to open on.
-    sent = send_push(title, body, data={"screen": "breaking", "newsId": chosen["id"]})
-    stamp = datetime.now(timezone.utc).isoformat()
-    n = mark_notified(sb, chosen, items, stamp)
-    print(f"\n[OK] Pushed to {sent} device(s); marked {n} headline(s) as notified.")
+    # This does NOT send. It proposes.
+    #
+    # Two of the first three alerts that went straight to phones were wrong, and a push cannot
+    # be unsent. The model is good at writing the alert and unreliable at deciding it should
+    # exist, so it now does the first job only and a person does the second. At a handful of
+    # alerts a month that costs seconds to review and removes the one unrecoverable action in
+    # the whole pipeline.
+    row = sb.table("pending_alerts").insert({
+        "news_id": chosen["id"], "title": title, "body": body,
+        "headline": chosen["headline"], "source_name": chosen.get("source_name"),
+        "why": str(obj.get("why", ""))[:400],
+    }).execute().data
+    pid = (row or [{}])[0].get("id")
 
-    # Research the story only after the push is out. It costs a few cents and takes ~30s, and
-    # nothing about the alert should wait on it — the card falls back to the headline alone.
-    print("\nWriting the in-app summary...")
-    extra = summarize(sb, chosen)
-    if extra:
-        sb.table("news_items").update(extra).eq("id", chosen["id"]).execute()
-        print("[OK] Summary stored — the home screen will show it.")
+    # Nothing is stamped notified here. If it's discarded, a genuinely better-worded version
+    # of the same story tomorrow should still get its chance; approve_alert.py does the
+    # stamping at the moment it actually sends.
+    print(f"\n[OK] Queued as pending alert #{pid} — nothing sent. Waiting for approval.")
+    notify_founder(pid, title, body, chosen, str(obj.get("why", "")))
 
 
 if __name__ == "__main__":

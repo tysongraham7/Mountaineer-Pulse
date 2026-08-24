@@ -32,14 +32,22 @@ EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
 # GLOBAL KILL SWITCH. True = no notification leaves this process, whatever calls it.
 #
-# Set on 2026-08-23 after two bad alerts out of three ever sent: a duplicate about Evans
-# Barning Jr., then one announcing a basketball win that was actually a SOCCER result. A push
-# cannot be unsent, and at this size a wrong one costs more trust than a missed one earns.
+# Off again now that the thing it was protecting against is fixed properly. It went on after
+# two bad alerts out of the three ever sent — a duplicate about Evans Barning Jr., then a
+# SOCCER result announced as a basketball win — and it stays here because a push cannot be
+# unsent and one switch beats disabling four workflows in a hurry.
 #
-# One switch rather than disabling each workflow, because the whole point is that nothing gets
-# through — the briefing, the breaking scan, game day, and the manual workflow all send from
-# here. Flip to False to resume.
-PUSH_PAUSED = True
+# What changed: breaking news no longer sends itself. notify_news.py writes to pending_alerts
+# and emails the proposed text; approve_alert.py is the only path to a phone, and it runs when
+# a person taps Run workflow. So the judgment that produced both bad alerts can no longer
+# reach anyone on its own.
+#
+# Still automatic, deliberately:
+#   game day  - notify_games.py has no model in it at all, only rows from the games table,
+#               so there is nothing for it to invent. It has to be live for Sept 5.
+#   briefing  - a daily digest with a templated title; it has never misfired, and it is now
+#               skipped entirely on days when nothing happened.
+PUSH_PAUSED = False
 
 
 def _enabled_tokens(sb) -> list[str]:

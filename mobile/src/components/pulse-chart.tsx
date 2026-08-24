@@ -222,8 +222,10 @@ export function PulseChart({
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (evt) => scrubTo(evt.nativeEvent.locationX),
         onPanResponderMove: (evt) => scrubTo(evt.nativeEvent.locationX),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
       }),
+    // scrubTo is rebuilt every render, but everything it reads is covered by these three:
+    // rebuilding the PanResponder on each render would drop an in-flight gesture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [n, w, pad.left],
   );
 

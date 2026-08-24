@@ -1,0 +1,50 @@
+name: Approve Breaking Alert
+
+# The human half of breaking news. notify_news.py proposes an alert and emails it; this is
+# where you say yes. Run it from the GitHub mobile app: Actions -> Approve Breaking Alert ->
+# Run workflow -> pick a decision.
+#
+# `show` is the default on purpose. A workflow whose default action sends a notification to
+# every user is one mis-tap away from the thing this whole flow exists to prevent.
+on:
+  workflow_dispatch:
+    inputs:
+      decision:
+        description: "What to do with the alert that's waiting"
+        required: true
+        default: show
+        type: choice
+        options:
+          - show      # print it and do nothing
+          - send      # push it to every device
+          - discard   # bin it
+
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      # Needed only on send: the summary that fills the home-screen card is written after
+      # the push goes out.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: ${{ inputs.decision }}
+        run: |
+          case "${{ inputs.decision }}" in
+            send)    python approve_alert.py --send ;;
+            discard) python approve_alert.py --discard ;;
+            *)       python approve_alert.py ;;
+          esac

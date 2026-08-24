@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en" data-palette="#C98500,#3987E5">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mountaineer Pulse — Analytics</title>
+<style>
+  /* Dark-only on purpose: this is a local tool that sits beside the app, and the app is
+     dark-only. Series colors are the validated pair for this surface — gold #C98500 and
+     blue #3987E5 clear the CVD, normal-vision, lightness and contrast gates together.
+     The brighter brand gold (#EAAA00) is a TEXT/UI accent only; it sits outside the
+     dark-mode lightness band for chart marks. */
+  :root {
+    --bg:            #060B16;
+    --surface:       #0D1524;
+    --surface-2:     #131D30;
+    --border:        rgba(159,180,206,0.10);
+    --border-strong: rgba(159,180,206,0.16);
+    --text:          #EFF2F7;
+    --text-2:        #8E9AAC;
+    --text-3:        #5E6C80;
+    --accent:        #EAAA00;   /* UI accent: headings, hero numbers */
+    --series-1:      #C98500;   /* chart mark: primary series */
+    --series-2:      #3987E5;   /* chart mark: secondary series */
+    --good:          #4BC97E;
+    --bad:           #E5636B;
+    --grid:          rgba(159,180,206,0.13);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 "Instrument Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 0 64px;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---- Header ---- */
+  header {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(6,11,22,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 0 16px;
+    margin-bottom: 28px;
+  }
+  .head-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  h1 {
+    font-size: 19px; font-weight: 800; margin: 0; letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h1 .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+  .spacer { flex: 1; }
+
+  .seg { display: flex; gap: 2px; background: var(--surface-2); border-radius: 10px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--text-2); cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 600; padding: 5px 12px; border-radius: 8px;
+  }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #141414; }
+  .seg button:hover:not([aria-pressed="true"]) { color: var(--text); }
+
+  button.ghost {
+    border: 1px solid var(--border-strong); background: var(--surface);
+    color: var(--text); font: inherit; font-size: 13px; font-weight: 600;
+    padding: 7px 14px; border-radius: 10px; cursor: pointer;
+  }
+  button.ghost:hover { border-color: var(--accent); }
+  button.ghost[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  .stamp { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .stamp b { color: var(--text-2); font-weight: 600; }
+
+  /* ---- Layout ---- */
+  section { margin-bottom: 30px; }
+  h2 {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--text-3); margin: 0 0 12px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+  }
+  .grid { display: grid; gap: 14px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); }
+  .two { grid-template-columns: 1fr 1fr; align-items: start; }
+  .three { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 900px) { .two, .three { grid-template-columns: 1fr; } }
+
+  /* ---- Stat tiles ---- */
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 15px 16px; }
+  .tile .label { font-size: 11.5px; color: var(--text-2); font-weight: 600; letter-spacing: 0.02em; }
+  .tile .value {
+    font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin-top: 5px;
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .tile .value.hero { color: var(--accent); }
+  .tile .sub { font-size: 11.5px; color: var(--text-3); margin-top: 3px; }
+  .tile .sub.good { color: var(--good); }
+  .tile .sub.bad { color: var(--bad); }
+  .muted-val { color: var(--text-3); font-weight: 600; font-size: 22px; }
+
+  /* ---- Charts ---- */
+  .chart-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .chart-title { font-size: 15px; font-weight: 700; }
+  .chart-note { font-size: 12px; color: var(--text-3); }
+  .legend { display: flex; gap: 16px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .legend span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); font-weight: 600; }
+  .key { width: 14px; height: 3px; border-radius: 2px; }
+  .key.sq { width: 11px; height: 11px; border-radius: 3px; }
+
+  .plot { position: relative; }
+  .plot svg { display: block; max-width: 100%; }
+  .tip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: #05080F; border: 1px solid var(--border-strong); border-radius: 10px;
+    padding: 9px 11px; font-size: 12px; white-space: nowrap; z-index: 5;
+    box-shadow: 0 8px 26px rgba(0,0,0,0.6);
+  }
+  .tip .t-date { color: var(--text-2); font-weight: 700; margin-bottom: 5px; }
+  .tip .t-row { display: flex; align-items: center; gap: 7px; color: var(--text); }
+  .tip .t-row b { font-variant-numeric: tabular-nums; }
+  .kv { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 13px; }
+  .kv + .kv { border-top: 1px solid var(--border); }
+  .kv b { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  /* ---- Tables ---- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-3); font-weight: 700; padding: 0 10px 9px 0; white-space: nowrap;
+  }
+  td { padding: 8px 10px 8px 0; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  td.num, th.num { text-align: right; padding-right: 0; }
+  .bar-cell { position: relative; min-width: 90px; }
+
+  table.cohort { border-collapse: separate; border-spacing: 2px; table-layout: fixed; }
+  table.cohort td { border-top: 0; padding: 7px 6px; }
+  table.cohort th { padding-bottom: 6px; }
+  table.cohort { width: auto; }
+  table.cohort th:first-child, table.cohort td:first-child { width: 96px; }
+  table.cohort th:nth-child(2), table.cohort td:nth-child(2) { width: 52px; text-align: right; }
+  table.cohort th.cell, table.cohort td.cell { width: 62px; text-align: center; }
+  .scroll-x { overflow-x: auto; }
+  .scroll-y { max-height: 560px; overflow-y: auto; }
+  .bar-fill { height: 8px; border-radius: 0 4px 4px 0; background: var(--series-1); }
+
+  /* ---- Heatmap ---- */
+  .hm-legend { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--text-3); }
+  .hm-legend .ramp { display: flex; gap: 2px; }
+  .hm-legend .ramp i { width: 16px; height: 10px; border-radius: 2px; display: block; }
+
+  td.when { white-space: nowrap; font-weight: 600; }
+  td.ago { color: var(--text-3); font-size: 12px; white-space: nowrap; }
+  .pill {
+    display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px;
+    border-radius: 6px; background: var(--surface-2); color: var(--text-2);
+  }
+  .pill.push { background: rgba(57,135,229,0.16); color: #8FBDF2; }
+  .pill.back { background: rgba(75,201,126,0.14); color: var(--good); }
+  .pill.gone { background: transparent; color: var(--text-3); }
+
+  .empty { color: var(--text-3); font-size: 13px; padding: 6px 0; }
+  .err {
+    background: rgba(229,99,107,0.10); border: 1px solid rgba(229,99,107,0.35);
+    color: #F3A0A5; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px;
+  }
+  .footnote {
+    font-size: 12px; color: var(--text-3); line-height: 1.75;
+    border-top: 1px solid var(--border); padding-top: 18px; margin-top: 34px;
+  }
+  .footnote b { color: var(--text-2); font-weight: 600; }
+  .slot {
+    border: 1px dashed var(--border-strong); border-radius: 14px; padding: 15px 16px;
+    background: transparent;
+  }
+  .slot .label { font-size: 11.5px; color: var(--text-2); font-weight: 600; }
+  .slot .value { font-size: 22px; font-weight: 700; color: var(--text-3); margin-top: 5px; }
+  .slot .sub { font-size: 11.5px; color: var(--text-3); margin-top: 4px; line-height: 1.5; }
+  .loading { color: var(--text-3); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap head-row">
+    <h1><span class="dot"></span> Mountaineer Pulse — Analytics</h1>
+    <div class="spacer"></div>
+    <div class="seg" id="range" role="group" aria-label="Time window">
+      <button data-days="1">1d</button>
+      <button data-days="7">7d</button>
+      <button data-days="14">14d</button>
+      <button data-days="30">30d</button>
+      <button data-days="90">90d</button>
+    </div>
+    <button class="ghost" id="auto" aria-pressed="false" title="Re-fetch every 60 seconds">Auto</button>
+    <button class="ghost" id="refresh">Refresh</button>
+    <div class="stamp" id="stamp"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="error"></div>
+  <div id="body"><p class="loading">Loading…</p></div>
+</div>
+
+<script>
+"use strict";
+
+const S1 = "#C98500", S2 = "#3987E5", SURFACE = "#0D1524";
+// The window lives in the URL so a view can be bookmarked -- "?days=1" is the one worth
+// keeping on the bookmark bar, since it's the one you open to see who just arrived.
+const state = {
+  days: [1, 7, 14, 30, 90].includes(Number(new URLSearchParams(location.search).get("days")))
+    ? Number(new URLSearchParams(location.search).get("days"))
+    : 30,
+  auto: false, timer: null, data: null,
+};
+
+/* ---------------------------------------------------------------- utilities */
+
+const $ = (sel) => document.querySelector(sel);
+
+function el(tag, attrs = {}, kids = []) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null) continue;
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k === "text") n.textContent = v;
+    else n.setAttribute(k, v);
+  }
+  for (const kid of [].concat(kids)) if (kid) n.appendChild(kid);
+  return n;
+}
+
+function svg(tag, attrs = {}) {
+  const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) n.setAttribute(k, v);
+  return n;
+}
+
+const num = (n) => (n == null ? "—" : n.toLocaleString("en-US"));
+
+/** Percentages that don't exist read as an em dash, never as 0% — see _pct() in metrics.py. */
+const pct = (v) => (v == null ? "—" : `${v}%`);
+
+/** Durations in the unit a human would say them in. */
+function dur(sec) {
+  if (sec == null) return "—";
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+
+/** Alpha-composited single hue: guaranteed monotonic in lightness on a fixed surface,
+ *  which is exactly what a sequential ramp has to be. */
+function ramp(t) {
+  const a = t <= 0 ? 0 : 0.10 + 0.90 * Math.pow(t, 0.72);
+  return `rgba(201,133,0,${a.toFixed(3)})`;
+}
+
+const shortDate = (iso) => {
+  const [, m, d] = iso.split("-");
+  return `${Number(m)}/${Number(d)}`;
+};
+
+/** Axis ticks on round numbers, so the reader isn't decoding 3.7 / 7.4 / 11.1. */
+function niceTicks(max, count = 4) {
+  if (max <= 0) return [0, 1];
+  const raw = max / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) || 10 * mag;
+  const top = Math.ceil(max / step) * step;   // never below the data
+  const out = [];
+  for (let v = 0; v <= top + step * 0.001; v += step) out.push(Math.round(v * 100) / 100);
+  return out;
+}
+
+function tile(label, value, sub, opts = {}) {
+  const v = el("div", { class: "value" + (opts.hero ? " hero" : "") , text: value });
+  if (opts.muted) { v.className = "value"; v.classList.add("muted-val"); }
+  return el("div", { class: "tile" }, [
+    el("div", { class: "label", text: label }),
+    v,
+    sub ? el("div", { class: "sub" + (opts.tone ? " " + opts.tone : ""), text: sub }) : null,
+  ]);
+}
+
+function card(title, note, content, legend) {
+  const head = el("div", { class: "chart-head" }, [
+    el("div", { class: "chart-title", text: title }),
+    note ? el("div", { class: "chart-note", text: note }) : null,
+  ]);
+  if (legend) head.appendChild(legend);
+  return el("div", { class: "card" }, [head, content]);
+}
+
+function legendOf(items) {
+  return el("div", { class: "legend" }, items.map(([color, label, square]) =>
+    el("span", {}, [
+      el("i", { class: "key" + (square ? " sq" : ""), style: `background:${color}` }),
+      el("span", { text: label }),
+    ])));
+}
+
+/* ------------------------------------------------------------- activity chart */
+
+/**
+ * Daily active installs (line) and new installs (columns) on ONE axis.
+ *
+ * Two series, one scale, on purpose: both are counts of people, so they're directly
+ * comparable and a second y-axis would invent a relationship between them.
+ */
+function activityChart(daily) {
+  const host = el("div", { class: "plot" });
+  const tip = el("div", { class: "tip" });
+  host.appendChild(tip);
+
+  const draw = () => {
+    host.querySelectorAll("svg").forEach((n) => n.remove());
+    const W = Math.max(320, host.clientWidth || 800), H = 300;
+    const M = { t: 14, r: 14, b: 30, l: 42 };
+    const pw = W - M.l - M.r, ph = H - M.t - M.b;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+
+    const maxV = Math.max(1, ...daily.map((d) => Math.max(d.dau, d.new)));
+    const ticks = niceTicks(maxV);
+    const top = ticks[ticks.length - 1];
+    const y = (v) => M.t + ph - (v / top) * ph;
+    const band = pw / daily.length;
+    const x = (i) => M.l + band * i + band / 2;
+
+    // Gridlines: hairline, solid, recessive — and the y labels that carry the values
+    // no mark is directly labelled with.
+    for (const t of ticks) {
+      s.appendChild(svg("line", {
+        x1: M.l, x2: W - M.r, y1: y(t), y2: y(t), stroke: "var(--grid)", "stroke-width": 1,
+      }));
+      const lab = svg("text", {
+        x: M.l - 9, y: y(t) + 4, "text-anchor": "end",
+        fill: "var(--text-3)", "font-size": 11,
+      });
+      lab.textContent = num(t);
+      s.appendChild(lab);
+    }
+
+    // New installs as columns. Capped at 24px, 4px rounded cap, square at the baseline,
+    // with a 2px gap to its neighbour so touching bars read apart without a stroke.
+    const bw = Math.max(2, Math.min(24, band - 2));
+    for (let i = 0; i < daily.length; i++) {
+      const d = daily[i];
+      if (!d.new) continue;
+      const h = Math.max(2, (d.new / top) * ph);
+      const r = Math.min(4, bw / 2, h);
+      const bx = x(i) - bw / 2, by = M.t + ph - h;
+      s.appendChild(svg("path", {
+        d: `M${bx},${by + h} L${bx},${by + r} Q${bx},${by} ${bx + r},${by}
+            L${bx + bw - r},${by} Q${bx + bw},${by} ${bx + bw},${by + r}
+            L${bx + bw},${by + h} Z`,
+        fill: S2,
+      }));
+    }
+
+    // DAU as a 2px line over a 10% wash.
+    const pts = daily.map((d, i) => [x(i), y(d.dau)]);
+    const line = pts.map((p, i) => `${i ? "L" : "M"}${p[0]},${p[1]}`).join(" ");
+    s.appendChild(svg("path", {
+      d: `${line} L${pts[pts.length - 1][0]},${M.t + ph} L${pts[0][0]},${M.t + ph} Z`,
+      fill: S1, "fill-opacity": 0.10,
+    }));
+    s.appendChild(svg("path", {
+      d: line, fill: "none", stroke: S1, "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round",
+    }));
+
+    // One direct label: the last point. Labelling every point is noise.
+    const last = daily[daily.length - 1], lp = pts[pts.length - 1];
+    const dot = svg("circle", { cx: lp[0], cy: lp[1], r: 4.5, fill: S1,
+                                stroke: SURFACE, "stroke-width": 2 });
+    s.appendChild(dot);
+    if (last.dau) {
+      // The end label sits where the line arrives, so it gets a surface-coloured halo
+      // (stroke painted under the fill) instead of being nudged off its own data point.
+      const t = svg("text", { x: lp[0] - 8, y: lp[1] - 11, "text-anchor": "end",
+                              fill: "var(--text-2)", "font-size": 11.5, "font-weight": 700,
+                              stroke: SURFACE, "stroke-width": 3.5, "paint-order": "stroke" });
+      t.textContent = `${last.dau} today`;
+      s.appendChild(t);
+    }
+
+    // X labels, thinned so they never collide.
+    const every = Math.ceil(daily.length / 9);
+    daily.forEach((d, i) => {
+      if (i % every && i !== daily.length - 1) return;
+      const t = svg("text", { x: x(i), y: H - 9, "text-anchor": "middle",
+                              fill: "var(--text-3)", "font-size": 11 });
+      t.textContent = shortDate(d.date);
+      s.appendChild(t);
+    });
+
+    // Crosshair + tooltip. An SVG chart in a browser is interactive by default;
+    // the hover layer is where the values live that aren't directly labelled.
+    const cross = svg("line", { y1: M.t, y2: M.t + ph, stroke: "var(--border-strong)",
+                                "stroke-width": 1, opacity: 0 });
+    const hover = svg("circle", { r: 5, fill: S1, stroke: SURFACE, "stroke-width": 2, opacity: 0 });
+    s.appendChild(cross); s.appendChild(hover);
+
+    const hit = svg("rect", { x: M.l, y: M.t, width: pw, height: ph, fill: "transparent" });
+    s.appendChild(hit);
+    hit.addEventListener("mousemove", (ev) => {
+      const box = s.getBoundingClientRect();
+      const px = (ev.clientX - box.left) * (W / box.width);
+      const i = Math.max(0, Math.min(daily.length - 1, Math.floor((px - M.l) / band)));
+      const d = daily[i];
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
+      cross.setAttribute("opacity", 1);
+      hover.setAttribute("cx", x(i)); hover.setAttribute("cy", y(d.dau));
+      hover.setAttribute("opacity", 1);
+      tip.innerHTML = "";
+      tip.appendChild(el("div", { class: "t-date", text: d.date }));
+      const rows = [
+        [S1, "Active", num(d.dau)],
+        [S2, "New", num(d.new)],
+        [null, "Sessions", num(d.sessions)],
+        [null, "Avg session", dur(d.avg_session_sec)],
+        [null, "Push opens", num(d.push_opens)],
+      ];
+      for (const [c, label, val] of rows) {
+        tip.appendChild(el("div", { class: "t-row" }, [
+          el("i", { class: "key sq", style: `background:${c || "transparent"};` }),
+          el("span", { text: label + ":" }),
+          el("b", { text: val }),
+        ]));
+      }
+      tip.style.opacity = 1;
+      const relX = x(i) * (box.width / W);
+      tip.style.left = Math.min(box.width - 170, Math.max(0, relX + 14)) + "px";
+      tip.style.top = "10px";
+    });
+    hit.addEventListener("mouseleave", () => {
+      tip.style.opacity = 0;
+      cross.setAttribute("opacity", 0);
+      hover.setAttribute("opacity", 0);
+    });
+
+    host.appendChild(s);
+  };
+
+  draw();
+  new ResizeObserver(draw).observe(host);
+  return host;
+}
+
+/* ----------------------------------------------------------- hourly chart */
+
+/** The last 24 hours at hour resolution. Same encoding as the daily chart -- gold line is
+ *  active installs, blue columns are new arrivals -- so switching windows never changes
+ *  what a shape means. */
+function hourlyChart(hours) {
+  const host = el("div", { class: "plot" });
+  const tip = el("div", { class: "tip" });
+  host.appendChild(tip);
+
+  const draw = () => {
+    host.querySelectorAll("svg").forEach((n) => n.remove());
+    const W = Math.max(320, host.clientWidth || 800), H = 250;
+    const M = { t: 14, r: 14, b: 30, l: 42 };
+    const pw = W - M.l - M.r, ph = H - M.t - M.b;
+    const s = svg("svg", { viewBox: "0 0 " + W + " " + H, width: W, height: H });
+
+    const maxV = Math.max(1, ...hours.map((h) => Math.max(h.installs, h.actives)));
+    const ticks = niceTicks(maxV, 3);
+    const top = ticks[ticks.length - 1];
+    const y = (v) => M.t + ph - (v / top) * ph;
+    const band = pw / hours.length;
+    const x = (i) => M.l + band * i + band / 2;
+
+    for (const t of ticks) {
+      s.appendChild(svg("line", { x1: M.l, x2: W - M.r, y1: y(t), y2: y(t),
+                                  stroke: "var(--grid)", "stroke-width": 1 }));
+      const lab = svg("text", { x: M.l - 9, y: y(t) + 4, "text-anchor": "end",
+                                fill: "var(--text-3)", "font-size": 11 });
+      lab.textContent = num(t);
+      s.appendChild(lab);
+    }
+
+    const bw = Math.max(3, Math.min(24, band - 6));
+    hours.forEach((h, i) => {
+      if (!h.installs) return;
+      const ht = Math.max(3, (h.installs / top) * ph);
+      const r = Math.min(4, bw / 2, ht);
+      const bx = x(i) - bw / 2, by = M.t + ph - ht;
+      s.appendChild(svg("path", {
+        d: "M" + bx + "," + (by + ht) + " L" + bx + "," + (by + r) +
+           " Q" + bx + "," + by + " " + (bx + r) + "," + by +
+           " L" + (bx + bw - r) + "," + by + " Q" + (bx + bw) + "," + by +
+           " " + (bx + bw) + "," + (by + r) +
+           " L" + (bx + bw) + "," + (by + ht) + " Z",
+        fill: S2,
+      }));
+    });
+
+    const pts = hours.map((h, i) => [x(i), y(h.actives)]);
+    const line = pts.map((pt, i) => (i ? "L" : "M") + pt[0] + "," + pt[1]).join(" ");
+    s.appendChild(svg("path", { d: line, fill: "none", stroke: S1, "stroke-width": 2,
+                                "stroke-linejoin": "round", "stroke-linecap": "round" }));
+
+    hours.forEach((h, i) => {
+      if (i % 3 && i !== hours.length - 1) return;
+      const t = svg("text", { x: x(i), y: H - 9, "text-anchor": "middle",
+                              fill: "var(--text-3)", "font-size": 11 });
+      t.textContent = h.label;
+      s.appendChild(t);
+    });
+
+    const cross = svg("line", { y1: M.t, y2: M.t + ph, stroke: "var(--border-strong)",
+                                "stroke-width": 1, opacity: 0 });
+    s.appendChild(cross);
+    const hit = svg("rect", { x: M.l, y: M.t, width: pw, height: ph, fill: "transparent" });
+    s.appendChild(hit);
+    hit.addEventListener("mousemove", (ev) => {
+      const box = s.getBoundingClientRect();
+      const px = (ev.clientX - box.left) * (W / box.width);
+      const i = Math.max(0, Math.min(hours.length - 1, Math.floor((px - M.l) / band)));
+      const h = hours[i];
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i));
+      cross.setAttribute("opacity", 1);
+      tip.innerHTML = "";
+      tip.appendChild(el("div", { class: "t-date", text: h.label }));
+      const rows = [[S2, "New installs", num(h.installs)],
+                    [S1, "Active", num(h.actives)],
+                    [null, "Sessions", num(h.sessions)]];
+      for (const [c, label, val] of rows) {
+        tip.appendChild(el("div", { class: "t-row" }, [
+          el("i", { class: "key sq", style: "background:" + (c || "transparent") }),
+          el("span", { text: label + ":" }), el("b", { text: val }),
+        ]));
+      }
+      tip.style.opacity = 1;
+      const relX = x(i) * (box.width / W);
+      tip.style.left = Math.min(box.width - 170, Math.max(0, relX + 14)) + "px";
+      tip.style.top = "10px";
+    });
+    hit.addEventListener("mouseleave", () => {
+      tip.style.opacity = 0; cross.setAttribute("opacity", 0);
+    });
+    host.appendChild(s);
+  };
+  draw();
+  new ResizeObserver(draw).observe(host);
+  return host;
+}
+
+/* -------------------------------------------------------------- arrivals log */
+
+/** Every new install with the moment it arrived. Deliberately not a chart: the question
+ *  is "who showed up, when, and did they stay", which is a list of events rather than a
+ *  distribution -- and at beta scale each row is a person you can still act on. */
+function arrivalsLog(arrivals, days, showDate) {
+  if (!arrivals.length) {
+    return el("p", { class: "empty",
+      text: days === 1 ? "No new installs in the last 24 hours."
+                       : "No new installs in the last " + days + " days." });
+  }
+  const table = el("table");
+  table.appendChild(el("thead", {}, el("tr", {}, [
+    el("th", { text: "Arrived" }),
+    el("th", { text: "" }),
+    el("th", { text: "Landed on" }),
+    el("th", { class: "num", text: "First visit" }),
+    el("th", { class: "num", text: "Events" }),
+    el("th", { class: "num", text: "Came back" }),
+  ])));
+  const body = el("tbody");
+  for (const a of arrivals) {
+    const at = new Date(a.at);
+    const time = at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const when = showDate
+      ? at.toLocaleDateString("en-US", { month: "numeric", day: "numeric" }) + " " + time
+      : time;
+    body.appendChild(el("tr", {}, [
+      el("td", { class: "when", text: when }),
+      el("td", { class: "ago", text: ago(at) }),
+      el("td", {}, [
+        el("span", { text: a.first_screen || "\u2014" }),
+        a.from_push ? el("span", { class: "pill push", style: "margin-left:7px", text: "push" }) : null,
+      ]),
+      el("td", { class: "num", text: a.first_session_sec == null ? "\u2014" : dur(a.first_session_sec) }),
+      el("td", { class: "num", text: num(a.events) }),
+      el("td", { class: "num" }, [
+        el("span", { class: "pill " + (a.returned ? "back" : "gone"),
+                     text: a.returned ? a.days_active + " days" : "not yet" }),
+      ]),
+    ]));
+  }
+  table.appendChild(body);
+  return table;
+}
+
+/** Relative time, so "when" needs no arithmetic from the reader. */
+function ago(then) {
+  const mins = Math.max(0, Math.round((Date.now() - then.getTime()) / 60000));
+  if (mins < 1) return "just now";
+  if (mins < 60) return mins + "m ago";
+  const hrs = Math.round(mins / 60);
+  if (hrs < 48) return hrs + "h ago";
+  return Math.round(hrs / 24) + "d ago";
+}
+
+/* ---------------------------------------------------------------- heatmap */
+
+function peakHeatmap(peak) {
+  const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const host = el("div", { class: "plot" });
+  const tip = el("div", { class: "tip" });
+  host.appendChild(tip);
+  const max = Math.max(1, ...peak.grid.flat());
+
+  const draw = () => {
+    host.querySelectorAll("svg").forEach((n) => n.remove());
+    const W = Math.max(320, host.clientWidth || 800);
+    const L = 34, cw = (W - L) / 24, ch = 20, H = 7 * ch + 22;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+
+    for (let r = 0; r < 7; r++) {
+      const lab = svg("text", { x: 0, y: r * ch + 14, fill: "var(--text-3)", "font-size": 11 });
+      lab.textContent = DOW[r];
+      s.appendChild(lab);
+      for (let h = 0; h < 24; h++) {
+        const v = peak.grid[r][h];
+        const cell = svg("rect", {
+          x: L + h * cw + 1, y: r * ch + 1, width: Math.max(1, cw - 2), height: ch - 2,
+          rx: 3, fill: v ? ramp(v / max) : "var(--surface-2)",
+        });
+        cell.addEventListener("mouseenter", () => {
+          tip.innerHTML = "";
+          tip.appendChild(el("div", { class: "t-date", text: `${DOW[r]} · ${hourLabel(h)}` }));
+          tip.appendChild(el("div", { class: "t-row" }, [
+            el("b", { text: `${v} session${v === 1 ? "" : "s"}` })]));
+          tip.style.opacity = 1;
+          tip.style.left = Math.min(W - 150, L + h * cw) + "px";
+          tip.style.top = (r * ch + 26) + "px";
+        });
+        cell.addEventListener("mouseleave", () => { tip.style.opacity = 0; });
+        s.appendChild(cell);
+      }
+    }
+    for (let h = 0; h < 24; h += 3) {
+      const t = svg("text", { x: L + h * cw, y: 7 * ch + 14, fill: "var(--text-3)", "font-size": 10.5 });
+      t.textContent = hourLabel(h);
+      s.appendChild(t);
+    }
+    host.appendChild(s);
+  };
+  draw();
+  new ResizeObserver(draw).observe(host);
+  return host;
+}
+
+const hourLabel = (h) => (h === 0 ? "12a" : h < 12 ? `${h}a` : h === 12 ? "12p" : `${h - 12}p`);
+
+/* ------------------------------------------------------------ ranked bars */
+
+/** Horizontal bars, one hue. The categories here are nominal (tabs, features), so a
+ *  value-ramp across them would double-encode length as colour for nothing. */
+function rankedBars(rows, labelKey, valueKey, extra) {
+  if (!rows.length) return el("p", { class: "empty", text: "Nothing recorded in this window yet." });
+  const max = Math.max(...rows.map((r) => r[valueKey])) || 1;
+  const table = el("table");
+  const head = el("tr", {}, [
+    el("th", { text: labelKey === "tab" ? "Tab" : "Action" }),
+    el("th", { text: "" }),
+    el("th", { class: "num", text: "Count" }),
+    el("th", { class: "num", text: extra.header }),
+  ]);
+  table.appendChild(el("thead", {}, head));
+  const body = el("tbody");
+  for (const r of rows) {
+    body.appendChild(el("tr", {}, [
+      el("td", { text: r[labelKey] }),
+      el("td", { class: "bar-cell" }, [
+        el("div", { class: "bar-fill", style: `width:${Math.max(3, (r[valueKey] / max) * 100)}%` }),
+      ]),
+      el("td", { class: "num", text: num(r[valueKey]) }),
+      el("td", { class: "num", text: extra.value(r) }),
+    ]));
+  }
+  table.appendChild(body);
+  return table;
+}
+
+/* ------------------------------------------------------------ session bars */
+
+function sessionBuckets(buckets, total) {
+  if (!total) {
+    return el("p", { class: "empty",
+      text: "No measured sessions yet — this fills in once installs are on a build with session timing." });
+  }
+  const host = el("div", { class: "plot" });
+  const max = Math.max(...buckets.map((b) => b.count)) || 1;
+  const draw = () => {
+    host.querySelectorAll("svg").forEach((n) => n.remove());
+    const W = Math.max(300, host.clientWidth || 600), H = 190;
+    const M = { t: 16, b: 40, l: 0, r: 0 };
+    const ph = H - M.t - M.b, band = W / buckets.length;
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    buckets.forEach((b, i) => {
+      const bw = Math.min(24, band - 12);
+      const h = b.count ? Math.max(3, (b.count / max) * ph) : 0;
+      const bx = i * band + (band - bw) / 2, by = M.t + ph - h;
+      if (h) {
+        const r = Math.min(4, bw / 2, h);
+        s.appendChild(svg("path", {
+          d: `M${bx},${by + h} L${bx},${by + r} Q${bx},${by} ${bx + r},${by}
+              L${bx + bw - r},${by} Q${bx + bw},${by} ${bx + bw},${by + r}
+              L${bx + bw},${by + h} Z`,
+          fill: S1,
+        }));
+        const v = svg("text", { x: bx + bw / 2, y: by - 7, "text-anchor": "middle",
+                                fill: "var(--text-2)", "font-size": 11.5, "font-weight": 700 });
+        v.textContent = b.count;
+        s.appendChild(v);
+      }
+      const lab = svg("text", { x: i * band + band / 2, y: H - 20, "text-anchor": "middle",
+                                fill: "var(--text-3)", "font-size": 11 });
+      lab.textContent = b.label;
+      s.appendChild(lab);
+      const p = svg("text", { x: i * band + band / 2, y: H - 6, "text-anchor": "middle",
+                              fill: "var(--text-3)", "font-size": 10.5 });
+      p.textContent = b.pct == null ? "" : `${b.pct}%`;
+      s.appendChild(p);
+    });
+    host.appendChild(s);
+  };
+  draw();
+  new ResizeObserver(draw).observe(host);
+  return host;
+}
+
+/* ---------------------------------------------------------------- cohorts */
+
+function cohortTable(cohorts) {
+  const live = cohorts.filter((c) => c.size > 0);
+  if (!live.length) return el("p", { class: "empty", text: "No install cohorts yet." });
+  const width = Math.max(...live.map((c) => c.cells.length));
+  const table = el("table", { class: "cohort" });
+  const head = el("tr", {}, [
+    el("th", { text: "Install week" }),
+    el("th", { class: "num", text: "Size" }),
+    ...Array.from({ length: width }, (_, i) => el("th", { class: "cell", text: `W${i}` })),
+  ]);
+  table.appendChild(el("thead", {}, head));
+  const body = el("tbody");
+  for (const c of live) {
+    const cells = c.cells.map((cell) => {
+      const td = el("td", { class: "cell", text: cell.pct == null ? "—" : `${Math.round(cell.pct)}%` });
+      if (cell.pct != null) {
+        td.style.background = ramp(cell.pct / 100);
+        td.style.color = cell.pct > 55 ? "#141414" : "var(--text)";
+        td.style.borderRadius = "5px";
+      }
+      if (cell.partial) { td.style.opacity = 0.55; td.title = "Week still in progress"; }
+      return td;
+    });
+    while (cells.length < width) cells.push(el("td", { class: "cell", text: "" }));
+    body.appendChild(el("tr", {}, [
+      el("td", { text: shortDate(c.week) }),
+      el("td", { class: "num", text: num(c.size) }),
+      ...cells,
+    ]));
+  }
+  table.appendChild(body);
+  return table;
+}
+
+/* ------------------------------------------------------------------ render */
+
+function render(d) {
+  const body = $("#body");
+  body.innerHTML = "";
+
+  if (d.empty) {
+    body.appendChild(el("div", { class: "card" }, [
+      el("div", { class: "chart-title", text: "No events yet" }),
+      el("p", { class: "chart-note", style: "margin-top:8px",
+        text: "Nothing has been logged. Once a build with analytics is installed and someone opens the app, every panel here fills in." }),
+    ]));
+    return;
+  }
+
+  const h = d.headline, s = d.sessions, r = d.retention, p = d.push, e = d.engagement;
+  const oneDay = d.days === 1;
+  // Arrivals inside the selected window. Filtered on the page rather than server-side so
+  // switching windows is instant: the payload always carries the last 30 days.
+  const since = oneDay
+    ? Date.now() - 24 * 3600 * 1000
+    : new Date(d.window.start + "T00:00:00").getTime();
+  const arrivals = d.arrivals.filter((a) => new Date(a.at).getTime() >= since);
+
+  /* --- KPI row --- */
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Right now" }),
+    el("div", { class: "grid kpis" }, [
+      tile("Daily active", num(h.dau), `${h.sessions_today} session${h.sessions_today === 1 ? "" : "s"} today`, { hero: true }),
+      tile("Weekly active", num(h.wau), "last 7 days"),
+      tile("Monthly active", num(h.mau), "last 30 days"),
+      oneDay
+        ? tile("New (24h)", num(arrivals.length), `${h.new_today} since midnight`)
+        : tile("New today", num(h.new_today), `${h.new_7d} in the last 7 days`),
+      tile("Avg session", dur(h.avg_session_sec),
+           h.avg_session_basis ? `from ${num(h.avg_session_basis)} measured` : "no measured sessions yet"),
+      tile("Sessions / user", s.per_user == null ? "—" : s.per_user,
+           d.days === 1 ? "over 1 day" : `over ${d.days} days`),
+      tile("Stickiness", pct(h.stickiness), "DAU ÷ MAU"),
+      tile("Installs", num(h.installs_total), "seen all-time"),
+    ]),
+  ]));
+
+  /* --- Activity --- */
+  // At a one-day window the daily chart is a single bar, so the same two series are drawn
+  // per hour instead. The encoding is identical, only the bucket changes.
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Activity" }),
+    oneDay
+      ? card("Active and new installs per hour", "last 24 hours, Eastern",
+             hourlyChart(d.hourly),
+             legendOf([[S1, "Active installs"], [S2, "New installs", true]]))
+      : card("Active and new installs per day", `${d.window.start} → ${d.window.end}, Eastern`,
+             activityChart(d.daily),
+             legendOf([[S1, "Active installs"], [S2, "New installs", true]])),
+  ]));
+
+  /* --- Arrivals --- */
+  // Filtered here rather than server-side so switching the window is instant: the payload
+  // always carries the last 30 days of arrivals and the page shows the slice on screen.
+  const capped = d.arrivals.length >= 200;
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Arrivals" }),
+    card(
+      arrivals.length === 1 ? "1 new install" : `${num(arrivals.length)} new installs`,
+      (oneDay ? "last 24 hours" : `last ${d.days} days`)
+        + " · time of first app open, Eastern"
+        + (capped ? " · showing the 200 most recent" : ""),
+      el("div", { class: "scroll-x scroll-y" }, [arrivalsLog(arrivals, d.days, !oneDay)])),
+  ]));
+
+  /* --- Retention --- */
+  const retTile = (key, label) => {
+    const b = r[key];
+    return tile(label, pct(b.pct),
+      b.eligible ? `${b.kept} of ${b.eligible} eligible` : "no cohort has reached this yet");
+  };
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Retention & churn" }),
+    el("div", { class: "grid kpis", style: "margin-bottom:14px" }, [
+      retTile("d1", "Day 1"),
+      retTile("d7", "Day 7"),
+      retTile("d30", "Day 30"),
+      tile("Lapsed", pct(d.churn.lapsed_pct),
+           `${d.churn.lapsed} quiet 14+ days, of ${d.churn.eligible} old enough to count`,
+           { tone: d.churn.lapsed_pct != null && d.churn.lapsed_pct > 50 ? "bad" : null }),
+      tile("30-day churn", pct(d.churn.window_pct),
+           d.churn.window_pct == null ? "needs 60 days of history" : `of ${d.churn.window_prior} prior-window users`),
+    ]),
+    card("Weekly install cohorts", "share of each week's installs still active N weeks later",
+         el("div", { class: "scroll-x" }, [cohortTable(d.cohorts)])),
+  ]));
+
+  /* --- Sessions --- */
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Sessions" }),
+    el("div", { class: "grid two" }, [
+      card("How long a visit lasts", `${num(s.measured)} measured · ${num(s.estimated)} estimated`,
+           sessionBuckets(s.buckets, s.measured)),
+      el("div", { class: "card" }, [
+        el("div", { class: "chart-head" }, [el("div", { class: "chart-title", text: "Session shape" })]),
+        el("div", { class: "grid", style: "grid-template-columns:1fr 1fr" }, [
+          tile("Median", dur(s.median_sec), "half are shorter"),
+          tile("Average", dur(s.avg_sec), "measured only"),
+          tile("Longest", dur(s.longest_sec), `in the last ${d.days} days`),
+          tile("Total", num(s.total), `${num(s.users)} install${s.users === 1 ? "" : "s"}`),
+        ]),
+      ]),
+    ]),
+  ]));
+
+  /* --- When --- */
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "When people open it" }),
+    card("Session starts by hour",
+         d.peak.peak_hour == null ? "no sessions yet"
+           : `busiest at ${hourLabel(d.peak.peak_hour)} Eastern · ${d.peak.peak_count} sessions`,
+         peakHeatmap(d.peak),
+         el("div", { class: "legend" }, [
+           el("div", { class: "hm-legend" }, [
+             el("span", { text: "less" }),
+             el("span", { class: "ramp" }, [0.15, 0.35, 0.55, 0.75, 1].map((t) =>
+               el("i", { style: `background:${ramp(t)}` }))),
+             el("span", { text: "more" }),
+           ]),
+         ])),
+  ]));
+
+  /* --- Feature usage --- */
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "What gets used" }),
+    el("div", { class: "grid two" }, [
+      card("Actions", `last ${d.days} days`,
+           rankedBars(d.features, "label", "count",
+                      { header: "Reach", value: (r) => pct(r.reach) })),
+      card("Tabs", `last ${d.days} days`,
+           rankedBars(d.tabs, "tab", "views",
+                      { header: "Installs", value: (r) => num(r.users) })),
+    ]),
+  ]));
+
+  /* --- Push + streaks --- */
+  const streakRows = d.streaks.top.length
+    ? (() => {
+        const t = el("table");
+        t.appendChild(el("thead", {}, el("tr", {}, [
+          el("th", { text: "Install" }), el("th", { class: "num", text: "Current streak" })])));
+        const b = el("tbody");
+        for (const row of d.streaks.top) {
+          b.appendChild(el("tr", {}, [
+            el("td", { text: row.user + "…" }),
+            el("td", { class: "num", text: `${row.days} days` }),
+          ]));
+        }
+        t.appendChild(b);
+        return t;
+      })()
+    : el("p", { class: "empty", text: "No install has strung two days together yet." });
+
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Notifications & habit" }),
+    el("div", { class: "grid two" }, [
+      el("div", { class: "card" }, [
+        el("div", { class: "chart-head" }, [
+          el("div", { class: "chart-title", text: "Did the alert bring them back?" }),
+        ]),
+        el("div", { class: "grid", style: "grid-template-columns:1fr 1fr" }, [
+          tile("Sessions from a push", num(p.sessions_from_push), `${pct(p.share_of_sessions)} of all sessions`),
+          tile("Installs returning", num(p.users), `${pct(p.reach)} of active installs`),
+          tile("Push session", dur(p.avg_push_session_sec), "average length"),
+          tile("Other session", dur(p.avg_other_session_sec), "average length",
+               { tone: (p.avg_push_session_sec != null && p.avg_other_session_sec != null)
+                       ? (p.avg_push_session_sec >= p.avg_other_session_sec ? "good" : "bad") : null }),
+        ]),
+      ]),
+      el("div", { class: "card" }, [
+        el("div", { class: "chart-head" }, [
+          el("div", { class: "chart-title", text: "Streaks" }),
+          el("div", { class: "chart-note",
+            text: `${d.streaks.on_streak_3} on 3+ days · ${d.streaks.on_streak_7} on 7+ · longest ever ${d.streaks.longest_ever}` }),
+        ]),
+        streakRows,
+      ]),
+    ]),
+  ]));
+
+  /* --- Reach --- */
+  const listOf = (rows, empty) => rows.length
+    ? el("div", {}, rows.map((x) => el("div", { class: "kv" }, [
+        el("span", { text: x.name }), el("b", { text: num(x.users) })])))
+    : el("p", { class: "empty", text: empty });
+
+  body.appendChild(el("section", {}, [
+    el("h2", { text: "Reach" }),
+    el("div", { class: "grid three" }, [
+      el("div", { class: "card" }, [
+        el("div", { class: "chart-head" }, [el("div", { class: "chart-title", text: "Installs (proxy)" })]),
+        el("div", { class: "grid", style: "grid-template-columns:1fr 1fr" }, [
+          tile("All time", num(d.downloads.proxy_total), "opened at least once"),
+          tile(`Last ${d.days}d`, num(d.downloads.proxy_window), "first opens"),
+        ]),
+        el("div", { class: "slot", style: "margin-top:14px" }, [
+          el("div", { class: "label", text: "Store downloads" }),
+          el("div", { class: "value", text: "not connected" }),
+          el("div", { class: "sub", text: d.downloads.note }),
+        ]),
+      ]),
+      el("div", { class: "card" }, [
+        el("div", { class: "chart-head" }, [el("div", { class: "chart-title", text: "Platform" })]),
+        listOf(d.platforms, "No platform recorded."),
+      ]),
+      el("div", { class: "card" }, [
+        el("div", { class: "chart-head" }, [el("div", { class: "chart-title", text: "App version" })]),
+        listOf(d.versions, "No version recorded."),
+      ]),
+    ]),
+  ]));
+
+  /* --- Engagement footnote --- */
+  body.appendChild(el("div", { class: "footnote", html: `
+    <b>Engagement</b>: ${e.events_per_user ?? "—"} events per install, active on
+    ${e.active_days_avg ?? "—"} of the last ${e.active_days_span} days on average;
+    ${e.power_users} install${e.power_users === 1 ? "" : "s"} active on a third of them or more.<br>
+    <b>Retention</b> is bracketed, not exact-day — D1 is day 1, D7 is days 2–7, D30 is days 8–30
+    after install. Only cohorts old enough to have finished each window are counted, so an
+    em dash means nobody is eligible yet rather than nobody came back.<br>
+    <b>Sessions</b> marked <i>measured</i> come from the app's own timer. <i>Estimated</i> ones
+    are inferred from the gap between events — a one-screen visit reads as zero seconds there —
+    so averages use measured sessions only.<br>
+    <b>Installs</b> are random per-install ids, not people: a reinstall or a cleared app
+    mints a new one, so installs run slightly high and retention slightly low.<br>
+    All days and hours are Eastern. ${num(h.events_total)} events on file.
+  ` }));
+}
+
+/* ------------------------------------------------------------------- wiring */
+
+async function load(fresh = false) {
+  $("#stamp").textContent = "Loading…";
+  try {
+    const res = await fetch(`/api/metrics?days=${state.days}&fresh=${fresh ? 1 : 0}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    $("#error").innerHTML = "";
+    state.data = data;
+    render(data);
+    const at = new Date(data.fetched_at);
+    $("#stamp").innerHTML = `data as of <b>${at.toLocaleTimeString("en-US",
+      { hour: "numeric", minute: "2-digit", second: "2-digit" })}</b>`;
+  } catch (err) {
+    $("#stamp").textContent = "";
+    $("#error").innerHTML = "";
+    $("#error").appendChild(el("div", { class: "err",
+      text: `Couldn't load metrics — ${err.message}. Check SUPABASE_URL and SUPABASE_SECRET_KEY in .env, and that dashboard.py is still running.` }));
+  }
+}
+
+function markRange() {
+  for (const b of $("#range").querySelectorAll("button")) {
+    if (Number(b.dataset.days) === state.days) b.setAttribute("aria-pressed", "true");
+    else b.removeAttribute("aria-pressed");
+  }
+}
+
+$("#range").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("button[data-days]");
+  if (!btn) return;
+  state.days = Number(btn.dataset.days);
+  markRange();
+  history.replaceState(null, "", "?days=" + state.days);
+  load(false);   // window change recomputes from cache; no refetch needed
+});
+
+$("#refresh").addEventListener("click", () => load(true));
+
+$("#auto").addEventListener("click", () => {
+  state.auto = !state.auto;
+  $("#auto").setAttribute("aria-pressed", String(state.auto));
+  clearInterval(state.timer);
+  if (state.auto) state.timer = setInterval(() => load(true), 60000);
+});
+
+// A dashboard left open in a background tab is stale by definition; refresh on return.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && state.data) load(true);
+});
+
+markRange();
+load(true);
+</script>
+</body>
+</html>
