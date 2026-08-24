@@ -49,6 +49,30 @@ QUERIES = [
 ]
 
 
+# Sports this app does not cover. The feed queries WVU broadly, so it returns plenty of
+# them: women's soccer, wrestling, volleyball, gymnastics. They were kept with a null
+# sport_id, which put them in the "All" news list AND in the pool of unclassified headlines
+# every sport's daily note draws from. That is how a women's soccer win against Duquesne
+# became a football result on the Pulse chart.
+#
+# Only drops a headline that names another sport and names NONE of ours. "Big 12 announces
+# baseball schedule, wrestling times" is baseball news that happens to say wrestling, and it
+# stays. This is a coarse filter and it is meant to be: it cannot catch a headline that
+# names no sport at all, which is why sync_sport_notes checks the schedule as well.
+OTHER_SPORTS = re.compile(
+    r"\b(soccer|volleyball|gymnastics|wrestl\w*|rifle|swim\w*|diving|"
+    r"track\s*(and|&)?\s*field|cross\s*country|tennis|rowing|softball|"
+    r"women'?s\s+(basketball|hoops)|wbb|lady\s+mountaineers)\b", re.I)
+OUR_SPORTS = re.compile(
+    r"\b(football|men'?s\s+basketball|mbb|baseball|quarterback|linebacker|"
+    r"gridiron|hoops|pitcher|infielder|outfielder)\b", re.I)
+
+
+def other_sport(headline: str) -> bool:
+    """True when this is plainly about a sport the app doesn't cover."""
+    return bool(OTHER_SPORTS.search(headline)) and not OUR_SPORTS.search(headline)
+
+
 def rss_url(query: str) -> str:
     return ("https://news.google.com/rss/search"
             f"?q={requests.utils.quote(query)}&hl=en-US&gl=US&ceid=US:en")
@@ -258,6 +282,9 @@ def main() -> None:
                 published_at = parsedate_to_datetime(pub).isoformat()
             except (TypeError, ValueError):
                 published_at = None
+
+        if other_sport(headline):
+            continue
 
         uid = hashlib.md5(f"{source}|{headline}".encode("utf-8")).hexdigest()
         if uid in seen:

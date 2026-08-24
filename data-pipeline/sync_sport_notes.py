@@ -194,6 +194,49 @@ def clamp_unverified_departure(note: str, delta: int, roster: list[str]) -> tupl
     return 0, "departure doesn't name anyone on the current roster"
 
 
+# Words that mean a game was played and somebody won. Broad on purpose — matching only sends
+# us to check the schedule, and the schedule decides.
+RESULT_WORDS = (
+    "beat", "beats", "defeat", "defeats", "downs", "downing", "tops", "topped", "upset",
+    "routs", "rout", "falls to", "fell to", "loses to", "lost to", "win over", "wins over",
+    "victory", "shuts out", "shut out", "knocks off", "sweeps", "outlasts", "holds off",
+    "opener win", "season opener", "edges", "past",
+)
+
+
+def played_recently(sb, sport: str, days: int = 3) -> bool:
+    """Has THIS sport actually played in the last few days?"""
+    now = datetime.now(timezone.utc)
+    rows = (sb.table("games").select("id")
+            .eq("sport_id", sport)
+            .gte("start_date", (now - timedelta(days=days)).isoformat())
+            .lte("start_date", now.isoformat())
+            .limit(1).execute().data or [])
+    return bool(rows)
+
+
+def reject_phantom_result(note: str, sport: str, has_played: bool) -> str | None:
+    """Refuse a note that reports a game this sport has not played.
+
+    Every sport's note is offered the day's UNCLASSIFIED WVU headlines as well as its own,
+    because a story about the football team often arrives with no sport tag. The cost of that
+    is a headline like "WVU again fashions strong second half in downing Duquesne" — which
+    names no sport at all, because it was WOMEN'S SOCCER. It got written up as a football
+    win on 2026-08-24 with a +1 on the Pulse, twelve days before football's actual opener,
+    and separately as a baseball win the day before.
+
+    The model cannot tell which sport an unlabelled headline belongs to; it guesses, and it
+    guesses in favour of whichever sport it is currently writing for. The schedule can tell.
+    If this sport has not taken the field, it did not win anything.
+    """
+    if has_played:
+        return None
+    low = f" {note.lower()} "
+    if not any(w in low for w in RESULT_WORDS):
+        return None
+    return f"claims a result but {sport} has not played in days"
+
+
 def roster_names(sb, sport: str) -> list[str]:
     rows = (sb.table("players").select("first_name,last_name")
             .eq("sport_id", sport).execute().data or [])
@@ -315,6 +358,14 @@ def main() -> None:
         delta, clamped = clamp_unverified_departure(note, delta, names)
         if clamped:
             print(f"  {SPORT_NAME[sport]}: delta forced to 0 — {clamped}")
+        # A result this sport cannot have had is another sport's story wearing its name.
+        # Dropped outright, not just zeroed: the wording itself is wrong on the chart.
+        phantom = reject_phantom_result(note, sport, played_recently(sb, sport))
+        if phantom:
+            sb.table("daily_sport_notes").delete().eq("id", f"{sport}|{today}").execute()
+            print(f"  {SPORT_NAME[sport]}: note rejected — {phantom}")
+            print(f"      was: {note[:100]}")
+            continue
         if not note or note.upper().startswith("NONE"):
             sb.table("daily_sport_notes").delete().eq("id", f"{sport}|{today}").execute()
             print(f"  {SPORT_NAME[sport]}: (nothing relevant)")
