@@ -140,11 +140,88 @@ before the launch posts are ready.
 ---
 
 ## Google Play extras
-Google Play **does** index the full description for search, so the West Virginia / WVU /
-Mountaineers mentions in the description above do double duty there.
+
+**The one structural difference from Apple.** The App Store indexes only Name, Subtitle, and
+the Keywords field — never the description. Google Play is the reverse: it indexes the **short
+description and the full description**, and has no keywords field at all. So every term that
+lives in Apple's Keywords box has to be earned inside the Play copy instead, written as
+sentences rather than a comma list. Play also penalises keyword stuffing, so the terms below
+are woven into real copy, not stacked.
+
 - **App name (30 char max):** `Mountaineer Pulse`
-- **Short description (80 char max):** `The daily pulse of WVU football, basketball & baseball — scores, roster & news.` *(78)*
-- **Full description:** reuse the App Store description above (Play allows 4000 char).
+
+### Short description  (80 char max)  ← heavily weighted for Play search
+**`WVU & West Virginia sports: scores, rosters, news & a daily Mountaineers brief`**  *(78)*
+
+Carries `WVU`, `West Virginia`, `Mountaineers`, `sports`, `scores`, `rosters`, `news`, `daily`.
+The App Store subtitle can't do this job here — it's a different field on a different engine.
+
+> Alternative, warmer but weaker for search (misses "West Virginia" and "Mountaineers"):
+> `The daily pulse of WVU football, basketball & baseball — scores, roster & news.` *(78)*
+
+### Full description  (4000 char max)
+
+Nearly identical to the App Store description, with three deliberate additions that Play will
+index and Apple never would: **Big 12**, **Morgantown**, and **transfer portal**, plus a closing
+paragraph that states the football / basketball / baseball use cases in plain sentences.
+
+```
+Mountaineer Pulse is the daily home for West Virginia University sports — WVU football,
+men's basketball, and baseball — in one fast, clean, dark-themed app. Follow the West
+Virginia Mountaineers without scrolling ten sites: open Mountaineer Pulse and see exactly
+where every program stands today.
+
+THE PULSE
+Every program gets a single 0–100 "Pulse" score that moves with real events — wins and
+losses, national ranking, roster additions and departures, and genuine news. Tap any program
+to see its Pulse charted day by day, with the exact drivers behind every rise and fall. When
+something big happens — a marquee transfer, a key player drafted — you watch it move.
+
+DAILY BRIEFING
+Each morning, a researched briefing reads the day's real West Virginia sports stories and
+sums them up in tight, per-sport sections — the draft picks, the commitments, who's staying
+and who's leaving — with actual detail, not vague headlines.
+
+SCORES & SCHEDULE
+Final scores and upcoming games across all three sports, from a WVU-first point of view.
+Check the Big 12 result before anything else in your day, and see the next game whether it's
+in Morgantown or on the road.
+
+TEAM
+- Projected rosters with incoming transfers and signees
+- Depth charts by position
+- Roster movement: transfer portal moves in and out, recruiting signings, and departures —
+  dated and sourced
+- Players who are drafted but still deciding, flagged so you know what's in the air
+- Season stat leaders
+
+MAKE IT YOURS
+Star your favorite sports to float them to the top. No account, no sign-up — just open it
+and go.
+
+BUILT FOR FANS
+No ads. No login. No personal information — no name, no email, no account, ever. Just
+anonymous usage counts and crash reports so we can fix what breaks, and public West Virginia
+University sports info, fast.
+
+Whether you're following WVU football on a Saturday, tracking Mountaineers basketball through
+the Big 12 season, or watching the baseball roster take shape, Mountaineer Pulse is built to
+be the first thing you open and the last word on where the program stands.
+
+Mountaineer Pulse is an independent, unofficial fan app. It is not affiliated with, endorsed
+by, or sponsored by West Virginia University. All team names, logos, and trademarks are the
+property of their respective owners; all data is drawn from publicly available sources.
+
+Let's go, Mountaineers.
+```
+
+### App tags  (pick up to 5, from Play's fixed list)
+`Sports News` · `Live Scores` · `American Football` · `Basketball` · `Baseball`
+
+Avoid `Sports Games` (not a game), `Sports Streaming` (no video), and `Fantasy Sports` — Play
+rejects tags that misrepresent an app, and an inaccurate tag only surfaces you to people who
+bounce. Tags drive category browse and recommendations, not text search; the description does
+the search work.
 - Data safety form: **not** "no data collected" (same reason as the App Privacy note below).
   Declare *App activity → App interactions*, *App info & performance → Crash logs*, and the
   free-text of in-app reports. Mark all as **collected, not shared, not linked to a user**,

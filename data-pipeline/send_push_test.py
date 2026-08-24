@@ -14,6 +14,12 @@ token, which is almost always the phone you just installed on.
   python send_push_test.py --title "Hi" --body "There"
 
 Prints the target and the Expo receipt so a silent failure is visible rather than assumed.
+
+NOTE: this posts straight to Expo and therefore BYPASSES the PUSH_PAUSED kill switch in
+send_push.py. That is deliberate — the switch exists to stop model-written alerts going out
+to everyone, and this sends a message you typed by hand to exactly one device you name. It is
+the one path that stays usable while the pause is on, which is what makes it the right tool
+for verifying Android delivery. It is not a way to reach users; keep it that way.
 """
 
 import argparse
