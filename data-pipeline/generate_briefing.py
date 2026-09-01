@@ -417,8 +417,19 @@ def main() -> None:
         print(f"    (raw text was {len(text)} chars; tail: ...{text[-300:]!r})")
         die("Claude returned no parseable briefing JSON.")
     intro, sections = clean_sections(obj)
+    if not sections and not intro:
+        die("Briefing came back completely empty.")
     if not sections:
-        die("Briefing had no valid sport sections.")
+        # A genuinely quiet day is not an error. This used to die() here, which failed the
+        # whole pipeline step — and a failed step means NO briefing row at all, so the app
+        # goes on showing yesterday's under today's date. That is worse than a short entry
+        # saying it was quiet, which is a true and useful thing to tell a reader.
+        #
+        # The briefing step failed on Aug 23 and Aug 31; both were thin news days (the days
+        # either side produced only one section). Whether this exact line was the cause is
+        # unconfirmed — the Actions log needs auth to read — but a quiet day taking the
+        # pipeline down with it is wrong regardless of whether it is THE bug.
+        print("    (no sections — writing an intro-only briefing rather than failing the run)")
 
     content = to_plaintext(intro, sections)
     sb.table("daily_briefings").upsert(
