@@ -20,6 +20,11 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # Job-level, not per-step: the briefing now emails the reason when it dies, and it is
+      # the one step that can fail this whole job. These used to sit only on the stale-fact
+      # step, so a briefing crash had no way to tell anyone why.
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
     defaults:
       run:
         working-directory: data-pipeline

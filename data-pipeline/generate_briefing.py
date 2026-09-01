@@ -487,5 +487,47 @@ def main() -> None:
               f"cache-read {cr} / out {usage.output_tokens}")
 
 
+def _report_failure(reason: str) -> None:
+    """Email why the briefing died.
+
+    This step is the only one in the daily pipeline that can fail the whole job, and when it
+    did — Aug 23 and Aug 31 — the reason sat in a GitHub Actions log nobody was watching. The
+    app just went on showing yesterday's briefing under today's date. Working out what
+    happened afterwards meant digging through run history to find a bare "exit code 1".
+
+    Best-effort: a mail problem must not add noise to an already-failed run.
+    """
+    try:
+        from emailer import email_configured, send_email
+        if not email_configured():
+            return
+        send_email(
+            "Mountaineer Pulse: the daily briefing failed",
+            chr(10).join([
+                "generate_briefing.py exited without writing a briefing, so the app is still",
+                "showing yesterday's under today's date.",
+                "",
+                f"Reason: {reason}",
+                "",
+                "Everything else in the pipeline runs independently of this step — rosters,",
+                "scores, the Pulse and the scouting report are unaffected.",
+                "",
+                "To retry: Actions -> Daily WVU Data Pipeline -> Run workflow.",
+            ]),
+        )
+        print("    (failure emailed)")
+    except Exception as e:
+        print(f"    (could not email the failure: {str(e)[:120]})")
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit as e:
+        # die() exits non-zero; a clean exit(0) is not a failure worth mailing about.
+        if e.code:
+            _report_failure(f"exited with code {e.code} — see the step log for the line above it")
+        raise
+    except Exception as e:
+        _report_failure(f"{type(e).__name__}: {str(e)[:300]}")
+        raise
