@@ -3,3 +3,7 @@ python-dotenv>=1.0.0
 supabase>=2.20.0
 anthropic>=0.109.0
 websockets>=13
+# zoneinfo has no timezone database of its own on Windows, so every script using
+# ZoneInfo (notify_news, notify_games, generate_briefing) dies there without this.
+# Linux runners have system tzdata, which is why CI never noticed.
+tzdata
