@@ -61,6 +61,13 @@ jobs:
         run: python sync_bios.py
         continue-on-error: true
 
+      # Same self-limiting shape as the bios above: the three staff pages are read every
+      # night, but a coach's own page is only refetched when he's new or his row has gone
+      # 30 days stale, so a steady-state run is three requests.
+      - name: Coaching staffs (wvusports.com)
+        run: python sync_coaches.py
+        continue-on-error: true
+
       - name: Roster movement (curated)
         run: python sync_moves.py
         continue-on-error: true

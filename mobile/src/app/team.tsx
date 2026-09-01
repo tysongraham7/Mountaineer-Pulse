@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CoachProfile, coachName, seasonAtWvu } from '@/components/coach-profile';
 import { DepthField } from '@/components/depth-field';
 import { OfflineNotice } from '@/components/offline-notice';
 import { PlayerProfile } from '@/components/player-profile';
@@ -23,7 +24,7 @@ import { trackFeature } from '@/lib/analytics';
 import { normName, playerFullName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
-import { DepthEntry, Player, RosterMove } from '@/lib/types';
+import { Coach, DepthEntry, Player, RosterMove } from '@/lib/types';
 
 const c = surfaces(true);
 
@@ -38,6 +39,7 @@ const MODES = [
   { id: 'depth', label: 'Depth' },
   { id: 'movement', label: 'Movement' },
   { id: 'leaders', label: 'Leaders' },
+  { id: 'staff', label: 'Staff' },
 ] as const;
 
 // Completed seasons we have stats for, per sport.
@@ -214,6 +216,7 @@ export default function TeamScreen() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [depth, setDepth] = useState<DepthEntry[]>([]);
   const [moves, setMoves] = useState<RosterMove[]>([]);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -245,15 +248,20 @@ export default function TeamScreen() {
   // and it reads without knowing what SE or BAN mean.
   const [depthLayout, setDepthLayout] = useState<'field' | 'full'>('field');
   const [selected, setSelected] = useState<Player | null>(null);
+  const [selectedCoach, setSelectedCoach] = useState<Coach | null>(null);
 
   const load = useCallback(async () => {
-    const [pRes, dRes, mRes] = await Promise.all([
+    const [pRes, dRes, mRes, cRes] = await Promise.all([
       // Columns are explicit so the (large) bio text doesn't ride along with every
       // roster load — the profile fetches it on open instead. Kept as one literal:
       // concatenating the string defeats the client's column-type inference.
       supabase.from('players').select('id,sport_id,season,first_name,last_name,jersey,position,height,weight,height_display,class_display,home_city,home_state,photo_url'),
       supabase.from('depth_chart').select('*'),
       supabase.from('roster_moves').select('*').order('move_date', { ascending: false }),
+      // Bio is left out for the same reason as the roster's: forty-five coach bios is
+      // close to a megabyte of prose nobody has asked to read yet. The profile fetches
+      // the one it needs on open.
+      supabase.from('coaches').select('id,sport_id,first_name,last_name,title,is_head,sort_order,photo_url,hometown,education,playing_career,career_record,first_year,career,history,bio_url').order('sort_order'),
     ]);
     if (pRes.error && mRes.error) {
       setLoadError(true);
@@ -261,6 +269,7 @@ export default function TeamScreen() {
       setPlayers((pRes.data ?? []) as Player[]);
       setDepth((dRes.data ?? []) as DepthEntry[]);
       setMoves((mRes.data ?? []) as RosterMove[]);
+      setCoaches((cRes.data ?? []) as Coach[]);
       setLoadError(false);
     }
     setLoading(false);
@@ -493,10 +502,152 @@ export default function TeamScreen() {
         {mode === 'movement' && <MovementView moves={visibleMoves} c={c} showTag={false} />}
 
         {mode === 'leaders' && <LeadersView sport={filter} season={effLeaderSeason} c={c} />}
+
+        {mode === 'staff' && (
+          <StaffSection
+            coaches={coaches.filter((x) => x.sport_id === filter)}
+            c={c}
+            onPick={setSelectedCoach}
+          />
+        )}
       </ScrollView>
 
       <PlayerProfile player={selected} onClose={() => setSelected(null)} />
+      <CoachProfile coach={selectedCoach} onClose={() => setSelectedCoach(null)} />
     </View>
+  );
+}
+
+/* ---------------- Staff ---------------- */
+
+// wvusports.com prints a staff in org-chart order and we keep that order, but on a phone
+// thirty-one football names in one column is a wall. The head coach gets a card of his own
+// (he's the one people opened this for), and the rest split on the line the program itself
+// draws: coaches who coach a position, then the analysts and support staff behind them.
+// Off-field work, in the NCAA sense: analysts, strength staff, operations. It's also the
+// order wvusports.com itself uses — football's analysts sit at the bottom of the page —
+// so the split reproduces the program's own line rather than inventing one.
+const SUPPORT_TITLE =
+  /\b(analyst|strength|conditioning|performance|biomechanist|personnel|operations|quality control)\b/i;
+// "Director of Recruiting" is support; "Director of Recruiting/Assistant Coach" is not.
+const COACHES_SOMEONE = /\b(coach|coaches|coordinator)\b/i;
+
+function isSupportStaff(coach: Coach): boolean {
+  const title = coach.title ?? '';
+  return SUPPORT_TITLE.test(title) || !COACHES_SOMEONE.test(title);
+}
+
+function StaffSection({
+  coaches,
+  c,
+  onPick,
+}: {
+  coaches: Coach[];
+  c: ReturnType<typeof surfaces>;
+  onPick: (x: Coach) => void;
+}) {
+  if (coaches.length === 0) {
+    return <Text style={styles.empty}>Staff for this sport isn't loaded yet.</Text>;
+  }
+
+  const head = coaches.find((x) => x.is_head) ?? null;
+  const rest = coaches.filter((x) => x !== head);
+  const onField = rest.filter((x) => !isSupportStaff(x));
+  const support = rest.filter(isSupportStaff);
+
+  return (
+    <>
+      {head && <HeadCoachCard coach={head} c={c} onPick={onPick} />}
+
+      {onField.length > 0 && (
+        <>
+          <SectionTitle text={head ? 'Assistants' : 'Coaches'} color={Brand.gold} />
+          {onField.map((x) => <CoachRow key={x.id} coach={x} c={c} onPick={onPick} />)}
+        </>
+      )}
+
+      {support.length > 0 && (
+        <>
+          <SectionTitle text="Support Staff" color={c.textSecondary} />
+          {support.map((x) => <CoachRow key={x.id} coach={x} c={c} onPick={onPick} />)}
+        </>
+      )}
+
+      <Text style={styles.rosterNote}>
+        Staff, bios and records from WVUsports.com. Tap anyone to see where they've coached.
+      </Text>
+    </>
+  );
+}
+
+function HeadCoachCard({
+  coach,
+  c,
+  onPick,
+}: {
+  coach: Coach;
+  c: ReturnType<typeof surfaces>;
+  onPick: (x: Coach) => void;
+}) {
+  const tenure = seasonAtWvu(coach);
+  return (
+    <Pressable
+      onPress={() => onPick(coach)}
+      style={({ pressed }) => [styles.headCard, { backgroundColor: c.card, borderColor: Brand.gold, opacity: pressed ? 0.75 : 1 }]}>
+      {coach.photo_url ? (
+        <Image source={{ uri: coach.photo_url }} style={styles.headPhoto} />
+      ) : (
+        <View style={[styles.headPhoto, styles.avatarFallback, { backgroundColor: Brand.blue }]}>
+          <Text style={styles.avatarText}>
+            {(coach.first_name?.[0] ?? '') + (coach.last_name?.[0] ?? '')}
+          </Text>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.headLabel}>HEAD COACH</Text>
+        <Text style={[styles.headName, { color: c.text }]}>{coachName(coach)}</Text>
+        {tenure ? <Text style={[styles.playerMeta, { color: c.textSecondary }]}>{tenure}</Text> : null}
+        {coach.career_record ? (
+          <Text style={styles.headRecord}>{coach.career_record} as a head coach</Text>
+        ) : null}
+      </View>
+      <Text style={{ color: c.textSecondary }}>›</Text>
+    </Pressable>
+  );
+}
+
+function CoachRow({
+  coach,
+  c,
+  onPick,
+}: {
+  coach: Coach;
+  c: ReturnType<typeof surfaces>;
+  onPick: (x: Coach) => void;
+}) {
+  return (
+    <Pressable
+      onPress={() => onPick(coach)}
+      style={({ pressed }) => [styles.rosterRow, { backgroundColor: c.card, borderColor: c.border, opacity: pressed ? 0.7 : 1 }]}>
+      {coach.photo_url ? (
+        <Image source={{ uri: coach.photo_url }} style={styles.avatar} />
+      ) : (
+        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: Brand.blue }]}>
+          <Text style={styles.avatarText}>
+            {(coach.first_name?.[0] ?? '') + (coach.last_name?.[0] ?? '')}
+          </Text>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.playerName, { color: c.text }]} numberOfLines={1}>{coachName(coach)}</Text>
+        {/* Two lines, because "Assistant Head Coach/Defensive Coordinator/Linebackers" is
+            one real title and truncating it loses the job. */}
+        <Text style={[styles.playerMeta, { color: c.textSecondary }]} numberOfLines={2}>
+          {coach.title ?? ''}
+        </Text>
+      </View>
+      <Text style={{ color: c.textSecondary }}>›</Text>
+    </Pressable>
   );
 }
 
@@ -1140,9 +1291,11 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 40 },
   screenHeader: { paddingHorizontal: 20, paddingBottom: 8 },
   screenTitle: { fontFamily: Font.display, fontSize: 24, color: c.text, letterSpacing: -0.4 },
-  segment: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, gap: 6 },
-  segBtn: { flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: 'center' },
-  segText: { fontSize: 12, fontFamily: Font.bodyBold },
+  // Five modes now share this row, so the gap tightened and the label shrank half a point:
+  // "Movement" at 12pt clipped inside a fifth of a small phone's width.
+  segment: { flexDirection: 'row', marginHorizontal: 20, marginBottom: 4, gap: 5 },
+  segBtn: { flex: 1, paddingVertical: 7, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segText: { fontSize: 11.5, fontFamily: Font.bodyBold },
   filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4, flexWrap: 'wrap' },
   searchWrap: {
     flexDirection: 'row',
@@ -1176,6 +1329,12 @@ const styles = StyleSheet.create({
   incomingLabel: { fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, marginTop: 16, marginBottom: 8 },
   incTag: { borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 },
   incTagText: { fontSize: 10, fontFamily: Font.bodyBold },
+  // staff
+  headCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderRadius: 16, padding: 14, marginTop: 12, marginBottom: 4 },
+  headPhoto: { width: 64, height: 64, borderRadius: 32, backgroundColor: c.surface2 },
+  headLabel: { fontSize: 9.5, color: Brand.gold, fontFamily: Font.bodyBold, letterSpacing: 1.2 },
+  headName: { fontSize: 19, fontFamily: Font.display, letterSpacing: -0.3, marginTop: 2 },
+  headRecord: { fontSize: 12.5, color: Brand.gold, fontFamily: Font.bodySemi, marginTop: 4, fontVariant: ['tabular-nums'] },
   // depth chart
   depthNote: { fontSize: 11, fontStyle: 'italic', marginTop: 10, marginBottom: 6, color: c.textMuted, fontFamily: Font.body },
   unitLabel: { color: Brand.gold, fontSize: 21, fontFamily: Font.display, letterSpacing: 0.3, marginTop: 24, marginBottom: 4 },

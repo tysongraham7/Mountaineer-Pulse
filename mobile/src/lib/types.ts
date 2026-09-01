@@ -12,6 +12,10 @@ export type Game = {
   venue: string | null;
   status: string | null;
   is_wvu_home: boolean | null;
+  /** ESPN's id for the same game, which is what the live-score card polls with. Null for a
+   *  game ESPN hasn't listed, and for older clients reading rows written before the column
+   *  existed — either way the card just falls back to the countdown. */
+  espn_event_id?: number | null;
 };
 
 export type Player = {
@@ -31,6 +35,45 @@ export type Player = {
   photo_url: string | null;
   // Official wvusports.com bio. Shown under attribution with a link back to bio_url,
   // since the prose is WVU's writing, not ours.
+  bio?: string | null;
+  bio_url?: string | null;
+};
+
+/** One stop on a coach's résumé, from the "Coaching History" table on his bio page. */
+export type CoachStop = {
+  years: string | null;
+  school: string | null;
+  role: string | null;
+};
+
+/** Win-loss at one stop. Present only for coaches whose page carries a record table —
+ *  head coaches, mostly — so the section is rendered only when the array has rows. */
+export type CoachRecord = {
+  school: string | null;
+  record: string | null;
+  conf: string | null;
+  notes: string | null;
+};
+
+export type Coach = {
+  id: string;
+  sport_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  title: string | null;
+  is_head: boolean | null;
+  /** The order wvusports.com lists the staff in, which is the org chart. */
+  sort_order: number | null;
+  photo_url: string | null;
+  hometown: string | null;
+  education: string | null;
+  playing_career: string | null;
+  career_record: string | null;
+  /** Calendar year the current WVU stint began, e.g. "2025". */
+  first_year: string | null;
+  career: CoachRecord[] | null;
+  history: CoachStop[] | null;
+  // Fetched only when a profile opens — 45 staff bios is most of a megabyte.
   bio?: string | null;
   bio_url?: string | null;
 };

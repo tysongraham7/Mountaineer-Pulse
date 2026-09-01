@@ -258,6 +258,38 @@ ALTERS = [
     "alter table matchups enable row level security;",
     "drop policy if exists \"public read matchups\" on matchups;",
     "create policy \"public read matchups\" on matchups for select using (true);",
+    # --- Live score card: ESPN's id for a football game ---
+    # What the live card polls with. CFBD currently reuses ESPN's event id as its own game id
+    # for WVU football, so this is redundant today - but that is an undocumented coincidence,
+    # and storing it turns a future divergence into a visible null instead of a lookup against
+    # someone else's game. Nullable: a game ESPN hasn't listed has no live coverage.
+    "alter table games add column if not exists espn_event_id bigint;",
+    # --- Coaching staff (wvusports.com) ---
+    # See schema.sql for the reasoning, including why email and phone are left behind.
+    """create table if not exists coaches (
+        id            text primary key,
+        sport_id      text not null references sports(id),
+        first_name    text,
+        last_name     text,
+        title         text,
+        is_head       boolean default false,
+        sort_order    int,
+        photo_url     text,
+        hometown      text,
+        education     text,
+        playing_career text,
+        career_record text,
+        first_year    text,
+        career        jsonb,
+        history       jsonb,
+        bio           text,
+        bio_url       text,
+        updated_at    timestamptz default now()
+    );""",
+    "create index if not exists coaches_sport_idx on coaches (sport_id, sort_order);",
+    "alter table coaches enable row level security;",
+    "drop policy if exists \"public read coaches\" on coaches;",
+    "create policy \"public read coaches\" on coaches for select using (true);",
 ]
 
 

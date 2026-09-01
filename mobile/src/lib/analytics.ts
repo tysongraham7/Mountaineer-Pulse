@@ -99,6 +99,9 @@ export function trackFeature(name: Feature): void {
 export const FEATURES = [
   'game_sheet_open',
   'player_profile_open',
+  // Separate from player_profile_open so the Staff tab can be judged on its own — if
+  // nobody opens a coach, it's a section to rethink rather than one to keep filling.
+  'coach_profile_open',
   'pulse_detail_open',
   'news_story_open',
   'roster_move_source_open',

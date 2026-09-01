@@ -53,6 +53,19 @@ create index if not exists games_start_idx on games (start_date);
 alter table games add column if not exists notified_kickoff_at timestamptz;
 alter table games add column if not exists notified_final_at timestamptz;
 
+-- ESPN's id for the same game, which is what the live-score card polls with. CFBD has no
+-- play-level feed, and the game-day cron runs every 30 minutes, which is not a scoreboard.
+--
+-- Stored rather than derived even though, as of 2026-09, CFBD hands out ESPN's event id as
+-- its own game id for every WVU football game on file - all 24 across 2025-26 match. That
+-- is an undocumented coincidence, not a contract, and it is exactly the kind of thing that
+-- holds until an FCS opponent or a CFBD id change quietly breaks it. Writing it down costs
+-- one column and turns a silent wrong-game lookup into a visible null.
+--
+-- Populated by sync_football.py; null for a game ESPN hasn't listed, which the app treats
+-- as "no live coverage" rather than an error.
+alter table games add column if not exists espn_event_id bigint;
+
 -- ---------------------------------------------------------------------------
 -- players: roster
 -- ---------------------------------------------------------------------------
@@ -302,3 +315,47 @@ create index if not exists player_stats_player_idx on player_stats (player_id, s
 
 alter table player_stats enable row level security;
 create policy "public read player stats" on player_stats for select using (true);
+
+-- ---------------------------------------------------------------------------
+-- coaches: the staff behind each roster, scraped from wvusports.com.
+--
+-- Everything here is on the coach's own public bio page, but scattered across
+-- three hand-authored tables and several thousand words of prose. Splitting it
+-- into columns is what lets the app answer the questions people actually ask --
+-- where has he coached, and did he win -- without making anyone read a wall of
+-- text on a phone.
+--
+-- career and history are jsonb because their shape is the source's, not ours:
+-- a head coach has a school-by-school record table, an analyst has neither.
+-- Rendering treats both as "show what's there".
+--
+-- Deliberately NOT stored: the staff directory's email addresses and office
+-- phone numbers. They're on the public page, but a fan app has no use for them
+-- and republishing a work phone number to push-notified strangers is a
+-- different act from listing a coach's record.
+-- ---------------------------------------------------------------------------
+create table if not exists coaches (
+  id            text primary key,          -- wvu_<sidearm coach id>
+  sport_id      text not null references sports(id),
+  first_name    text,
+  last_name     text,
+  title         text,                      -- "Head Coach", "Safeties Coach", ...
+  is_head       boolean default false,
+  sort_order    int,                       -- the order wvusports.com lists them in
+  photo_url     text,
+  hometown      text,
+  education     text,
+  playing_career text,
+  career_record text,                      -- "213-62 (.775)" when the bio states one
+  first_year    text,                      -- e.g. "2025" -- when they arrived at WVU
+  career        jsonb,                     -- [{school, record, conf, notes}]
+  history       jsonb,                     -- [{years, school, role}]
+  bio           text,                      -- prose, tables stripped out
+  bio_url       text,
+  updated_at    timestamptz default now()
+);
+
+create index if not exists coaches_sport_idx on coaches (sport_id, sort_order);
+
+alter table coaches enable row level security;
+create policy "public read coaches" on coaches for select using (true);
