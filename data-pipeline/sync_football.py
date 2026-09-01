@@ -1,8 +1,11 @@
 """
 Mountaineer Pulse - M1 Pipeline: CFBD -> Supabase (Football)
 ============================================================
-Pulls WVU football schedule/scores, roster, and season record from CFBD and
-writes them into the Supabase database (games, players, team_records tables).
+Pulls WVU football schedule/scores and season record from CFBD and writes them
+into the Supabase database (games, team_records).
+
+NOT the roster: sync_rosters.py owns the players table (see the PLAYERS note in
+main() for what went wrong when both wrote to it).
 
 Prereqs:
   1. schema.sql has been run once in the Supabase SQL Editor.
@@ -29,7 +32,6 @@ SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 BASE = "https://api.collegefootballdata.com"
 TEAM = "West Virginia"
 SEASONS = [2025, 2026]      # completed + upcoming
-ROSTER_SEASON = 2025        # most recent full roster
 SPORT = "football"
 
 # ESPN, for the event-id lookup only. Everything else on this page comes from CFBD.
@@ -142,28 +144,25 @@ def main() -> None:
           f"{matched} matched to an ESPN event")
 
     # --- PLAYERS (roster) ----------------------------------------------------
-    roster = cfbd("/roster", {"team": TEAM, "year": ROSTER_SEASON})
-    player_rows = []
-    for p in roster:
-        pid = p.get("id")
-        if pid is None:
-            continue
-        player_rows.append({
-            "id": str(pid),
-            "sport_id": SPORT,
-            "season": ROSTER_SEASON,
-            "first_name": p.get("firstName"),
-            "last_name": p.get("lastName"),
-            "jersey": p.get("jersey"),
-            "position": p.get("position"),
-            "height": p.get("height"),
-            "weight": p.get("weight"),
-            "class_year": p.get("year"),
-            "home_city": p.get("homeCity"),
-            "home_state": p.get("homeState"),
-        })
-    sb.table("players").upsert(player_rows).execute()
-    print(f"  players      -> upserted {len(player_rows)} rows ({ROSTER_SEASON} roster)")
+    # Nothing here any more. sync_rosters.py owns the players table: it scrapes
+    # wvusports.com, which has photos, heights, class years, hometowns and bios, and it
+    # rebuilds the table wholesale every run.
+    #
+    # This step used to upsert CFBD's roster for LAST season under CFBD athlete ids, a few
+    # steps before that rebuild wiped them again. Two things went wrong with that:
+    #
+    #   * Between this step and the rebuild, football's roster held 247 people instead of
+    #     122 - every returner listed twice, once properly and once as a photo-less,
+    #     class-less ghost. Anyone opening the app in that window saw the duplicates, and
+    #     if the wvusports scrape failed (it times out often enough to have its own retry
+    #     logic) they stayed up all day.
+    #   * The ghosts were last season's roster, so for those minutes every name-matching
+    #     step downstream - the news classifier, the Pulse notes, the move extractor -
+    #     treated 125 departed players as current Mountaineers.
+    #
+    # Nothing consumed them: every football stat row keys to a wvusports id or an unlinked
+    # cfbd_ id, and every other reader matches on name. CFBD's value here is games, records
+    # and stats, which the rest of this file still pulls.
 
     # --- TEAM RECORDS --------------------------------------------------------
     record_rows = []

@@ -165,21 +165,55 @@ type RosterItem = Player & {
 };
 
 /**
- * Copy a list, keeping the first entry per player id.
+ * Copy a list, keeping one entry per person.
  *
- * Player id is the React key for every roster row, so a repeat is a rendering error,
- * not just a cosmetic one — React warns and may drop or duplicate the row. Two
- * roster_moves rows naming the same player resolve to the same scraped player here
- * (it happened with Jaire Rawlison, listed once by hand and once by the portal feed),
- * and a schedule glitch upstream shouldn't be able to surface as a red screen.
+ * Two reasons, and they're different failures. Id: it's the React key for every roster
+ * row, so a repeat is a rendering error, not a cosmetic one — React warns and may drop
+ * or duplicate the row. Two roster_moves rows naming the same player resolve to the same
+ * scraped player here (it happened with Jaire Rawlison, listed once by hand and once by
+ * the portal feed).
+ *
+ * Name: a person can arrive twice under two DIFFERENT ids, which slips past an id check
+ * entirely and puts the same player on screen twice. That happened for real — CFBD's
+ * roster and the wvusports scrape both wrote to `players`, so every football returner had
+ * a second, photo-less row under a CFBD athlete id. The writer is fixed, but the roster is
+ * assembled from three sources (scrape, curated moves, curated additions) that share no
+ * id, so the check belongs here too.
+ *
+ * The survivor is the entry that knows more: a scraped row has a photo, a jersey and a
+ * class; a row synthesized from a move has a name and little else.
  */
 function byId(list: RosterItem[]): RosterItem[] {
-  const seen = new Set<string>();
+  const seenIds = new Set<string>();
+  const atName = new Map<string, number>();
   const out: RosterItem[] = [];
   for (const p of list) {
-    if (seen.has(p.id)) continue;
-    seen.add(p.id);
-    out.push(p);
+    if (seenIds.has(p.id)) continue;
+    seenIds.add(p.id);
+
+    const key = normName(playerFullName(p));
+    const prior = key ? atName.get(key) : undefined;
+    if (prior === undefined) {
+      if (key) atName.set(key, out.length);
+      out.push(p);
+      continue;
+    }
+    // Same person twice. If the later row is the richer one, swap it in where the first
+    // appeared — but the first may have carried move-only detail the scrape knows nothing
+    // about (the "IN" tag, the school he came from), so that rides along.
+    if (!out[prior].photo_url && p.photo_url) {
+      const kept = out[prior];
+      out[prior] = {
+        ...p,
+        incoming: kept.incoming ?? p.incoming,
+        returned: kept.returned ?? p.returned,
+        departed: kept.departed ?? p.departed,
+        fromSchool: kept.fromSchool ?? p.fromSchool,
+        moveCategory: kept.moveCategory ?? p.moveCategory,
+        note: kept.note ?? p.note,
+        alert: kept.alert ?? p.alert,
+      };
+    }
   }
   return out;
 }
