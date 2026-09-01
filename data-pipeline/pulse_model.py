@@ -28,7 +28,11 @@ ESPN_PATH = {
     "baseball": "baseball/college-baseball",
 }
 FULL_SEASON = {"football": 12, "mbb": 31, "baseball": 56}  # ~games in a full season
-UA = {"User-Agent": "Mozilla/5.0"}
+# ESPN 403s browser-impersonating user agents. "Mozilla/5.0" on its own is a known bot
+# signature and is now refused outright; an honest, identifiable agent is let through. Do
+# not "fix" a future block by pasting a real Chrome string here — that is the thing being
+# blocked. Verified 2026-09-01: bare Mozilla/5.0 -> 403, this -> 200.
+UA = {"User-Agent": "MountaineerPulse/1.0 (+https://github.com/tysongraham/mountaineer-pulse)"}
 
 
 def is_postseason(sport: str, d) -> bool:

@@ -18,10 +18,16 @@ SPORTS = [
 
 BASE = "https://site.api.espn.com/apis/site/v2/sports"
 
+# ESPN 403s browser-impersonating user agents. "Mozilla/5.0" on its own is a known bot
+# signature and is now refused outright; an honest, identifiable agent is let through. Do
+# not "fix" a future block by pasting a real Chrome string here — that is the thing being
+# blocked. Verified 2026-09-01: bare Mozilla/5.0 -> 403, this -> 200.
+UA = {"User-Agent": "MountaineerPulse/1.0 (+https://github.com/tysongraham/mountaineer-pulse)"}
+
 
 def fetch_schedule(path: str) -> dict:
     url = f"{BASE}/{path}/teams/{TEAM_ID}/schedule"
-    r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+    r = requests.get(url, headers=UA, timeout=30)
     r.raise_for_status()
     return r.json()
 

@@ -30,6 +30,7 @@ import { trackFeature } from '@/lib/analytics';
 import { COACH_PULSE_KEY } from '@/lib/coach-keys';
 import { countdownLabel, daysUntil, easternDateShort, easternTime } from '@/lib/eastern';
 import { useKickoffCountdown } from '@/lib/use-kickoff';
+import { useLiveGame } from '@/lib/use-live-game';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { useFavorites } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
@@ -702,10 +703,33 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
     '',
   );
   const { live, underway } = useKickoffCountdown(iso || null);
+  // Live scoring, straight from ESPN. Null until the game is close enough to be worth
+  // asking about, and null again whenever the feed is unreachable — see use-live-game.ts.
+  //
+  // Football only, and gated on the sport rather than on the column being populated. Today
+  // only sync_football.py writes espn_event_id, so the two are the same test — but the hook
+  // asks ESPN's college-football league by name, and the day someone backfills the column
+  // for basketball, an ungated version would quietly look up a football game with a
+  // basketball id and render whatever came back.
+  const liveId = game.sport_id === 'football' ? (game.espn_event_id ?? null) : null;
+  const score = useLiveGame(liveId, iso || null, home, 'WVU', opponent);
+  const inProgress = score?.state === 'in';
+  const finished = score?.state === 'post';
+  const hasScore = (inProgress || finished) && score?.wvuScore !== null && score?.oppScore !== null;
   const days = iso ? daysUntil(iso) : 1;
   // "Game day" is the last 24 hours, not the calendar date — a 12:00 kickoff is closer
   // at 11pm the night before than at 12:01am on a day that still counts as "Today".
-  const isGameDay = days === 0 || !!live || underway;
+  const isGameDay = days === 0 || !!live || underway || inProgress || finished;
+
+  // ESPN's own words for where the game is, which beats assembling "Q2 8:14" ourselves and
+  // getting halftime or overtime wrong. Falls back to the countdown when there is no feed.
+  const statusPill = inProgress
+    ? score.clock
+      ? `${score.detail} · ${score.clock}`
+      : score.detail
+    : finished
+      ? score.detail || 'Final'
+      : (live ?? (underway ? 'Underway' : iso ? countdownLabel(iso) ?? '' : ''));
   const kickoff = iso ? easternTime(iso) : null;
   // A kickoff the feed hasn't been given yet is stored as midnight Eastern; easternTime
   // returns null for it rather than printing "12:00 AM".
@@ -716,16 +740,23 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
       <Card style={[styles.nextGame, isGameDay && styles.nextGameToday] as never}>
         <View style={styles.nextGameTop}>
           <SectionLabel>{isGameDay ? 'Game Day' : 'Next Up'}</SectionLabel>
-          <View style={[styles.countPill, isGameDay && { backgroundColor: Brand.gold }]}>
-            <Text
-              style={[
-                styles.countText,
-                isGameDay && { color: '#0B1220' },
-                // Seconds change every tick; fixed-width digits stop the pill twitching.
-                !!live && { fontVariant: ['tabular-nums'] },
-              ]}>
-              {live ?? (underway ? 'Underway' : iso ? countdownLabel(iso) ?? '' : '')}
-            </Text>
+          <View style={styles.pillRow}>
+            {inProgress && (
+              // A dot rather than the word "LIVE": the feed trails the broadcast by about
+              // half a minute, and claiming live is a promise it can't keep.
+              <View style={styles.liveDot} />
+            )}
+            <View style={[styles.countPill, isGameDay && { backgroundColor: Brand.gold }]}>
+              <Text
+                style={[
+                  styles.countText,
+                  isGameDay && { color: '#0B1220' },
+                  // Seconds change every tick; fixed-width digits stop the pill twitching.
+                  (!!live || inProgress) && { fontVariant: ['tabular-nums'] },
+                ]}>
+                {statusPill}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -739,14 +770,45 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
               {opponent}
             </Text>
             <Text style={styles.nextGameMeta} numberOfLines={1}>
-              {when}
+              {hasScore ? `WVU ${score.wvuScore} · ${opponent} ${score.oppScore}` : when}
             </Text>
           </View>
           <Text style={styles.nextGameChevron}>›</Text>
         </View>
 
+        {/* Down, distance and the last play — the two things a fan checking a phone mid-game
+            actually wants, and the reason this card exists rather than a bare score. Each
+            piece renders only when the feed supplied it, so a partial answer degrades to a
+            shorter card instead of "undefined & undefined". */}
+        {inProgress && (score.downDistance || score.lastPlay) && (
+          <View style={styles.liveBlock}>
+            {!!score.downDistance && (
+              <Text style={styles.liveSituation} numberOfLines={1}>
+                {[
+                  // Whose ball, first: "2nd & 7" tells a fan nothing on its own, and it is
+                  // the difference between a drive going well and one going badly.
+                  score.wvuHasBall === null ? null : score.wvuHasBall ? 'WVU ball' : `${opponent} ball`,
+                  [score.downDistance, score.fieldPosition ? `at ${score.fieldPosition}` : null]
+                    .filter(Boolean)
+                    .join(' '),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                {score.isRedZone ? '  · Red zone' : ''}
+              </Text>
+            )}
+            {!!score.lastPlay && (
+              <Text style={styles.livePlay} numberOfLines={2}>
+                {score.lastPlay}
+              </Text>
+            )}
+          </View>
+        )}
+
         <Text style={styles.nextGameWhere} numberOfLines={1}>
-          {[game.venue, SPORT_TAG[game.sport_id] ?? game.sport_id].filter(Boolean).join(' · ')}
+          {inProgress
+            ? 'Updates trail the TV broadcast by about 30 seconds'
+            : [game.venue, SPORT_TAG[game.sport_id] ?? game.sport_id].filter(Boolean).join(' · ')}
         </Text>
       </Card>
     </Pressable>
@@ -802,6 +864,11 @@ const styles = StyleSheet.create({
   nextGameMeta: { fontFamily: Font.bodySemi, fontSize: 13, color: Brand.gold, marginTop: 3 },
   nextGameChevron: { fontSize: 22, color: c.textMuted },
   nextGameWhere: { fontFamily: Font.body, fontSize: 12, color: c.textMuted },
+  pillRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Brand.red },
+  liveBlock: { gap: 4, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 11 },
+  liveSituation: { fontFamily: Font.bodyBold, fontSize: 14, color: c.text },
+  livePlay: { fontFamily: Font.body, fontSize: 13, lineHeight: 18, color: c.textSecondary },
   briefing: { padding: 18, marginTop: 16 },
   briefStale: { fontFamily: Font.body, fontSize: 11.5, color: c.textMuted, letterSpacing: 0.2 },
   briefingBody: { fontFamily: Font.body, fontSize: 14, lineHeight: 21, color: c.textSecondary, marginTop: 8 },

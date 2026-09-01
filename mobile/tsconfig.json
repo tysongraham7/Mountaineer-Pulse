@@ -2,6 +2,11 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // scripts/ holds dev tooling run directly by node, which strips the types itself and
+    // therefore needs the .ts extension written out in its imports. Metro never sees these
+    // files, so allowing the extension costs the app nothing.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "paths": {
       "@/*": [
         "./src/*"
@@ -13,6 +18,7 @@
   },
   "include": [
     "**/*.ts",
+    "**/*.mts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
