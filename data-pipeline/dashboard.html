@@ -165,6 +165,10 @@
   .pill.gone { background: transparent; color: var(--text-3); }
 
   .empty { color: var(--text-3); font-size: 13px; padding: 6px 0; }
+  .err code {
+    background: rgba(0,0,0,0.35); border-radius: 5px; padding: 2px 6px;
+    font-size: 12.5px; color: #F7C9CC;
+  }
   .err {
     background: rgba(229,99,107,0.10); border: 1px solid rgba(229,99,107,0.35);
     color: #F3A0A5; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px;
@@ -1016,10 +1020,48 @@ function render(d) {
 
 /* ------------------------------------------------------------------- wiring */
 
+/**
+ * This page is only half the tool -- the other half is dashboard.py, which holds the
+ * Supabase secret key and does the reading. Opened any other way (double-clicked as a
+ * file, copied to a host, published somewhere) the page loads and looks right, then every
+ * fetch fails, because there is no server on the other end of /api/metrics.
+ *
+ * That is not a bug to route around: the key reads every table you own, so it must never
+ * be inside a page. Detected up front so the failure names itself instead of sending you
+ * to check a .env that was never the problem.
+ */
+function servedLocally() {
+  return location.protocol === "http:"
+    && (location.hostname === "127.0.0.1" || location.hostname === "localhost");
+}
+
+function showSetupNotice() {
+  $("#stamp").textContent = "";
+  $("#body").innerHTML = "";
+  $("#error").innerHTML = "";
+  const how = location.protocol === "file:"
+    ? "This file was opened directly from disk"
+    : "This page is being served from " + location.host;
+  $("#error").appendChild(el("div", { class: "err", html:
+    "<b>" + how + ", so there's no dashboard.py behind it.</b><br><br>" +
+    "The numbers come from a small local server that reads Supabase with your secret key. " +
+    "Start it and use the address it prints:<br><br>" +
+    "<code>cd data-pipeline</code><br><code>python dashboard.py</code><br><br>" +
+    "That opens <code>http://127.0.0.1:8787</code>, which is the only address this page works at. " +
+    "It can't be hosted or shared — the key it needs reads every table in your project, so it " +
+    "stays on your machine and never goes into the page."
+  }));
+}
+
 async function load(fresh = false) {
+  if (!servedLocally()) { showSetupNotice(); return; }
   $("#stamp").textContent = "Loading…";
   try {
     const res = await fetch(`/api/metrics?days=${state.days}&fresh=${fresh ? 1 : 0}`);
+    // A 404 means something is serving this page on localhost, but it isn't dashboard.py
+    // -- a static file server, or another project's dev server. Same remedy as opening the
+    // file directly, so it gets the same notice rather than a parse error about Supabase.
+    if (res.status === 404) { showSetupNotice(); return; }
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     $("#error").innerHTML = "";
@@ -1031,8 +1073,15 @@ async function load(fresh = false) {
   } catch (err) {
     $("#stamp").textContent = "";
     $("#error").innerHTML = "";
-    $("#error").appendChild(el("div", { class: "err",
-      text: `Couldn't load metrics — ${err.message}. Check SUPABASE_URL and SUPABASE_SECRET_KEY in .env, and that dashboard.py is still running.` }));
+    const stopped = err.message === "Failed to fetch";
+    $("#error").appendChild(el("div", { class: "err", html: stopped
+      ? "<b>Lost the connection to dashboard.py.</b><br><br>Its terminal has most likely been "
+        + "closed or Ctrl-C'd. Start it again with <code>python dashboard.py</code>, then "
+        + "press Refresh."
+      : "Couldn't load metrics — " + err.message
+        + ".<br><br>The server is reachable, so this is coming from Supabase: check "
+        + "<code>SUPABASE_URL</code> and <code>SUPABASE_SECRET_KEY</code> in "
+        + "<code>data-pipeline/.env</code>." }));
   }
 }
 
