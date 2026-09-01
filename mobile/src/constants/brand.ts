@@ -81,3 +81,11 @@ export const Elevation = {
     elevation: 16,
   },
 };
+
+// Availability badge for a depth-chart player. Shared so the list and the field view
+// label an injury identically.
+export const StatusMeta: Record<string, { label: string; color: string }> = {
+  questionable: { label: 'Q', color: '#c98a00' },
+  doubtful: { label: 'D', color: '#b4530e' },
+  out: { label: 'OUT', color: Brand.loss },
+};

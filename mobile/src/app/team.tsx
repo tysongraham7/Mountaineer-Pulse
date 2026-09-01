@@ -14,11 +14,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DepthField } from '@/components/depth-field';
 import { OfflineNotice } from '@/components/offline-notice';
 import { PlayerProfile } from '@/components/player-profile';
 import { ListRowSkeleton, SkeletonList } from '@/components/skeleton';
-import { Brand, Font, surfaces } from '@/constants/brand';
+import { Brand, Font, StatusMeta, surfaces } from '@/constants/brand';
 import { trackFeature } from '@/lib/analytics';
+import { normName, playerFullName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
 import { DepthEntry, Player, RosterMove } from '@/lib/types';
@@ -98,12 +100,6 @@ const SPORT_LABEL: Record<string, string> = {
 };
 const SPORT_TAG: Record<string, string> = { football: 'FB', mbb: 'MBB', baseball: 'BSB' };
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  questionable: { label: 'Q', color: '#c98a00' },
-  doubtful: { label: 'D', color: '#b4530e' },
-  out: { label: 'OUT', color: Brand.loss },
-};
-
 // Football depth: individual positions roll up into a big position-group label.
 const FB_GROUP: Record<string, string> = {
   QB: 'Quarterbacks',
@@ -165,19 +161,6 @@ type RosterItem = Player & {
   note?: string | null;
   alert?: string | null;
 };
-
-function normName(n: string): string {
-  return (n || '')
-    .toLowerCase()
-    .replace(/[.'-]/g, ' ')
-    .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function playerFullName(p: Player): string {
-  return `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
-}
 
 /**
  * Copy a list, keeping the first entry per player id.
@@ -257,6 +240,10 @@ export default function TeamScreen() {
   // loaded in memory, so this is a plain array filter — no query, no loading state.
   const [rosterQuery, setRosterQuery] = useState('');
   const [depthView, setDepthView] = useState<'projected' | 'last'>('projected');
+  // Football's depth chart has two looks: the starting eleven on a field, and the full
+  // two-deep list. The field leads, because a starting lineup is what most people came for
+  // and it reads without knowing what SE or BAN mean.
+  const [depthLayout, setDepthLayout] = useState<'field' | 'full'>('field');
   const [selected, setSelected] = useState<Player | null>(null);
 
   const load = useCallback(async () => {
@@ -426,6 +413,21 @@ export default function TeamScreen() {
               )}
             </View>
           )}
+          {mode === 'depth' && filter === 'football' && (
+            <View style={styles.filterRow}>
+              {([['field', 'Starters'], ['full', 'Full Depth']] as const).map(([v, label]) => {
+                const active = depthLayout === v;
+                return (
+                  <Pressable
+                    key={v}
+                    onPress={() => { trackFeature('depth_layout_switch'); setDepthLayout(v); }}
+                    style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
+                    <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
           {mode === 'depth' && filter === 'baseball' && (
             <View style={styles.filterRow}>
               {(['projected', 'last'] as const).map((v) => {
@@ -474,6 +476,16 @@ export default function TeamScreen() {
             if (sp === 'baseball') {
               const yr = depthView === 'projected' ? 2027 : 2026;
               entries = entries.filter((d) => d.season === yr);
+            }
+            if (sp === 'football' && depthLayout === 'field') {
+              return (
+                <DepthField
+                  key={sp}
+                  entries={entries}
+                  players={players.filter((p) => p.sport_id === sp)}
+                  onPick={setSelected}
+                />
+              );
             }
             return <DepthChartSection key={sp} sport={sp} entries={entries} c={c} showHeader={false} />;
           })}
@@ -828,7 +840,7 @@ function DepthPositionCard({
       <View style={{ flex: 1 }}>
         {ordered.map((p, i) => {
           const isProj = starterOut && i === projIdx;
-          const meta = p.status && p.status !== 'active' ? STATUS_META[p.status] : null;
+          const meta = p.status && p.status !== 'active' ? StatusMeta[p.status] : null;
           const struck = p.status === 'out';
           const starter = i === 0; // the #1 spot — gold like the design
           return (

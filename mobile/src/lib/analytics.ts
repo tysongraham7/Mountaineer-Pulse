@@ -103,6 +103,8 @@ export const FEATURES = [
   'news_story_open',
   'roster_move_source_open',
   'team_mode_switch',
+  // Which depth-chart look people actually use: the field of starters or the full two-deep.
+  'depth_layout_switch',
   'favorite_toggle',
   'report_open',
   // Onboarding / comprehension. The beta shipped with the Pulse detail opened by only ~4% of
