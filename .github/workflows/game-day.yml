@@ -9,7 +9,14 @@ name: Game Day Alerts
 # The repo is public, so Actions minutes are free.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Every 10 minutes ROUND THE CLOCK was 144 dispatches a day from this one repo, and the
+    # daily pipeline's reliability fell apart the week after it was added — 10-hour delays,
+    # then missed runs entirely. Correlation, not proof, but 144 runs to catch a handful of
+    # games a year is poor value either way.
+    #
+    # 13:00-05:00 UTC is 9am-1am ET, which covers every plausible kickoff, tip-off and first
+    # pitch plus the hours after. Outside that window nothing is ever playing.
+    - cron: "*/10 13-23,0-5 * * *"
   workflow_dispatch:
 
 # A run that overlaps the previous one could send the same alert twice before the first

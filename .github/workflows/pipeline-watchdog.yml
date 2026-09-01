@@ -1,0 +1,40 @@
+name: Pipeline Watchdog
+
+# Emails if the morning pipeline didn't produce a briefing today.
+#
+# It has silently failed to run three times (Aug 23, Aug 31, Sept 1) and arrived up to ten
+# hours late on others, and nothing said so — the first anyone knew was a user asking why
+# "Good morning" was landing at dinner time. The same job writes the game-day scouting
+# report, so a quiet skip on a Saturday is worse than a missing briefing.
+#
+# 14:20 UTC is ~3h45m after the pipeline is due, so a merely-late run has time to land
+# before anyone is bothered. Odd minute, off the hour, for the same queueing reason the
+# pipeline itself was moved.
+on:
+  schedule:
+    - cron: "20 14 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests supabase python-dotenv
+
+      - name: Did the briefing land?
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          REPORT_ALERT_TO: ${{ secrets.REPORT_ALERT_TO }}
+        run: python check_pipeline_ran.py

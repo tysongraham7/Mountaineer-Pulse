@@ -4,7 +4,11 @@ name: Daily WVU Data Pipeline
 # plus a manual "Run workflow" button in the Actions tab for testing.
 on:
   schedule:
-    - cron: "0 11 * * *" # 11:00 UTC daily (~7am ET) — briefing ready by morning
+    # 10:37, not 11:00. GitHub queues scheduled workflows best-effort and explicitly warns
+    # that the start of every hour is the worst time to ask. On the hour this job ran 33-43
+    # minutes late all through August, then 10 HOURS late on Aug 27-28 and not at all on the
+    # 23rd, 31st and Sept 1. An odd minute, slightly earlier, competes with far less.
+    - cron: "37 10 * * *" # 10:37 UTC (~6:37am ET) — briefing ready before people wake
   workflow_dispatch:
 
 jobs:

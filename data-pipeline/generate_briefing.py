@@ -23,6 +23,7 @@ import re
 import sys
 import time
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -38,6 +39,14 @@ MODEL = "claude-sonnet-5"
 WEB_SEARCH_TOOL = {"type": "web_search_20260209", "name": "web_search", "max_uses": 12}
 SPORT_NAME = {"football": "Football", "mbb": "Men's Basketball", "baseball": "Baseball"}
 SPORT_ORDER = ["football", "mbb", "baseball"]
+
+ET = ZoneInfo("America/New_York")
+# Past this hour Eastern, the briefing still gets written but nobody is buzzed about it.
+# Scheduled at 11:00 UTC (~7am ET), this job is at GitHub's mercy: 33-43 minutes late most
+# of August, then TEN HOURS late on the 27th and 28th, which pushed "Morning, Mountaineers"
+# to every phone at 5pm. A morning briefing that lands in the evening is wrong twice --
+# the greeting is false, and the afternoon scan has already covered that day's news.
+PUSH_BY_HOUR_ET = 10
 
 # The athletics-wide section: news that belongs to the program rather than to one team
 # (a jersey-patch sponsor across all 18 sports, a facilities project, a conference move).
@@ -429,8 +438,20 @@ def main() -> None:
     #
     # Best-effort throughout: a push failure must never fail the run.
     notify = obj.get("notify", True) is not False
+    now_et = datetime.now(timezone.utc).astimezone(ET)
     if not notify:
         print("    (no push: nothing actually happened today — the briefing is still in the app)")
+    elif now_et.hour >= PUSH_BY_HOUR_ET:
+        # This job is scheduled for 11:00 UTC but GitHub runs scheduled workflows on a
+        # best-effort queue, and it has drifted badly: 33-43 minutes late through most of
+        # August, then 10 HOURS late on the 27th and 28th, which sent "Morning,
+        # Mountaineers" to everyone at 5pm. Twice.
+        #
+        # A morning briefing that arrives in the evening is wrong twice over — the greeting
+        # is a lie, and by then the afternoon scan has already covered the same day. So it
+        # goes in the app without the buzz. Nobody wants to be told good morning at dinner.
+        print(f"    (no push: briefing ran at {now_et:%H:%M} ET, past {PUSH_BY_HOUR_ET}:00 — "
+              f"a morning briefing this late is stale. It's still in the app.)")
     else:
         try:
             from send_push import send_push
