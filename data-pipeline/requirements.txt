@@ -7,3 +7,8 @@ websockets>=13
 # ZoneInfo (notify_news, notify_games, generate_briefing) dies there without this.
 # Linux runners have system tzdata, which is why CI never noticed.
 tzdata
+
+# migrate.py only. It talks to Postgres directly rather than through PostgREST, because
+# CREATE TABLE and ALTER TABLE have no REST equivalent. Not used by any workflow — schema
+# changes are applied by hand — but every script here shares one requirements file.
+psycopg2-binary
