@@ -9,14 +9,24 @@ name: Game Day Alerts
 # The repo is public, so Actions minutes are free.
 on:
   schedule:
-    # Every 10 minutes ROUND THE CLOCK was 144 dispatches a day from this one repo, and the
-    # daily pipeline's reliability fell apart the week after it was added — 10-hour delays,
-    # then missed runs entirely. Correlation, not proof, but 144 runs to catch a handful of
-    # games a year is poor value either way.
+    # Every 30 minutes, and only 14:00-04:00 UTC (10am-midnight ET).
     #
-    # 13:00-05:00 UTC is 9am-1am ET, which covers every plausible kickoff, tip-off and first
-    # pitch plus the hours after. Outside that window nothing is ever playing.
-    - cron: "*/10 13-23,0-5 * * *"
+    # This asked for every 10 minutes round the clock — 144 dispatches a day — and GitHub
+    # answered by throttling the whole repository. Measured over five days it delivered 4.8
+    # of those 144 runs, 3%, and dragged everything else down with it: the breaking scan got
+    # 43% of its runs, bug alerts 53%, and the daily pipeline slipped from 30 minutes late to
+    # ten HOURS late. Across all workflows the repo was getting 8% of what it asked for.
+    #
+    # A cron that fires 144 times a day to serve roughly 100 game days a year was always poor
+    # value; it turned out to cost the reliability of every other job as well. 30 runs a day
+    # is a request GitHub will actually honour.
+    #
+    # The window starts at 14:00 UTC because the earliest realistic kickoff is noon ET
+    # (16:00 UTC) and the reminder needs to fire 90 minutes ahead of it.
+    #
+    # Cost: a final score now lands within ~30 minutes instead of ~10. That is the right
+    # trade — a 30-minute-late alert that arrives beats a 10-minute one that never does.
+    - cron: "*/30 14-23,0-4 * * *"
   workflow_dispatch:
 
 # A run that overlaps the previous one could send the same alert twice before the first
