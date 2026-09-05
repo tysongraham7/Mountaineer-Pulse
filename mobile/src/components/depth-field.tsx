@@ -14,19 +14,21 @@ const c = surfaces(true);
  * purpose (center highest, tackles lowest) — five names on one straight line overlap at
  * phone width, and the stagger reads as a line splitting anyway.
  */
-type Spot = { position: string; x: number; y: number; small?: boolean };
+type Spot = { position: string; alt?: string; x: number; y: number; small?: boolean };
 type Formation = { id: string; label: string; spots: Spot[] };
 
-// Positions come from depth_chart.json, so the codes here must match it exactly
-// (SE/FL/SLOT rather than X/Y/Z) — the full list view labels them the same way.
+// Positions come from depth_chart.json, which follows Ourlads' codes. `alt` holds the code
+// that slot used before the 2026-09-02 chart (SE/FL/SLOT, MIKE/OLB, CB1/CB2, NKL, P) so the
+// field still fills in when a device is running an older bundle against newer data, or the
+// reverse — a published app and a synced database never change in the same instant.
 const FORMATIONS: Formation[] = [
   {
     id: 'offense',
     label: 'Offense',
     spots: [
-      { position: 'SE', x: 10, y: 34 },
-      { position: 'FL', x: 89, y: 36 },
-      { position: 'SLOT', x: 13, y: 55 },
+      { position: 'WR-X', alt: 'SE', x: 10, y: 34 },
+      { position: 'WR-Z', alt: 'FL', x: 89, y: 36 },
+      { position: 'WR-Y', alt: 'SLOT', x: 13, y: 55 },
       { position: 'LT', x: 25, y: 45, small: true },
       { position: 'LG', x: 35, y: 40, small: true },
       { position: 'C', x: 45, y: 36, small: true },
@@ -44,19 +46,19 @@ const FORMATIONS: Formation[] = [
     id: 'defense',
     label: 'Defense',
     spots: [
-      // 3-3-5: three down linemen, the Bandit on the edge, two off-ball backers,
-      // the Nickel over the slot, two corners and two safeties.
-      { position: 'DE', x: 31, y: 50, small: true },
-      { position: 'NT', x: 44, y: 55, small: true },
-      { position: 'DT', x: 58, y: 50, small: true },
-      { position: 'BAN', x: 78, y: 48, small: true },
-      { position: 'MIKE', x: 42, y: 30 },
-      { position: 'OLB', x: 63, y: 30 },
-      { position: 'NKL', x: 15, y: 38 },
-      { position: 'CB1', x: 9, y: 14 },
-      { position: 'CB2', x: 91, y: 14 },
-      { position: 'FS', x: 34, y: 8 },
-      { position: 'SS', x: 63, y: 8 },
+      // Multiple 4-2-5: four down linemen with the Bandit as the strong-side edge, two
+      // backers, and five defensive backs (corner each side, nickel over the slot, two safeties).
+      { position: 'DE', x: 27, y: 52, small: true },
+      { position: 'NT', x: 42, y: 56, small: true },
+      { position: 'DT', x: 57, y: 52, small: true },
+      { position: 'BAN', x: 76, y: 56, small: true },
+      { position: 'WLB', alt: 'OLB', x: 36, y: 32 },
+      { position: 'MLB', alt: 'MIKE', x: 60, y: 32 },
+      { position: 'NB', alt: 'NKL', x: 12, y: 36 },
+      { position: 'LCB', alt: 'CB1', x: 9, y: 15 },
+      { position: 'RCB', alt: 'CB2', x: 91, y: 15 },
+      { position: 'FS', x: 35, y: 9 },
+      { position: 'SS', x: 62, y: 9 },
     ],
   },
   {
@@ -65,7 +67,7 @@ const FORMATIONS: Formation[] = [
     spots: [
       { position: 'LS', x: 45, y: 38 },
       { position: 'PK', x: 58, y: 57 },
-      { position: 'P', x: 35, y: 75 },
+      { position: 'PT', alt: 'P', x: 35, y: 75 },
     ],
   },
 ];
@@ -127,7 +129,15 @@ function synthPlayer(e: DepthEntry): Player {
   };
 }
 
-type Slotted = { spot: Spot; entry: DepthEntry; player: Player | null; projected: boolean };
+type Slotted = {
+  spot: Spot;
+  entry: DepthEntry;
+  player: Player | null;
+  projected: boolean;
+  // The listed starter, when he's hurt and someone else is holding his spot. Kept so the
+  // note under the field can say who is filling in for whom.
+  blocked: DepthEntry | null;
+};
 
 export function DepthField({
   entries,
@@ -153,7 +163,8 @@ export function DepthField({
 
   const slotted: Slotted[] = [];
   for (const spot of formation.spots) {
-    const ordered = [...(byPosition.get(spot.position) ?? [])].sort((a, b) => a.rank - b.rank);
+    const listed = byPosition.get(spot.position) ?? (spot.alt ? byPosition.get(spot.alt) : undefined);
+    const ordered = [...(listed ?? [])].sort((a, b) => a.rank - b.rank);
     if (ordered.length === 0) continue; // position not on the chart yet — leave the spot empty
     // Same rule as the list view: a starter who's out or doubtful doesn't hold the spot,
     // the next available man does, and he's marked as the projected starter.
@@ -164,6 +175,7 @@ export function DepthField({
       entry: pick,
       player: roster.get(normName(pick.player_name)) ?? null,
       projected: idx > 0,
+      blocked: idx > 0 ? ordered[0] : null,
     });
   }
   // Deeper players draw first so the ones nearer the bottom of the screen overlap them,
@@ -237,22 +249,35 @@ export function DepthField({
 
       {notes.length > 0 && (
         <View style={styles.notes}>
-          {notes.map(({ spot, entry, projected }) => (
-            <View key={spot.position} style={styles.noteRow}>
-              <Text style={styles.notePos}>{spot.position}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.noteText}>
-                  <Text style={styles.noteName}>{entry.player_name}</Text>
-                  {projected ? ' is the projected starter' : ''}
-                  {entry.status && entry.status !== 'active'
-                    ? `${projected ? ' and is' : ' is'} ${entry.status}`
-                    : ''}
-                  {entry.note ? ` — ${entry.note}` : ''}
-                </Text>
-                {entry.alert ? <Text style={styles.noteAlert}>{entry.alert}</Text> : null}
+          {notes.map(({ spot, entry, projected, blocked }) => {
+            // A fill-in's own row is usually blank; the reason he's out there belongs to the
+            // man he replaced, so his note and alert are the ones worth showing.
+            const detail = (projected && blocked?.note) || entry.note;
+            const alert = (projected && blocked?.alert) || entry.alert;
+            return (
+              <View key={spot.position} style={styles.noteRow}>
+                <Text style={styles.notePos}>{spot.position}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.noteText}>
+                    <Text style={styles.noteName}>{entry.player_name}</Text>
+                    {blocked ? (
+                      <>
+                        {' starts in place of '}
+                        <Text style={styles.noteName}>{blocked.player_name}</Text>
+                        {blocked.status && blocked.status !== 'active' ? ` (${blocked.status})` : ''}
+                      </>
+                    ) : entry.status && entry.status !== 'active' ? (
+                      ` is ${entry.status}`
+                    ) : (
+                      ''
+                    )}
+                  </Text>
+                  {detail ? <Text style={styles.noteDetail}>{detail}</Text> : null}
+                  {alert ? <Text style={styles.noteAlert}>{alert}</Text> : null}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </>
@@ -415,5 +440,6 @@ const styles = StyleSheet.create({
   notePos: { width: 40, color: Brand.gold, fontSize: 12, fontFamily: Font.black },
   noteText: { color: c.textSecondary, fontSize: 12, lineHeight: 17, fontFamily: Font.body },
   noteName: { color: c.text, fontFamily: Font.bodySemi },
+  noteDetail: { marginTop: 3, color: c.textMuted, fontSize: 11, lineHeight: 16, fontFamily: Font.body },
   noteAlert: { marginTop: 4, color: Brand.gold, fontSize: 11, lineHeight: 15, fontFamily: Font.bodySemi },
 });

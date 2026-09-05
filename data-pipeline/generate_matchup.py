@@ -104,12 +104,27 @@ def wvu_context(sb, game: dict) -> str:
 
     depth = (sb.table("depth_chart").select("unit,position,pos_order,rank,player_name,note,status")
              .eq("sport_id", sport).order("pos_order").order("rank").execute().data or [])
-    starters = [d for d in depth if d.get("rank") == 1]
+    # Whoever is actually going to play, which is not always the man listed first: an out or
+    # doubtful starter hands the spot to the next man up. Same rule the app's field view uses.
+    # Naming the injured starter here would put him in a game preview as a probable starter.
+    by_pos: dict[tuple, list] = {}
+    for d in depth:
+        by_pos.setdefault((d.get("pos_order") or 0, d["position"]), []).append(d)
+    starters = []
+    for key in sorted(by_pos):
+        rows = sorted(by_pos[key], key=lambda r: r.get("rank") or 0)
+        avail = next(
+            (r for r in rows if (r.get("status") or "active") not in ("out", "doubtful")), rows[0]
+        )
+        starters.append((avail, rows[0] if avail is not rows[0] else None))
     if starters:
         lines.append("=== WVU PROJECTED STARTERS (from our depth chart — use these names) ===")
-        for d in starters:
+        for d, replaced in starters:
             note = f" — {d['note']}" if d.get("note") else ""
             flag = "  [!]" if (d.get("status") or "active") != "active" else ""
+            if replaced:
+                sub = f" (in for {replaced['player_name']}, {replaced.get('status') or 'out'})"
+                note = f"{sub}{' — ' + replaced['note'] if replaced.get('note') else ''}"
             lines.append(f"- {d['position']}: {d['player_name']}{note}{flag}")
 
     stats = (sb.table("player_stats").select("player_name,category,stat_type,stat,season")

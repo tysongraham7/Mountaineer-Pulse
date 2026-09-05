@@ -103,17 +103,21 @@ const SPORT_LABEL: Record<string, string> = {
 const SPORT_TAG: Record<string, string> = { football: 'FB', mbb: 'MBB', baseball: 'BSB' };
 
 // Football depth: individual positions roll up into a big position-group label.
+// Both code sets are listed: the current chart uses Ourlads' codes, and the pre-2026-09-02
+// ones stay so an older bundle reading newer data (or the reverse) still groups every row.
 const FB_GROUP: Record<string, string> = {
   QB: 'Quarterbacks',
   RB: 'Running Backs', FB: 'Running Backs',
+  'WR-X': 'Receivers', 'WR-Y': 'Receivers', 'WR-Z': 'Receivers',
   SE: 'Receivers', FL: 'Receivers', SLOT: 'Receivers',
   TE: 'Tight Ends',
   LT: 'Offensive Line', LG: 'Offensive Line', C: 'Offensive Line', RG: 'Offensive Line', RT: 'Offensive Line',
   DE: 'Defensive Line', DT: 'Defensive Line', NT: 'Defensive Line', BAN: 'Defensive Line',
-  MIKE: 'Linebackers', OLB: 'Linebackers',
-  CB1: 'Cornerbacks', CB2: 'Cornerbacks',
-  FS: 'Safety', SS: 'Safety', NKL: 'Safety',
-  PK: 'Specialists', P: 'Specialists', LS: 'Specialists',
+  MLB: 'Linebackers', WLB: 'Linebackers', MIKE: 'Linebackers', OLB: 'Linebackers',
+  LCB: 'Cornerbacks', RCB: 'Cornerbacks', CB1: 'Cornerbacks', CB2: 'Cornerbacks',
+  FS: 'Safety', SS: 'Safety', NB: 'Safety', NKL: 'Safety',
+  PK: 'Specialists', PT: 'Specialists', P: 'Specialists', LS: 'Specialists',
+  PR: 'Return Game', KR: 'Return Game',
 };
 
 const CATEGORY_LABEL: Record<string, string> = {
