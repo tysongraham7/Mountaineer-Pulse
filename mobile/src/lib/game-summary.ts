@@ -256,13 +256,24 @@ export function parseSummary(json: unknown, wvuHome: boolean): GameSummary | nul
   const drivesRoot = obj(root.drives);
   const current = obj(drivesRoot.current);
   const currentId = str(current.id);
+
+  /**
+   * ESPN leaves `drives.current` pointing at the last drive long after it ends — at
+   * halftime it still named the kneel-down before the break, so the sheet showed "1 play,
+   * -2 yards" as in progress through the whole interval.
+   *
+   * A finished drive is stamped with a result ("Punt", "Touchdown", "End Of Half") the
+   * moment it ends, and a live one has none. That is the test, not what `current` says.
+   */
+  const stillRunning = (d: Json) => !str(d.displayResult) && !str(d.result);
+
   // `previous` ALREADY contains the drive being played, and `current` repeats it. Appending
   // both put the live drive on screen twice, once labeled in-progress and once not. Match on
   // id and flag the existing entry instead; only fall back to appending when the feed hands
   // back a current drive that genuinely isn't in the list yet.
   const rawDrives: [Json, boolean][] = arr(drivesRoot.previous)
-    .map((d) => [d, !!currentId && str(d.id) === currentId] as [Json, boolean]);
-  if (currentId && !rawDrives.some(([, isCurrent]) => isCurrent)) {
+    .map((d) => [d, !!currentId && str(d.id) === currentId && stillRunning(d)] as [Json, boolean]);
+  if (currentId && stillRunning(current) && !rawDrives.some(([, isCurrent]) => isCurrent)) {
     rawDrives.push([current, true]);
   }
 

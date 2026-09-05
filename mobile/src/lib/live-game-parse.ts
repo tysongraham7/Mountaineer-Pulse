@@ -105,6 +105,23 @@ export function statusState(status: Record<string, unknown> | null): LiveGame['s
   return (type.state as LiveGame['state']) ?? 'pre';
 }
 
+/**
+ * A stoppage with no next snap: halftime, the end of a quarter, a weather delay.
+ *
+ * ESPN keeps `state` at "in" through all of these AND keeps serving the last live
+ * situation, so at halftime the situation endpoint still answers "2nd & 10 at WVU 12" —
+ * the down that will never be played, left over from the kneel-down before the break.
+ * Printing it under "Halftime" states something that isn't true.
+ *
+ * Matched on the status NAME rather than an exhaustive list of ids, because the failure
+ * mode of a name ESPN adds later is a stale down reappearing, and these four substrings
+ * cover every break the feed has ever used for football.
+ */
+export function inBreak(status: Record<string, unknown> | null): boolean {
+  const name = String(((status?.type ?? {}) as Record<string, unknown>).name ?? '');
+  return /HALFTIME|END_PERIOD|DELAY|SUSPEND/.test(name);
+}
+
 /** Turn the three raw ESPN payloads into what the card renders. */
 export function parseLive(
   status: Record<string, unknown> | null,
@@ -162,16 +179,18 @@ export function parseLive(
     wvuHome ? oppAbbr : wvuAbbr,
   );
 
-  const over = state === 'post';
+  // No next snap: the game is over, or it's halftime / between quarters / delayed. ESPN
+  // keeps serving the last live situation through all of those, so "1st & 10" under a
+  // final score — or "2nd & 10" under "Halftime" — is a lie the feed will happily tell.
+  const noNextSnap = state === 'post' || inBreak(status);
   return {
     ...base,
     wvuScore,
     oppScore,
-    // A finished game has no next play; "1st & 10" under a final score is a lie.
-    downDistance: over ? null : downDistance,
-    fieldPosition: over ? null : fieldPosition,
-    wvuHasBall: over ? null : wvuHasBall,
-    isRedZone: !over && !!situation?.isRedZone,
+    downDistance: noNextSnap ? null : downDistance,
+    fieldPosition: noNextSnap ? null : fieldPosition,
+    wvuHasBall: noNextSnap ? null : wvuHasBall,
+    isRedZone: !noNextSnap && !!situation?.isRedZone,
     lastPlay: (play?.text as string) ?? null,
   };
 }

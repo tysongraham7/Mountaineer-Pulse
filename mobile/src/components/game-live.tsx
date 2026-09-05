@@ -232,17 +232,30 @@ function LineRow({
 /* ---------------- tabs ---------------- */
 
 function SummaryTab({ s, live }: { s: GameSummary; live: LiveGame | null }) {
+  // Between drives — halftime, after a punt, at the final — there is no current one, and
+  // the drive that just ended is the thing worth showing. Labeled for which it is, because
+  // "Current Drive" over a finished kneel-down at halftime is how this read before.
   const currentDrive = s.drives.find((d) => d.current);
+  const shownDrive = currentDrive ?? s.drives[0] ?? null;
   const lastPlay = live?.lastPlay || s.drives[0]?.plays.slice(-1)[0]?.text || null;
 
   return (
     <View>
-      {currentDrive && (
+      {shownDrive && (
         <>
-          <Label>Current Drive</Label>
+          <Label>{currentDrive ? 'Current Drive' : 'Last Drive'}</Label>
           <View style={styles.card}>
-            <Text style={styles.driveTeam}>{currentDrive.team}</Text>
-            <Text style={styles.driveDesc}>{currentDrive.description || 'Just started'}</Text>
+            <View style={styles.scoreHeadRow}>
+              <Text style={styles.driveTeam}>{shownDrive.team}</Text>
+              {!currentDrive && !!shownDrive.result && (
+                <Text style={[styles.driveResult, shownDrive.isScore && { color: Brand.gold }]}>
+                  {shownDrive.result}
+                </Text>
+              )}
+            </View>
+            <Text style={styles.driveDesc}>
+              {shownDrive.description || (currentDrive ? 'Just started' : '')}
+            </Text>
           </View>
         </>
       )}
