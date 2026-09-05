@@ -98,6 +98,8 @@ export function trackFeature(name: Feature): void {
 /** The vocabulary of trackable actions. Add here first, then use — that's the point. */
 export const FEATURES = [
   'game_sheet_open',
+  // Which of Summary / Box Score / Plays / Team Stats people actually read during a game.
+  'game_tab_switch',
   'player_profile_open',
   // Separate from player_profile_open so the Staff tab can be judged on its own — if
   // nobody opens a coach, it's a section to rethink rather than one to keep filling.

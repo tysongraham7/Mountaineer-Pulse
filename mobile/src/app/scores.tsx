@@ -18,6 +18,7 @@ import { Brand, Font, surfaces } from '@/constants/brand';
 import { easternDateShort, easternTime } from '@/lib/eastern';
 import { supabase } from '@/lib/supabase';
 import { useForegroundRefresh } from '@/lib/use-foreground-refresh';
+import { useLiveGame } from '@/lib/use-live-game';
 import { Game } from '@/lib/types';
 
 const c = surfaces(true);
@@ -163,12 +164,28 @@ function GameCard({
   onPick: (g: Game) => void;
 }) {
   const p = fromWvuView(game);
+
+  // A game in progress has no score in the database and can't have one: `games` is written
+  // by a cron that runs every thirty minutes at best, which is not a scoreboard. So the
+  // card asks ESPN itself, the same 2.3 KB poll the home screen uses. The hook is inert
+  // outside a twenty-minute window around kickoff, so the other 99% of the year — and
+  // every other row in this list — costs nothing.
+  const liveId = game.sport_id === 'football' && !p.final ? (game.espn_event_id ?? null) : null;
+  const live = useLiveGame(liveId, game.start_date ?? null, !!game.is_wvu_home, 'WVU', 'OPP');
+  const inProgress = live?.state === 'in';
+  // ESPN can mark a game final minutes before the pipeline writes the score, so trust it.
+  const liveFinal = live?.state === 'post' && live.wvuScore != null;
+
   // Kickoff sits next to the date once it's announced; before that the card stays
-  // quiet rather than showing the feed's midnight placeholder.
+  // quiet rather than showing the feed's midnight placeholder. A game under way shows
+  // where it stands instead — the date is not the question at that point.
   const kickoff = game.start_date && !p.final ? easternTime(game.start_date) : null;
-  const metaParts = [formatDate(game.start_date)];
-  if (kickoff) metaParts.push(kickoff);
+  const metaParts = inProgress
+    ? [live?.detail || 'Under way', ...(live?.downDistance ? [live.downDistance] : [])]
+    : [formatDate(game.start_date), ...(kickoff ? [kickoff] : [])];
   if (showTag) metaParts.push(labelOf(game.sport_id));
+
+  const liveWon = (live?.wvuScore ?? 0) > (live?.oppScore ?? 0);
 
   return (
     <Pressable
@@ -182,11 +199,24 @@ function GameCard({
           <Text style={{ color: c.textSecondary }}>{p.locator} </Text>
           {p.opponent}
         </Text>
-        <Text style={styles.meta}>{metaParts.join(' · ')}</Text>
+        <View style={styles.metaRow}>
+          {inProgress && <View style={styles.liveDot} />}
+          <Text style={[styles.meta, inProgress && { color: Brand.gold }]} numberOfLines={1}>
+            {metaParts.join(' · ')}
+          </Text>
+        </View>
       </View>
       {p.final ? (
         <Text style={[styles.result, { color: p.win ? Brand.green : Brand.red }]}>
           {p.win ? 'W' : 'L'} {p.scoreText}
+        </Text>
+      ) : inProgress || liveFinal ? (
+        <Text
+          style={[
+            styles.result,
+            { color: liveFinal ? (liveWon ? Brand.green : Brand.red) : c.text },
+          ]}>
+          {live?.wvuScore ?? 0}–{live?.oppScore ?? 0}
         </Text>
       ) : (
         <Text style={styles.chevron}>›</Text>
@@ -230,7 +260,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   matchup: { fontFamily: Font.displaySemi, fontSize: 15, color: c.text },
-  meta: { fontFamily: Font.body, fontSize: 12, color: c.textSecondary, marginTop: 2 },
-  result: { fontFamily: Font.black, fontSize: 18 },
+  meta: { fontFamily: Font.body, fontSize: 12, color: c.textSecondary, marginTop: 2, flexShrink: 1 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Brand.red, marginTop: 2 },
+  result: { fontFamily: Font.black, fontSize: 18, fontVariant: ['tabular-nums'] },
   chevron: { fontSize: 20, color: c.textMuted },
 });

@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { GameLive } from '@/components/game-live';
 import { ReportModal } from '@/components/report-modal';
 import { SectionLabel, SheetHeader, SportIcon } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
@@ -10,6 +11,7 @@ import { trackFeature } from '@/lib/analytics';
 import { countdownLabel, easternDateLong, easternTime } from '@/lib/eastern';
 import { supabase } from '@/lib/supabase';
 import { Game } from '@/lib/types';
+import { useLiveGame } from '@/lib/use-live-game';
 
 /** The scouting report generate_matchup.py writes, ~10 days out from kickoff. */
 type Matchup = {
@@ -76,6 +78,12 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
   const kickoff = iso ? easternTime(iso) : null;
   const countdown = iso && !final ? countdownLabel(iso) : null;
 
+  // The scoreboard line, from the same cheap feed the home card uses. Only football has an
+  // ESPN event id on the row, and only football has a play-by-play worth showing; every
+  // other sport falls through to the countdown and the scouting report as before.
+  const liveId = game?.sport_id === 'football' ? (game.espn_event_id ?? null) : null;
+  const live = useLiveGame(liveId, iso, wvuHome, 'WVU', opponent.slice(0, 4).toUpperCase());
+
   const rows: [string, string][] = [];
   if (iso) rows.push(['Date', easternDateLong(iso)]);
   // A null kickoff is a real state, not missing data — say so rather than print
@@ -129,6 +137,11 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
             </LinearGradient>
 
             <View style={{ paddingHorizontal: 20 }}>
+              {/* Everything that only exists once the ball is snapped: score, box score,
+                  play-by-play, team stats. Renders nothing before kickoff, and nothing at
+                  all for a game with no ESPN id. */}
+              <GameLive game={game} live={live} />
+
               <SectionLabel tone="muted" style={styles.head as never}>Game Info</SectionLabel>
               <View style={styles.table}>
                 {rows.map(([label, value], i) => (
