@@ -131,6 +131,16 @@ def main() -> None:
         w = sum(1 for g in season_games if wvu_won(g))
         l = len(season_games) - w
 
+        # Last season's record, which is what the anchor regresses a young season toward.
+        # Without it, WVU's 1-0 opener read as a .70 team and the Pulse jumped 14 points on
+        # a seven-point win over a Sun Belt opponent. See PRIOR_SEASON_FRAC.
+        prior_seasons = [x for x in {g["season"] for g in games} if x < latest_season]
+        prior_record = None
+        if prior_seasons:
+            pg = [g for g in games if g["season"] == max(prior_seasons)]
+            pwins = sum(1 for g in pg if wvu_won(g))
+            prior_record = (pwins, len(pg) - pwins)
+
         # A sport with a SEASON_RANK held its ranked caliber all year — use it (held FLAT)
         # for SCORING so today's number matches the chart. For DISPLAY (the "#N" chip) use
         # the live poll only, so we never claim a live ranking the team doesn't currently
@@ -190,7 +200,8 @@ def main() -> None:
         season_over = bool(last_dates) and today > max(last_dates)[:10]
         extra = OFFSEASON_BONUS.get(sport, 0.0) if season_over else 0.0
         score = pulse_score(sport, w, l, score_rank, reg, moves, post_wins, post_losses,
-                            news, ranked_flat=ranked_flat, extra=extra + injury_hit)
+                            news, ranked_flat=ranked_flat, extra=extra + injury_hit,
+                            prior_record=prior_record)
 
         # Anti-spike guard: the line may only make a big move on a day with a REAL
         # event — a game, a dated roster move, or a news note TODAY. On a "quiet" day

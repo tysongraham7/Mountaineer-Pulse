@@ -113,6 +113,21 @@ OFFSEASON_BONUS = {"mbb": 17.0}
 # end — and doesn't over-shrink a short-season sport's final record (football, 12 gm).
 ANCHOR_PRIOR_FRAC = 0.12
 
+# How much of LAST season's record still counts at the start of a new one, as a fraction of
+# a full season. 0.4 of football's 12 games ~= a 5-game head start that fades to nothing by
+# the finale.
+#
+# This exists because of what a season rollover did on 2026-09-05. WVU had gone 4-8; the
+# anchor sat at 48. They beat Coastal Carolina 31-24, the season became "2026", the record
+# became 1-0, and a 1-0 record read as a .70 team: the anchor jumped to 64 and the Pulse
+# went 69 -> 83 on one seven-point win over a Sun Belt opponent.
+#
+# Shrinking toward .500 (ANCHOR_PRIOR_FRAC, above) doesn't fix that, because .500 is a
+# fiction — it says a 4-8 team and a 12-0 team both start next year even. A program's own
+# last season is the honest prior, and it's what a fan uses too: "we went 4-8, one win over
+# Coastal doesn't change much yet."
+PRIOR_SEASON_FRAC = 0.4
+
 
 def clamp(v: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, v))
@@ -144,7 +159,8 @@ def national_rank(sport: str):
     return None
 
 
-def anchor_score(sport: str, w: int, l: int, rank, flat: bool = False) -> float:
+def anchor_score(sport: str, w: int, l: int, rank, flat: bool = False,
+                 prior_record: tuple | None = None) -> float:
     # #1 -> 81, #25 -> 61. Kept well below the cap so form/roster/surge have headroom.
     ranked = (81.0 - (rank - 1) * (20.0 / 24.0)) if rank else None
     # `flat`: hold the ranked caliber LEVEL across the season (used for a team that was
@@ -153,10 +169,25 @@ def anchor_score(sport: str, w: int, l: int, rank, flat: bool = False) -> float:
     if rank and flat:
         return ranked
     total = w + l
-    # Shrink win% toward .500 with a season-length-proportional prior, so early-season
-    # small samples are calm; the prior's weight fades as games accumulate.
-    prior = FULL_SEASON.get(sport, 20) * ANCHOR_PRIOR_FRAC
-    winpct = (w + prior * 0.5) / (total + prior)
+    full = FULL_SEASON.get(sport, 20)
+    # Shrink win% toward a prior, so early-season small samples are calm and the prior's
+    # weight fades as games accumulate.
+    #
+    # The prior is LAST SEASON's record when we have one, and .500 only when we don't.
+    # Which one it is matters most in exactly the week it's most visible: at 1-0, shrinking
+    # toward .500 still reads as a .70 team, while shrinking toward a 4-8 season reads as
+    # .45 — a team that won its opener and hasn't proven anything else yet.
+    if prior_record and sum(prior_record) > 0:
+        pw, pl = prior_record
+        prior_pct = pw / (pw + pl)
+        # Fades linearly across the new season: last year is most of what we know in
+        # September and none of what we know by the finale.
+        prior_games = full * PRIOR_SEASON_FRAC * clamp(1.0 - total / full, 0.0, 1.0)
+    else:
+        prior_pct = 0.5
+        prior_games = full * ANCHOR_PRIOR_FRAC
+    denom = total + prior_games
+    winpct = (w + prior_games * prior_pct) / denom if denom else 0.5
     record = 32.0 + winpct * 46.0  # ~.500 -> 55, strong -> upper-70s
     if not rank:
         return record
@@ -256,8 +287,11 @@ def trend_of(reg: list) -> str:
 
 
 def pulse_score(sport, w, l, rank, reg, moves, post_wins=0, post_losses=0, news=0.0,
-                ranked_flat=False, extra=0.0) -> int:
-    raw = (anchor_score(sport, w, l, rank, flat=ranked_flat) + form_adj(reg)
+                ranked_flat=False, extra=0.0, prior_record=None) -> int:
+    """prior_record: (wins, losses) from the season BEFORE this one, when we have it.
+    Without it a brand-new season's first game is judged as a full body of work."""
+    raw = (anchor_score(sport, w, l, rank, flat=ranked_flat, prior_record=prior_record)
+           + form_adj(reg)
            + roster_delta(moves, sport)
            + surge(post_wins, post_losses) * SPORT_SURGE_SCALE.get(sport, 1.0) + news
            + SPORT_BASELINE.get(sport, 0.0) + extra)

@@ -138,11 +138,20 @@ def main() -> None:
             news = news_delta(note_deltas, d)
             # Offseason bonus (projected next-season caliber) applies only after the
             # season's final game — it lifts the offseason line, not the played season.
+            # The season before this point's season — the anchor's prior. Recomputed per
+            # point so an early-2026 date is judged against 2025, not against itself.
+            earlier = [x for x in seasons if x < season]
+            prior_record = None
+            if earlier:
+                pg = [g for g in games if g["season"] == earlier[-1]]
+                pwins = sum(1 for g in pg if wvu_won(g))
+                prior_record = (pwins, len(pg) - pwins)
             last_game = closed_on.get(season)
             extra = off_bonus if (last_game and d > last_game) else 0.0
             extra += injury_delta(hurt, d)
             score = pulse_score(sport, w, l, base_rank, reg, moves_to, post_wins, post_losses,
-                                news, ranked_flat=flat, extra=extra)
+                                news, ranked_flat=flat, extra=extra,
+                                prior_record=prior_record)
             rows.append({"sport_id": sport, "date": d.isoformat(), "score": score, "trend": trend_of(reg)})
 
         # Rebuild from scratch so stale points (old/redated moves) don't linger.
