@@ -20,6 +20,8 @@ Score = anchor (national standing) + form (recent games) + roster (moves) + surg
               so the line reacts BOTH ways and stays there until later news offsets it.
 """
 
+from datetime import date
+
 import requests
 
 ESPN_PATH = {
@@ -210,6 +212,37 @@ def news_delta(note_deltas: list, as_of) -> float:
     the tangible factors (record, ranking, roster)."""
     total = sum(dl for (nd, dl) in note_deltas if nd is not None and nd <= as_of)
     return clamp(total, NEWS_DELTA_CAP_DOWN, NEWS_DELTA_CAP_UP)
+
+
+# A whole two-deep can't be hurt at once, and if it were, the record would already be
+# saying so. Bounds the one factor a human types in by hand.
+INJURY_DELTA_CAP = -12.0
+
+
+def injury_delta(rows: list, as_of) -> float:
+    """What the currently-injured players are costing the Pulse, as of `as_of`.
+
+    Reads the curated depth chart, not a feed: no source states what an injury is worth,
+    and inferring it from depth rank would move the score every time a backup got dinged.
+    An entry costs points only when someone typed a pulse_delta on it.
+
+    `out_since` is why this takes a date. A September injury must not depress the July end
+    of the chart, which is exactly what a date-less sum would do on the next backfill.
+    """
+    total = 0.0
+    for r in rows:
+        delta = r.get("pulse_delta") or 0
+        if not delta:
+            continue
+        since = r.get("out_since")
+        if isinstance(since, str):
+            since = date.fromisoformat(since[:10])
+        # No date means "assume it applies", which keeps a hand-added row from silently
+        # doing nothing; a dated one only counts once it has happened.
+        if since is not None and as_of is not None and since > as_of:
+            continue
+        total += delta
+    return clamp(total, INJURY_DELTA_CAP, 0.0)
 
 
 def trend_of(reg: list) -> str:

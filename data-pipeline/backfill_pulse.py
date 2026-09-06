@@ -18,8 +18,8 @@ from datetime import date, datetime
 from dotenv import load_dotenv
 from supabase import create_client
 
-from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, is_postseason, national_rank,
-                         news_delta, pulse_score, trend_of, wvu_won)
+from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, injury_delta, is_postseason,
+                         national_rank, news_delta, pulse_score, trend_of, wvu_won)
 
 load_dotenv()
 
@@ -55,11 +55,33 @@ def main() -> None:
                  .order("start_date").execute().data)
         if not games:
             continue
-        latest_season = max(g["season"] for g in games)
-        games = [g for g in games if g["season"] == latest_season]
+        # EVERY season is kept, not just the latest.
+        #
+        # This used to narrow to the most recent season before doing anything else, and then
+        # skip any chart date with no game on or before it. That is fine for eleven months of
+        # the year and catastrophic on the twelfth: the moment WVU played its 2026 opener, the
+        # "latest season" became a single game on September 5, every earlier point had no game
+        # to stand on, and eight months of football history — every portal move, every news
+        # day back to January — vanished from the chart in one nightly run. Football went from
+        # a full line to two dots, and the 3-month view had nothing more to show than the
+        # 1-month one.
+        #
+        # A point's record should be the record of the season that was under way on that date,
+        # which in the offseason is last season's final one. season_at() below decides that.
         for g in games:
             g["_d"] = to_date(g["start_date"])
         games = [g for g in games if g["_d"]]
+        if not games:
+            continue
+        seasons = sorted({g["season"] for g in games})
+        opened_on = {s: min(g["_d"] for g in games if g["season"] == s) for s in seasons}
+        closed_on = {s: max(g["_d"] for g in games if g["season"] == s) for s in seasons}
+
+        def season_at(d, _seasons=seasons, _opened=opened_on):
+            """The season in progress on `d` — or, before the first game ever played, the
+            earliest one we have, so the oldest chart points still stand on something."""
+            started = [s for s in _seasons if _opened[s] <= d]
+            return max(started) if started else _seasons[0]
 
         # pulse_neutral moves are excluded here too — their effect is carried by the curated note,
         # so counting them in roster_delta would double-count the same event on the chart.
@@ -80,8 +102,13 @@ def main() -> None:
         season_rank = SEASON_RANK.get(sport)
         base_rank = season_rank if season_rank else national_rank(sport)
         flat = bool(season_rank)
-        last_game = max((g["_d"] for g in games), default=None)
         off_bonus = OFFSEASON_BONUS.get(sport, 0.0)
+
+        # Curated injuries, dated, so a September hit doesn't depress the July line.
+        hurt = [r for r in (sb.table("depth_chart")
+                            .select("pulse_delta,out_since").eq("sport_id", sport)
+                            .neq("status", "active").execute().data or [])
+                if (r.get("pulse_delta") or 0)]
 
         # A point at every game date + dated move date + news day.
         event_dates = sorted({g["_d"] for g in games} | {m["_d"] for m in moves if m["_d"]} | set(note_dates))
@@ -89,7 +116,16 @@ def main() -> None:
         for d in event_dates:
             if d >= today:
                 continue
-            games_to = [g for g in games if g["_d"] <= d]
+            season = season_at(d)
+            games_to = [g for g in games if g["season"] == season and g["_d"] <= d]
+            if not games_to:
+                # Before the first kickoff of a brand-new season the record is still last
+                # season's, which is what a fan would say too: "we're 4-8 coming in".
+                prior = [x for x in seasons if x < season]
+                if not prior:
+                    continue
+                season = prior[-1]
+                games_to = [g for g in games if g["season"] == season]
             if not games_to:
                 continue
             moves_to = [m for m in moves if m["_d"] and m["_d"] <= d]
@@ -102,7 +138,9 @@ def main() -> None:
             news = news_delta(note_deltas, d)
             # Offseason bonus (projected next-season caliber) applies only after the
             # season's final game — it lifts the offseason line, not the played season.
+            last_game = closed_on.get(season)
             extra = off_bonus if (last_game and d > last_game) else 0.0
+            extra += injury_delta(hurt, d)
             score = pulse_score(sport, w, l, base_rank, reg, moves_to, post_wins, post_losses,
                                 news, ranked_flat=flat, extra=extra)
             rows.append({"sport_id": sport, "date": d.isoformat(), "score": score, "trend": trend_of(reg)})

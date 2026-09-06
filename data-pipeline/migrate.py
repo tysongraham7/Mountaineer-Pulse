@@ -290,6 +290,11 @@ ALTERS = [
     "alter table coaches enable row level security;",
     "drop policy if exists \"public read coaches\" on coaches;",
     "create policy \"public read coaches\" on coaches for select using (true);",
+    # --- Injuries as a Pulse factor (see schema.sql for the reasoning) ---
+    # Curated: pulse_delta is set by hand per injury, out_since dates it so the chart
+    # applies the hit from the right day forward instead of across the whole season.
+    "alter table depth_chart add column if not exists pulse_delta int not null default 0;",
+    "alter table depth_chart add column if not exists out_since date;",
 ]
 
 

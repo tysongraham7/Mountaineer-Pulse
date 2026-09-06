@@ -29,8 +29,8 @@ from supabase import create_client
 import usage
 
 from pulse_model import is_postseason as post_by_date
-from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, clamp, national_rank, news_delta,
-                         pulse_score, surge, trend_of, wvu_won)
+from pulse_model import (OFFSEASON_BONUS, SEASON_RANK, clamp, injury_delta, national_rank,
+                         news_delta, pulse_score, surge, trend_of, wvu_won)
 
 load_dotenv()
 
@@ -172,6 +172,15 @@ def main() -> None:
             for g in season_games
         )
 
+        # Injuries. Curated on the depth chart, because no feed says what one is worth —
+        # see the note in schema.sql. Before this, a player being carted off could only
+        # reach the score as an anonymous "Recent news" nudge, so the app's own explanation
+        # for a drop was a two-week-old portal move.
+        injuries = (sb.table("depth_chart").select("player_name,position,unit,pulse_delta,out_since")
+                    .eq("sport_id", sport).neq("status", "active").execute().data or [])
+        hurt = [r for r in injuries if (r.get("pulse_delta") or 0)]
+        injury_hit = injury_delta(hurt, date.today())
+
         reg = [1 if wvu_won(g) else 0 for g in season_games if not is_postseason(sport, g)]
         post_games = [g for g in season_games if is_postseason(sport, g)]
         post_wins = sum(1 for g in post_games if wvu_won(g))
@@ -181,7 +190,7 @@ def main() -> None:
         season_over = bool(last_dates) and today > max(last_dates)[:10]
         extra = OFFSEASON_BONUS.get(sport, 0.0) if season_over else 0.0
         score = pulse_score(sport, w, l, score_rank, reg, moves, post_wins, post_losses,
-                            news, ranked_flat=ranked_flat, extra=extra)
+                            news, ranked_flat=ranked_flat, extra=extra + injury_hit)
 
         # Anti-spike guard: the line may only make a big move on a day with a REAL
         # event — a game, a dated roster move, or a news note TODAY. On a "quiet" day
@@ -192,6 +201,7 @@ def main() -> None:
             any((g.get("start_date") or "")[:10] == today for g in season_games)
             or any((m.get("move_date") or "")[:10] == today for m in moves)
             or date.today() in note_dates
+            or any((r.get("out_since") or "")[:10] == today for r in hurt)
         )
         if not has_event_today:
             prev = (sb.table("pulse_snapshots").select("score").eq("sport_id", sport)
@@ -210,6 +220,15 @@ def main() -> None:
             drivers.append({"label": label, "delta": round(recent_news), "kind": "news"})
         if cws_recent:
             drivers.append({"label": "CWS run", "delta": round(surge(post_wins, post_losses)), "kind": "post"})
+        if hurt:
+            # Worst hit first, and named — the whole point is that the chip says "injury"
+            # instead of leaving a two-week-old portal move as the only explanation on offer.
+            names = []
+            for r in sorted(hurt, key=lambda x: x.get("pulse_delta") or 0):
+                pos = r.get("position")
+                names.append(f"{r['player_name']} ({pos})" if pos else r["player_name"])
+            drivers.append({"label": "Out: " + ", ".join(names),
+                            "delta": round(injury_hit), "kind": "injury"})
         if transfers_in or transfers_out:
             drivers.append({"label": f"Transfers +{transfers_in}/-{transfers_out}",
                             "delta": round(transfers_delta), "kind": "portal"})

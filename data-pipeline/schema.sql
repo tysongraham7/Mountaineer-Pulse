@@ -359,3 +359,24 @@ create index if not exists coaches_sport_idx on coaches (sport_id, sort_order);
 
 alter table coaches enable row level security;
 create policy "public read coaches" on coaches for select using (true);
+
+-- ---------------------------------------------------------------------------
+-- Injuries as a Pulse factor.
+--
+-- Until now an injury could only reach the Pulse as a news note, which lands in
+-- the score as generic "Recent news". So when WVU's second-string DE was carted
+-- off in the 2026 opener, the only thing the app could offer as an explanation
+-- for the score was a chip reading "Transfers +0/-1" — about a portal move from
+-- two weeks earlier. The number moved for the right reason and said the wrong one.
+--
+-- Curated, not inferred, and for the same reason the depth chart itself is: no
+-- feed says what an injury is worth, and a rule that docked points automatically
+-- by depth rank would quietly move the score every time a backup got dinged.
+-- Setting pulse_delta is a deliberate act; leaving it 0 means the injury shows on
+-- the depth card and costs the Pulse nothing.
+--
+-- out_since is what makes the history honest: the chart applies the hit from that
+-- date forward, so a September injury doesn't retroactively depress July.
+-- ---------------------------------------------------------------------------
+alter table depth_chart add column if not exists pulse_delta int not null default 0;
+alter table depth_chart add column if not exists out_since date;

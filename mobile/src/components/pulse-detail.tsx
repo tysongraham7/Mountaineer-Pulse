@@ -47,6 +47,13 @@ const RANGES: { label: string; stepDays: number; count: number; word: string }[]
 ];
 
 type Driver = { label: string; delta?: number; kind: string };
+/** A curated injury from the depth chart, with what it costs the Pulse and from when. */
+type Injury = {
+  player_name: string;
+  position: string | null;
+  pulse_delta: number | null;
+  out_since: string | null;
+};
 type PulseEvent = { kind: 'win' | 'loss' | 'in' | 'out' | 'pending'; label: string };
 
 function fullDate(iso: string): string {
@@ -75,6 +82,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
   const [current, setCurrent] = useState<{ score: number; trend: string; ranking: number | null; drivers: Driver[] | null } | null>(null);
   const [moves, setMoves] = useState<RosterMove[]>([]);
   const [notes, setNotes] = useState<{ date: string; note: string; pulse_delta: number | null }[]>([]);
+  const [hurt, setHurt] = useState<Injury[]>([]);
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState<number>(-1);
@@ -106,12 +114,17 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
     setLoading(true);
     setActiveIdx(-1);
     (async () => {
-      const [snapRes, moveRes, gameRes, noteRes, briefRes] = await Promise.all([
+      const [snapRes, moveRes, gameRes, noteRes, briefRes, hurtRes] = await Promise.all([
         supabase.from('pulse_snapshots').select('*').eq('sport_id', curSport).order('date'),
         supabase.from('roster_moves').select('*').eq('sport_id', curSport).order('move_date', { ascending: false }),
         supabase.from('games').select('*').eq('sport_id', curSport).eq('status', 'final'),
         supabase.from('daily_sport_notes').select('date,note,pulse_delta').eq('sport_id', curSport).order('date'),
         supabase.from('daily_briefings').select('date,content,sections').order('date', { ascending: false }).limit(1),
+        // Injuries that cost the Pulse points. Curated on the depth chart, and read here
+        // because this screen rebuilds the driver list itself rather than showing the one
+        // compute_pulse stored — see rangeDrivers below.
+        supabase.from('depth_chart').select('player_name,position,pulse_delta,out_since')
+          .eq('sport_id', curSport).neq('status', 'active'),
       ]);
       const s = (snapRes.data ?? []) as { date: string; score: number; trend: string; ranking: number | null; drivers: Driver[] | null }[];
       setSnaps(s.map((x) => ({ date: x.date, score: x.score })));
@@ -120,6 +133,7 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
       setMoves((moveRes.data ?? []) as RosterMove[]);
       setGames((gameRes.data ?? []) as Game[]);
       setNotes((noteRes.data ?? []) as { date: string; note: string; pulse_delta: number | null }[]);
+      setHurt((hurtRes.data ?? []) as Injury[]);
       setBriefing((briefRes.data?.[0] as Briefing) ?? null);
       setLoading(false);
     })();
@@ -264,11 +278,22 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
     if (current?.ranking) out.push({ label: `#${current.ranking} nationally`, kind: 'rank' });
     if (Math.round(newsSum) !== 0) out.push({ label: newsSum > 0 ? 'News buzz' : 'Recent news', delta: Math.round(newsSum), kind: 'news' });
     if (cws) out.push({ label: 'CWS run', kind: 'post' });
+    // Injuries, before the portal line. Until this existed, a starter going down showed up
+    // as an unexplained dip whose only listed cause was whatever transfer happened that
+    // fortnight — the score moved for the right reason and named the wrong one.
+    const inj = hurt.filter((h) => (h.pulse_delta ?? 0) !== 0 && (!h.out_since || inWin(h.out_since)));
+    if (inj.length) {
+      const names = [...inj]
+        .sort((a, b) => (a.pulse_delta ?? 0) - (b.pulse_delta ?? 0))
+        .map((h) => (h.position ? `${h.player_name} (${h.position})` : h.player_name));
+      const delta = inj.reduce((sum, h) => sum + (h.pulse_delta ?? 0), 0);
+      out.push({ label: `Out: ${names.join(', ')}`, delta, kind: 'injury' });
+    }
     if (tin || tout) out.push({ label: `Transfers +${tin}/-${tout}`, delta: Math.round((tin - tout) * 1.5), kind: 'portal' });
     if (recruits) out.push({ label: `Recruits +${recruits}`, delta: Math.round(recruits * 0.8), kind: 'recruit' });
     if (departures) out.push({ label: `Departures -${departures}`, delta: Math.round(departures * -0.4), kind: 'depart' });
     return out;
-  }, [points, n, moves, notes, games, current]);
+  }, [points, n, moves, notes, games, current, hurt]);
 
   return (
     <Modal visible={!!sport} animationType="slide" transparent={false} onRequestClose={onClose}>

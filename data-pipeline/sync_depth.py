@@ -97,6 +97,11 @@ def main() -> None:
             "status": status,
             "note": e.get("note") or None,
             "alert": e.get("alert") or None,
+            # What this injury costs the Pulse, and from when. Both optional and both
+            # curated -- an entry with no pulse_delta shows on the depth card and moves
+            # the score not at all. See the note in schema.sql.
+            "pulse_delta": int(e.get("pulse_delta") or 0),
+            "out_since": e.get("out_since") or None,
         })
 
     if rows:

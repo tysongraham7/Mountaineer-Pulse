@@ -395,7 +395,10 @@
     "rank": 2,
     "player_name": "Darius Wiley",
     "class_year": "R-So.",
-    "status": "active"
+    "status": "out",
+    "note": "Carted off in the Coastal Carolina opener with what was reported as a season-threatening injury.",
+    "pulse_delta": -2,
+    "out_since": "2026-09-05"
   },
   {
     "sport_id": "football",
