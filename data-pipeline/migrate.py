@@ -295,6 +295,8 @@ ALTERS = [
     # applies the hit from the right day forward instead of across the whole season.
     "alter table depth_chart add column if not exists pulse_delta int not null default 0;",
     "alter table depth_chart add column if not exists out_since date;",
+    # --- Game-day theme ("Gold Rush", "Stripe the Stadium"), scraped from wvusports.com ---
+    "alter table games add column if not exists theme text;",
 ]
 
 

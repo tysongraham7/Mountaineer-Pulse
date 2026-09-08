@@ -380,3 +380,10 @@ create policy "public read coaches" on coaches for select using (true);
 -- ---------------------------------------------------------------------------
 alter table depth_chart add column if not exists pulse_delta int not null default 0;
 alter table depth_chart add column if not exists out_since date;
+
+-- The game-day promo WVU attaches to a home game: "All White for 5 (Wear WHITE)",
+-- "Gold Rush", "Stripe the Stadium". Scraped from the official schedule page by
+-- sync_game_themes.py. It's the one piece of preview information a fan has to act on
+-- before leaving the house, which is why it earns a column instead of living in the
+-- AI-written scouting report where it could drift.
+alter table games add column if not exists theme text;

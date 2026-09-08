@@ -16,6 +16,9 @@ export type Game = {
    *  game ESPN hasn't listed, and for older clients reading rows written before the column
    *  existed — either way the card just falls back to the countdown. */
   espn_event_id?: number | null;
+  /** WVU's game-day promo for a home game — "Gold Rush (Wear GOLD)", "Stripe the Stadium".
+   *  Scraped from the official schedule; null for away games and unthemed ones. */
+  theme?: string | null;
 };
 
 export type Player = {

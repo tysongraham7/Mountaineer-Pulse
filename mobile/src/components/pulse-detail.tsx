@@ -47,6 +47,13 @@ const RANGES: { label: string; stepDays: number; count: number; word: string }[]
 ];
 
 type Driver = { label: string; delta?: number; kind: string };
+
+/** "A", "A and B", "A, B +2 more" — a chip has room for two names, not a roster. */
+function summarize(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? '';
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names[0]}, ${names[1]} +${names.length - 2} more`;
+}
 /** A curated injury from the depth chart, with what it costs the Pulse and from when. */
 type Injury = {
   player_name: string;
@@ -287,9 +294,21 @@ export function PulseDetail({ sport, onClose }: { sport: string | null; onClose:
         .sort((a, b) => (a.pulse_delta ?? 0) - (b.pulse_delta ?? 0))
         .map((h) => (h.position ? `${h.player_name} (${h.position})` : h.player_name));
       const delta = inj.reduce((sum, h) => sum + (h.pulse_delta ?? 0), 0);
-      out.push({ label: `Out: ${names.join(', ')}`, delta, kind: 'injury' });
+      out.push({ label: `Injured ${summarize(names)}`, delta, kind: 'injury' });
     }
-    if (tin || tout) out.push({ label: `Transfers +${tin}/-${tout}`, delta: Math.round((tin - tout) * 1.5), kind: 'portal' });
+    if (tin || tout) {
+      // Named, the way the injury chip is. "Transfers +1/-1" is arithmetic; the reason the
+      // score moved is a person, and a fan wants to know which one. Two names, then a count.
+      const nameOf = (m: RosterMove) => (m.position ? `${m.player_name} (${m.position})` : m.player_name);
+      const label = [
+        wm.filter((m) => m.direction === 'in' && m.category === 'transfer'),
+        wm.filter((m) => m.direction === 'out' && m.category === 'transfer'),
+      ]
+        .map((list, i) => (list.length ? `${i === 0 ? 'In' : 'Out'} ${summarize(list.map(nameOf))}` : ''))
+        .filter(Boolean)
+        .join(' · ');
+      out.push({ label, delta: Math.round((tin - tout) * 1.5), kind: 'portal' });
+    }
     if (recruits) out.push({ label: `Recruits +${recruits}`, delta: Math.round(recruits * 0.8), kind: 'recruit' });
     if (departures) out.push({ label: `Departures -${departures}`, delta: Math.round(departures * -0.4), kind: 'depart' });
     return out;

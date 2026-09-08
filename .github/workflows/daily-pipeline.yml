@@ -102,6 +102,12 @@ jobs:
         run: python sync_basketball.py
         continue-on-error: true
 
+      # Reads the two schedule pages and writes games.theme. Cheap, and it self-corrects
+      # when WVU changes a promo, which typing them in by hand would not.
+      - name: Game-day themes (wvusports.com)
+        run: python sync_game_themes.py
+        continue-on-error: true
+
       - name: Depth chart
         run: python sync_depth.py
         continue-on-error: true

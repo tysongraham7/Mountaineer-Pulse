@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -37,6 +37,20 @@ const RESULTS_LIMIT = 60;
 function formatDate(iso: string | null): string {
   if (!iso) return 'TBD';
   return easternDateShort(iso);
+}
+
+/** Sports whose season spans two calendar years, and whose season number is the year it
+ *  ENDS in — so basketball's 2027 is the 2026-27 season a fan would name. */
+const WRAPS_YEARS = new Set(['mbb']);
+
+function seasonLabel(season: number | null, games: Game[]): string {
+  if (season == null) return 'Earlier';
+  // "2026-27" only when every game under this heading is from a wrapping sport; with the
+  // filter on All a mixed group would otherwise mislabel football's autumn.
+  if (games.length > 0 && games.every((g) => WRAPS_YEARS.has(g.sport_id))) {
+    return `${season - 1}-${String(season).slice(2)} Season`;
+  }
+  return `${season} Season`;
 }
 
 function fromWvuView(g: Game) {
@@ -102,6 +116,21 @@ export default function ScoresScreen() {
   );
   const results = visible.filter((g) => g.status === 'final').reverse().slice(0, RESULTS_LIMIT);
 
+  // Finals split by season, newest first. Without this the list ran straight from this
+  // year's opener into last November with nothing to mark the join, so a 4-8 season and a
+  // 1-0 one read as one continuous run of results.
+  const resultGroups = useMemo(() => {
+    const out: { season: number | null; label: string; games: Game[] }[] = [];
+    for (const g of results) {
+      const season = g.season ?? null;
+      const last = out[out.length - 1];
+      if (last && last.season === season) last.games.push(g);
+      else out.push({ season, label: '', games: [g] });
+    }
+    for (const grp of out) grp.label = seasonLabel(grp.season, grp.games);
+    return out;
+  }, [results]);
+
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
       {/* Header + sport filter — pinned above the scroll (stays put like the Team tab) */}
@@ -137,12 +166,16 @@ export default function ScoresScreen() {
                 {upcoming.map((g) => <GameCard key={g.id} game={g} showTag={showTag} onPick={setSelected} />)}
               </>
             )}
-            {results.length > 0 && (
-              <>
-                <SectionLabel tone="muted" style={styles.sectionLabel as never}>Final</SectionLabel>
-                {results.map((g) => <GameCard key={g.id} game={g} showTag={showTag} onPick={setSelected} />)}
-              </>
-            )}
+            {resultGroups.map((grp, gi) => (
+              <View key={`${grp.season}-${gi}`}>
+                <SectionLabel tone="muted" style={styles.sectionLabel as never}>
+                  {gi === 0 ? `Final · ${grp.label}` : grp.label}
+                </SectionLabel>
+                {grp.games.map((g) => (
+                  <GameCard key={g.id} game={g} showTag={showTag} onPick={setSelected} />
+                ))}
+              </View>
+            ))}
             {upcoming.length === 0 && results.length === 0 && (
               <Text style={styles.empty}>No games to show yet.</Text>
             )}

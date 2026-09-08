@@ -127,6 +127,20 @@ def wvu_context(sb, game: dict) -> str:
                 note = f"{sub}{' — ' + replaced['note'] if replaced.get('note') else ''}"
             lines.append(f"- {d['position']}: {d['player_name']}{note}{flag}")
 
+    # Everyone unavailable, starter or not. The block above only names whoever is going to
+    # play, so an out BACKUP is invisible to it — which is how the UT Martin preview came
+    # out saying Prince Strachan (an out starter) and nothing about Darius Wiley, the
+    # second-string DE who'd been carted off five days earlier. A two-deep player missing
+    # is a real part of an injury report, so hand the model all of them.
+    unavailable = [d for d in depth if (d.get("status") or "active") != "active"]
+    if unavailable:
+        lines.append("\n=== WVU PLAYERS UNAVAILABLE OR IN DOUBT (from our depth chart) ===")
+        lines.append("Include these in the injuries field. Depth is 1=starter, 2=backup.")
+        for d in sorted(unavailable, key=lambda r: (r.get("pos_order") or 0, r.get("rank") or 0)):
+            note = f" — {d['note']}" if d.get("note") else ""
+            lines.append(f"- {d['position']} {d['player_name']} "
+                         f"(depth {d.get('rank') or '?'}, {d.get('status')}){note}")
+
     stats = (sb.table("player_stats").select("player_name,category,stat_type,stat,season")
              .eq("sport_id", sport).order("season", desc=True).limit(120).execute().data or [])
     if stats:

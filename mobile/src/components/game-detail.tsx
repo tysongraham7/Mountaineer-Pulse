@@ -142,6 +142,19 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                   all for a game with no ESPN id. */}
               <GameLive game={game} live={live} />
 
+              {/* The one thing in a preview a fan has to act on BEFORE leaving the house,
+                  so it sits above the report rather than inside it. Home games only —
+                  an away game's promo belongs to the other school. */}
+              {!!game.theme && (
+                <View style={styles.themeCard}>
+                  <Ionicons name="shirt-outline" size={16} color={Brand.gold} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.themeLabel}>GAME DAY THEME</Text>
+                    <Text style={styles.themeText}>{game.theme}</Text>
+                  </View>
+                </View>
+              )}
+
               <SectionLabel tone="muted" style={styles.head as never}>Game Info</SectionLabel>
               <View style={styles.table}>
                 {rows.map(([label, value], i) => (
@@ -245,6 +258,20 @@ const styles = StyleSheet.create({
   countdownPill: { backgroundColor: Brand.goldTint, borderWidth: 1, borderColor: Brand.goldBorder, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   countdownText: { fontFamily: Font.bodyBold, fontSize: 12, color: Brand.gold },
   head: { marginTop: 20, marginBottom: 8 },
+  themeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    marginTop: 18,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: Brand.goldTint,
+    borderWidth: 1,
+    borderColor: Brand.goldBorder,
+  },
+  themeLabel: { fontFamily: Font.bodyBold, fontSize: 9.5, letterSpacing: 1, color: Brand.gold },
+  themeText: { fontFamily: Font.displaySemi, fontSize: 14.5, color: c.text, marginTop: 3, lineHeight: 20 },
   table: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, borderRadius: 16, paddingHorizontal: 16 },
   tableRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: c.border },
   tableLabel: { flex: 0.8, fontSize: 13, color: c.textSecondary, fontFamily: Font.bodyMed },
