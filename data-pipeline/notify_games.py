@@ -178,9 +178,14 @@ def kickoff_alert(g: dict) -> tuple[str, str]:
     # The network goes in the alert itself: "where do I watch" is the question this push
     # arrives in time to answer, and it's the one detail a fan can't act on later.
     on = f" on {g['broadcast']}" if g.get("broadcast") else ""
+    # Football is the only sport with a live score and play-by-play in the app, so only
+    # football promises them. Basketball still points at the scouting report rather than
+    # advertising a play-by-play the sheet can't show.
+    tap = ("Tap for the live score and play-by-play." if g["sport_id"] == "football"
+           else "Tap for the matchup and what to watch for.")
     return (
         f"WVU {where} {opp} today",
-        f"{verb} at {when} ET{on}. Tap for the matchup and what to watch for.",
+        f"{verb} at {when} ET{on}. {tap}",
     )
 
 
