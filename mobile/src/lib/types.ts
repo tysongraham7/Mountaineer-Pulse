@@ -3,6 +3,8 @@ export type Game = {
   sport_id: string;
   season: number;
   week: number | null;
+  /** 'regular' | 'postseason' from the feeds; 'exhibition' for a preseason game carried
+   *  from the official schedule, which the tabs label and the record never counts. */
   season_type: string | null;
   start_date: string | null;
   home_team: string;

@@ -88,8 +88,12 @@ def next_game(sb, game_id: int | None):
         return rows[0] if rows else None
     now = datetime.now(timezone.utc)
     horizon = (now + timedelta(days=LOOKAHEAD_DAYS)).isoformat()
+    # An exhibition is not a matchup anyone wants scouted, and in late October it would
+    # otherwise outrank the football game two days later. Spelled with an explicit null
+    # branch because a bare neq drops nulls, and ESPN rows carry no season_type at all.
     rows = (sb.table("games").select("*")
             .neq("status", "final")
+            .or_("season_type.is.null,season_type.neq.exhibition")
             .gte("start_date", now.isoformat())
             .lte("start_date", horizon)
             .order("start_date").limit(1).execute().data or [])

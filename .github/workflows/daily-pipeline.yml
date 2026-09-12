@@ -50,6 +50,12 @@ jobs:
         run: python sync_espn.py
         continue-on-error: true
 
+      # After ESPN on purpose: it fills in the games WVU has announced that ESPN hasn't
+      # listed yet, and drops each placeholder the day ESPN's row for it appears.
+      - name: Official schedule fill-in (wvusports.com)
+        run: python sync_wvu_schedule.py
+        continue-on-error: true
+
       - name: Rosters (wvusports.com)
         run: python sync_rosters.py
         continue-on-error: true

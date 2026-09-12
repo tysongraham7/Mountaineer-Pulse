@@ -101,6 +101,7 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
   if (game?.broadcast && !final) rows.push(['Watch', game.broadcast]);
   if (game?.venue) rows.push(['Venue', game.venue]);
   rows.push(['Site', wvuHome ? 'Home' : 'Away']);
+  if (game?.season_type === 'exhibition') rows.push(['Game', 'Exhibition']);
   if (game?.week != null) rows.push(['Week', String(game.week)]);
 
   return (

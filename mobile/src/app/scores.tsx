@@ -220,6 +220,8 @@ function GameCard({
     ? [live?.detail || 'Under way', ...(live?.downDistance ? [live.downDistance] : [])]
     : [formatDate(game.start_date), ...(kickoff ? [kickoff] : []), ...(broadcast ? [broadcast] : [])];
   if (showTag) metaParts.push(labelOf(game.sport_id));
+  // Said out loud so a fan doesn't count it: the row looks exactly like a real game.
+  if (game.season_type === 'exhibition') metaParts.push('Exhibition');
 
   const liveWon = (live?.wvuScore ?? 0) > (live?.oppScore ?? 0);
 

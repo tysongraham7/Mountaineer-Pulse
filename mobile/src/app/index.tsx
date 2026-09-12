@@ -820,7 +820,13 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
             ? [game.broadcast ? `On ${game.broadcast}` : null, 'Updates trail the TV broadcast by about 30 seconds']
                 .filter(Boolean)
                 .join(' · ')
-            : [game.venue, SPORT_TAG[game.sport_id] ?? game.sport_id].filter(Boolean).join(' · ')}
+            : [
+                game.venue,
+                SPORT_TAG[game.sport_id] ?? game.sport_id,
+                game.season_type === 'exhibition' ? 'Exhibition' : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
         </Text>
       </Card>
     </Pressable>

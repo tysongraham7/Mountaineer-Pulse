@@ -110,9 +110,12 @@ def pushed_today(sb, now_et: datetime) -> int:
 
 def due_kickoffs(sb, now: datetime) -> list[dict]:
     window = (now + timedelta(minutes=KICKOFF_LEAD_MIN)).isoformat()
+    # No reminder for an exhibition: the daily push budget is small and it isn't a game
+    # that counts. The null branch is required — a bare neq drops ESPN's untyped rows.
     rows = (sb.table("games")
             .select("id,sport_id,start_date,home_team,away_team,venue,is_wvu_home,status,broadcast")
             .neq("status", "final")
+            .or_("season_type.is.null,season_type.neq.exhibition")
             .gte("start_date", now.isoformat()).lte("start_date", window)
             .is_("notified_kickoff_at", "null")
             .order("start_date").execute().data or [])
