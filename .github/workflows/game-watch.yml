@@ -1,0 +1,54 @@
+name: Game Watch
+
+# Follows a WVU football game from kickoff to the final and alerts on what changes —
+# scores, quarters, the final — via data-pipeline/watch_game.py. One long job per game
+# rather than a cron: see the note at the top of that script for why a 30-minute tick
+# cannot do this.
+#
+# SHADOW MODE until it has followed a real game correctly. No --send below means every
+# alert is printed to this log and none is pushed. Flip to --send once a Saturday's log
+# reads right, and once the alert-level picker on the You tab has shipped — before that,
+# every device is 'basic' and the only thing --send would add is a faster final.
+#
+# WHY SATURDAYS ONLY. Every scheduled run counts against the repository's cron budget,
+# and asking for too many is what throttled the daily pipeline to ten hours late (see
+# game-day.yml). Football is played on Saturdays, so this asks for Saturdays in season,
+# 11am-11pm ET, 30 minutes apart — about 25 runs a week, nearly all of which exit in
+# seconds because there is no game within twenty minutes. A Thursday or Friday game
+# needs a Run workflow tap (workflow_dispatch below). Bowl season: December-January.
+on:
+  schedule:
+    - cron: "*/30 15-23 * 8-12 6"   # Sat, 11am-7:30pm ET (15:00-23:30 UTC), Aug-Dec
+    - cron: "*/30 0-3 * 9-12,1 0"   # Sun UTC = Sat night ET, 8pm-11:30pm ET
+  workflow_dispatch:
+
+# One watcher at a time. A tick that fires mid-game queues behind the running watcher and,
+# when it finally runs, finds the game final and exits. Never cancel-in-progress: killing
+# the watcher at the two-minute warning is the worst possible moment.
+concurrency:
+  group: game-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    # A game is ~3.5 hours; the script gives up at 5. This is the backstop above that.
+    timeout-minutes: 330
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests supabase python-dotenv
+
+      - name: Watch the game
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: python watch_game.py

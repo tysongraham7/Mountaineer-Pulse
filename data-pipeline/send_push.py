@@ -55,9 +55,13 @@ def _enabled_tokens(sb) -> list[str]:
     return [r["token"] for r in rows if (r.get("token") or "").startswith("ExponentPushToken")]
 
 
-def send_push(title: str, body: str, data: dict | None = None) -> int:
+def send_push(title: str, body: str, data: dict | None = None,
+              tokens: list[str] | None = None) -> int:
     """Send one notification to every enabled device. Returns how many were accepted.
-    Safe to call anytime: a no-op (returns 0) if creds or devices are missing."""
+    Safe to call anytime: a no-op (returns 0) if creds or devices are missing.
+
+    `tokens` narrows the audience to those devices — watch_game.py uses it to send a
+    touchdown only to people who asked for every score. Omitted, everyone enabled gets it."""
     if PUSH_PAUSED:
         # Loud, and prints what WOULD have gone out, so a paused run is still reviewable in
         # the Actions log — that is how you find out whether the judgment is improving.
@@ -67,7 +71,8 @@ def send_push(title: str, body: str, data: dict | None = None) -> int:
         print("  (push skipped: missing Supabase creds)")
         return 0
     sb = create_client(SB_URL, SB_KEY)
-    tokens = _enabled_tokens(sb)
+    if tokens is None:
+        tokens = _enabled_tokens(sb)
     if not tokens:
         print("  (push skipped: no registered devices)")
         return 0
