@@ -209,13 +209,16 @@ function GameCard({
   // ESPN can mark a game final minutes before the pipeline writes the score, so trust it.
   const liveFinal = live?.state === 'post' && live.wvuScore != null;
 
-  // Kickoff sits next to the date once it's announced; before that the card stays
-  // quiet rather than showing the feed's midnight placeholder. A game under way shows
-  // where it stands instead — the date is not the question at that point.
+  // Kickoff sits next to the date once it's announced, and the network next to that;
+  // before either lands the card stays quiet rather than showing the feed's midnight
+  // placeholder. A game under way shows where it stands instead — the date is not the
+  // question at that point. A final drops both: nobody needs to know a played game's
+  // channel, and the score wants the room.
   const kickoff = game.start_date && !p.final ? easternTime(game.start_date) : null;
+  const broadcast = !p.final ? game.broadcast : null;
   const metaParts = inProgress
     ? [live?.detail || 'Under way', ...(live?.downDistance ? [live.downDistance] : [])]
-    : [formatDate(game.start_date), ...(kickoff ? [kickoff] : [])];
+    : [formatDate(game.start_date), ...(kickoff ? [kickoff] : []), ...(broadcast ? [broadcast] : [])];
   if (showTag) metaParts.push(labelOf(game.sport_id));
 
   const liveWon = (live?.wvuScore ?? 0) > (live?.oppScore ?? 0);
@@ -234,7 +237,9 @@ function GameCard({
         </Text>
         <View style={styles.metaRow}>
           {inProgress && <View style={styles.liveDot} />}
-          <Text style={[styles.meta, inProgress && { color: Brand.gold }]} numberOfLines={1}>
+          {/* Wraps rather than clips: date, time, network and a sport tag don't always
+              fit one 12px line at phone width, and the network is the part at the end. */}
+          <Text style={[styles.meta, inProgress && { color: Brand.gold }]} numberOfLines={2}>
             {metaParts.join(' · ')}
           </Text>
         </View>

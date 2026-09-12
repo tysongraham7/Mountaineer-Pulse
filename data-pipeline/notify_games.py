@@ -111,7 +111,7 @@ def pushed_today(sb, now_et: datetime) -> int:
 def due_kickoffs(sb, now: datetime) -> list[dict]:
     window = (now + timedelta(minutes=KICKOFF_LEAD_MIN)).isoformat()
     rows = (sb.table("games")
-            .select("id,sport_id,start_date,home_team,away_team,venue,is_wvu_home,status")
+            .select("id,sport_id,start_date,home_team,away_team,venue,is_wvu_home,status,broadcast")
             .neq("status", "final")
             .gte("start_date", now.isoformat()).lte("start_date", window)
             .is_("notified_kickoff_at", "null")
@@ -172,9 +172,12 @@ def kickoff_alert(g: dict) -> tuple[str, str]:
     when = et.strftime("%-I:%M %p") if os.name != "nt" else et.strftime("%#I:%M %p")
     verb = VERB.get(g["sport_id"], "First pitch")
     where = "vs" if g.get("is_wvu_home") else "at"
+    # The network goes in the alert itself: "where do I watch" is the question this push
+    # arrives in time to answer, and it's the one detail a fan can't act on later.
+    on = f" on {g['broadcast']}" if g.get("broadcast") else ""
     return (
         f"WVU {where} {opp} today",
-        f"{verb} at {when} ET. Tap for the matchup and what to watch for.",
+        f"{verb} at {when} ET{on}. Tap for the matchup and what to watch for.",
     )
 
 

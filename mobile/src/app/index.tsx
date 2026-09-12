@@ -733,7 +733,13 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
   const kickoff = iso ? easternTime(iso) : null;
   // A kickoff the feed hasn't been given yet is stored as midnight Eastern; easternTime
   // returns null for it rather than printing "12:00 AM".
-  const when = [iso ? easternDateShort(iso) : '', kickoff ?? 'Time TBA'].filter(Boolean).join(' · ');
+  //
+  // The network rides on the same line as the time: "when" and "where do I turn it on"
+  // are one question to a fan, and this card is the first thing they see, so the answer
+  // can't live behind a tap. Absent until TV picks the window, same as the time.
+  const when = [iso ? easternDateShort(iso) : '', kickoff ?? 'Time TBA', game.broadcast]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Pressable onPress={onOpen} style={({ pressed }) => [pressed && { opacity: 0.75 }]}>
@@ -769,7 +775,9 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
               <Text style={styles.nextGameVs}>{home ? 'vs ' : 'at '}</Text>
               {opponent}
             </Text>
-            <Text style={styles.nextGameMeta} numberOfLines={1}>
+            {/* Two lines, not one: "Sat, Sep 19 · 7:30 PM EDT · ACC Network" clips on a
+                390-wide phone, and the clipped word is the one this line was widened for. */}
+            <Text style={styles.nextGameMeta} numberOfLines={2}>
               {hasScore ? `WVU ${score.wvuScore} · ${opponent} ${score.oppScore}` : when}
             </Text>
           </View>
@@ -805,9 +813,13 @@ function NextGameCard({ game, onOpen }: { game: Game; onOpen: () => void }) {
           </View>
         )}
 
-        <Text style={styles.nextGameWhere} numberOfLines={1}>
+        {/* Mid-game the meta line is the score, so the network moves down here: someone
+            checking a phone at a bar wants to know which TV to look at. */}
+        <Text style={styles.nextGameWhere} numberOfLines={inProgress ? 2 : 1}>
           {inProgress
-            ? 'Updates trail the TV broadcast by about 30 seconds'
+            ? [game.broadcast ? `On ${game.broadcast}` : null, 'Updates trail the TV broadcast by about 30 seconds']
+                .filter(Boolean)
+                .join(' · ')
             : [game.venue, SPORT_TAG[game.sport_id] ?? game.sport_id].filter(Boolean).join(' · ')}
         </Text>
       </Card>

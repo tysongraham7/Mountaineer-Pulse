@@ -94,6 +94,11 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
   // A null kickoff is a real state, not missing data — say so rather than print
   // the midnight placeholder the feed uses for an unannounced start.
   rows.push(['Time', kickoff ?? 'To be announced']);
+  // Where to watch, right under when. Once the window is picked both arrive together, so
+  // a known time with no network is rare and the row just stays out rather than saying
+  // "To be announced" twice. Dropped for a final: the channel a played game was on is
+  // trivia, and the table above a box score should be short.
+  if (game?.broadcast && !final) rows.push(['Watch', game.broadcast]);
   if (game?.venue) rows.push(['Venue', game.venue]);
   rows.push(['Site', wvuHome ? 'Home' : 'Away']);
   if (game?.week != null) rows.push(['Week', String(game.week)]);
@@ -195,7 +200,7 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
 
               {!final && !kickoff && (
                 <Text style={styles.note}>
-                  Kickoff times are usually set about two weeks out, once TV picks the window.
+                  Kickoff time and network are usually set about two weeks out, once TV picks the window.
                 </Text>
               )}
 

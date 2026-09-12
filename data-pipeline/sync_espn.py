@@ -57,6 +57,28 @@ def is_wvu(competitor: dict) -> bool:
     return str(t.get("id")) == TEAM_ID or "West Virginia" in (t.get("displayName", "") or "")
 
 
+def broadcast_of(comp: dict) -> str | None:
+    """Where to watch, as one display string: "TNT", "ESPN+", "ABC / ESPN+".
+
+    ESPN lists every outlet carrying the game, and for a national broadcast that can
+    include a Spanish-language simulcast or a regional feed nobody in Morgantown gets.
+    English-language US outlets only, in ESPN's order, deduplicated - the schedule page
+    occasionally repeats an outlet under two broadcast types. Empty (None) until the
+    network claims the game, which happens with the kickoff time about two weeks out.
+
+    Shared with sync_football.py: football's schedule is CFBD's, but its broadcast comes
+    from this same ESPN competition shape.
+    """
+    seen: list[str] = []
+    for b in comp.get("broadcasts") or []:
+        if (b.get("lang") or "en") != "en" or (b.get("region") or "us") != "us":
+            continue
+        name = ((b.get("media") or {}).get("shortName") or "").strip()
+        if name and name not in seen:
+            seen.append(name)
+    return " / ".join(seen) or None
+
+
 def parse_event(ev: dict, sport_id: str, season: int) -> dict | None:
     comp = (ev.get("competitions") or [{}])[0]
     competitors = comp.get("competitors", [])
@@ -98,6 +120,7 @@ def parse_event(ev: dict, sport_id: str, season: int) -> dict | None:
         "venue": (comp.get("venue") or {}).get("fullName"),
         "status": "final" if completed else "scheduled",
         "is_wvu_home": home["wvu"],
+        "broadcast": broadcast_of(comp),
     }
 
 

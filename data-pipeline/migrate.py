@@ -297,6 +297,8 @@ ALTERS = [
     "alter table depth_chart add column if not exists out_since date;",
     # --- Game-day theme ("Gold Rush", "Stripe the Stadium"), scraped from wvusports.com ---
     "alter table games add column if not exists theme text;",
+    # --- Where to watch ("TNT", "ESPN+"), from ESPN's schedule feed ---
+    "alter table games add column if not exists broadcast text;",
 ]
 
 

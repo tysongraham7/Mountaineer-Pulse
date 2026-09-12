@@ -387,3 +387,10 @@ alter table depth_chart add column if not exists out_since date;
 -- before leaving the house, which is why it earns a column instead of living in the
 -- AI-written scouting report where it could drift.
 alter table games add column if not exists theme text;
+
+-- Where to watch: the network or stream ESPN lists for the game - "TNT", "ESPN+",
+-- "ACC Network", "FOX". One display string, several outlets joined with " / ". Written
+-- by sync_football.py and sync_espn.py from the same schedule feed that supplies
+-- espn_event_id. Null until TV picks the window (about two weeks out, together with the
+-- kickoff time), so a null means "not announced yet", not "no broadcast".
+alter table games add column if not exists broadcast text;

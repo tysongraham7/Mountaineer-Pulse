@@ -23,6 +23,8 @@ import requests
 from dotenv import load_dotenv
 from supabase import create_client
 
+from sync_espn import broadcast_of
+
 load_dotenv()
 
 CFBD_KEY = os.getenv("CFBD_API_KEY")
@@ -72,17 +74,19 @@ def eastern_day(iso: str | None) -> str | None:
         return None
 
 
-def espn_event_ids() -> dict[str, int]:
-    """Map Eastern game date -> ESPN event id for every WVU football game ESPN lists.
+def espn_events() -> dict[str, tuple[int, str | None]]:
+    """Map Eastern game date -> (ESPN event id, broadcast) for every WVU football game
+    ESPN lists.
 
-    Best-effort by design. This is a nicety that powers the live-score card; CFBD remains
-    the source of truth for the schedule itself. If ESPN is unreachable the sync must still
-    write games, so every failure here returns an empty map rather than raising — the
-    caller then leaves the column untouched instead of blanking ids it wrote earlier.
+    Best-effort by design. These are niceties — the id powers the live-score card, the
+    broadcast is the "where to watch" line; CFBD remains the source of truth for the
+    schedule itself. If ESPN is unreachable the sync must still write games, so every
+    failure here returns an empty map rather than raising — the caller then leaves both
+    columns untouched instead of blanking values it wrote earlier.
 
     WVU plays at most one football game a day, so the date is a unique key.
     """
-    out: dict[str, int] = {}
+    out: dict[str, tuple[int, str | None]] = {}
     for season in SEASONS:
         try:
             r = requests.get(ESPN_SCHEDULE, params={"season": season}, headers=ESPN_UA, timeout=30)
@@ -95,7 +99,8 @@ def espn_event_ids() -> dict[str, int]:
         for ev in events:
             day = eastern_day(ev.get("date"))
             if day and str(ev.get("id", "")).isdigit():
-                out[day] = int(ev["id"])
+                comp = (ev.get("competitions") or [{}])[0]
+                out[day] = (int(ev["id"]), broadcast_of(comp))
     return out
 
 
@@ -109,7 +114,7 @@ def main() -> None:
     print(f"Connected to Supabase: {SB_URL}\n")
 
     # --- GAMES (schedule + scores) ------------------------------------------
-    espn_ids = espn_event_ids()
+    espn = espn_events()
     game_rows = []
     for season in SEASONS:
         games = cfbd("/games", {"year": season, "team": TEAM, "seasonType": "regular"})
@@ -131,17 +136,20 @@ def main() -> None:
                 "status": "final" if played else "scheduled",
                 "is_wvu_home": g.get("homeTeam") == TEAM,
             })
-            # Only when ESPN answered. Writing the key with a None for every row on a day
+            # Only when ESPN answered. Writing the keys with a None for every row on a day
             # ESPN was down would upsert those nulls over ids we already had, taking the
             # live card offline until the next successful run. Absent key = column left as
             # it is. Present-but-None is still correct for a game ESPN genuinely has no
             # event for, which is why the check is on the map, not on the lookup.
-            if espn_ids:
-                game_rows[-1]["espn_event_id"] = espn_ids.get(eastern_day(g.get("startDate")))
+            if espn:
+                event_id, broadcast = espn.get(eastern_day(g.get("startDate"))) or (None, None)
+                game_rows[-1]["espn_event_id"] = event_id
+                game_rows[-1]["broadcast"] = broadcast
     sb.table("games").upsert(game_rows).execute()
     matched = sum(1 for r in game_rows if r.get("espn_event_id"))
+    on_tv = sum(1 for r in game_rows if r.get("broadcast"))
     print(f"  games        -> upserted {len(game_rows)} rows ({SEASONS[0]}-{SEASONS[-1]}), "
-          f"{matched} matched to an ESPN event")
+          f"{matched} matched to an ESPN event, {on_tv} with a broadcast")
 
     # --- PLAYERS (roster) ----------------------------------------------------
     # Nothing here any more. sync_rosters.py owns the players table: it scrapes

@@ -19,6 +19,9 @@ export type Game = {
   /** WVU's game-day promo for a home game — "Gold Rush (Wear GOLD)", "Stripe the Stadium".
    *  Scraped from the official schedule; null for away games and unthemed ones. */
   theme?: string | null;
+  /** Where to watch — "TNT", "ESPN+", "ABC / ESPN+" — from ESPN's schedule. Null until the
+   *  network claims the game, which happens with the kickoff time about two weeks out. */
+  broadcast?: string | null;
 };
 
 export type Player = {
