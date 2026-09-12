@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Brand, Font, surfaces } from '@/constants/brand';
 import { trackFeature } from '@/lib/analytics';
 import { BOX_LABEL, DriveItem, GameSummary, PlayItem, periodLabel } from '@/lib/game-summary';
-import { useGameSummary } from '@/lib/use-game-summary';
+import { SummaryState } from '@/lib/use-game-summary';
 import { LiveGame } from '@/lib/live-game-parse';
 import { Game } from '@/lib/types';
 
@@ -20,7 +20,9 @@ const c = surfaces(true);
  * use-game-summary.ts.
  *
  * The whole block renders nothing before kickoff: there is no box score for a game that
- * hasn't happened, and an empty table is worse than the countdown it would replace.
+ * hasn't happened, and an empty table is worse than the countdown it would replace. The
+ * sheet decides that with gameStarted() below, because it also has to know — the scouting
+ * report sits at the bottom of the sheet before kickoff and becomes a tab here after it.
  */
 
 const TABS = [
@@ -28,22 +30,42 @@ const TABS = [
   { id: 'box', label: 'Box Score' },
   { id: 'plays', label: 'Plays' },
   { id: 'team', label: 'Team Stats' },
+  { id: 'scout', label: 'Scouting' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
-export function GameLive({ game, live }: { game: Game; live: LiveGame | null }) {
-  const [tab, setTab] = useState<TabId>('summary');
-  const eventId = game.espn_event_id ?? null;
-  const wvuHome = !!game.is_wvu_home;
-  const { summary, loading, failed, refresh } = useGameSummary(eventId, wvuHome, true);
-
-  if (!eventId) return null;
-
-  // Before the first snap there is nothing here worth a tab bar.
+/**
+ * Whether there is anything to show for this game beyond the countdown. Null event id
+ * means ESPN never listed it; a 'pre' state from either feed means the ball isn't snapped.
+ */
+export function gameStarted(
+  eventId: number | null,
+  live: LiveGame | null,
+  summary: GameSummary | null,
+): boolean {
+  if (!eventId) return false;
   const started = live ? live.state !== 'pre' : summary?.state !== 'pre';
-  if (!started && !summary) return null;
-  if (summary && summary.state === 'pre') return null;
+  if (!started && !summary) return false;
+  if (summary && summary.state === 'pre') return false;
+  return true;
+}
+
+export function GameLive({
+  game,
+  live,
+  summaryState,
+  scout,
+}: {
+  game: Game;
+  live: LiveGame | null;
+  summaryState: SummaryState;
+  /** The rendered scouting report, when one exists. Gets its own tab. */
+  scout?: ReactNode;
+}) {
+  const [tab, setTab] = useState<TabId>('summary');
+  const { summary, loading, failed, refresh } = summaryState;
+  const tabs = scout ? TABS : TABS.filter((t) => t.id !== 'scout');
 
   // The scoreboard prefers the fast feed and falls back to the summary, so the header is
   // populated on the very first render rather than after the 178 KB round trip.
@@ -66,14 +88,20 @@ export function GameLive({ game, live }: { game: Game; live: LiveGame | null }) 
       />
 
       <View style={styles.tabs}>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const on = tab === t.id;
           return (
             <Pressable
               key={t.id}
               onPress={() => { trackFeature('game_tab_switch'); setTab(t.id); }}
               style={[styles.tab, on && styles.tabOn]}>
-              <Text style={[styles.tabText, { color: on ? Brand.onGold : c.textSecondary }]}>
+              {/* Five tabs on a phone: "Team Stats" is allowed to shrink a touch rather
+                  than wrap the bar to two rows. */}
+              <Text
+                style={[styles.tabText, { color: on ? Brand.onGold : c.textSecondary }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}>
                 {t.label}
               </Text>
             </Pressable>
@@ -81,7 +109,11 @@ export function GameLive({ game, live }: { game: Game; live: LiveGame | null }) 
         })}
       </View>
 
-      {loading && !summary ? (
+      {/* The report doesn't come from the ESPN feed, so it must not sit behind the
+          feed's spinner or its error state. */}
+      {tab === 'scout' ? (
+        <View style={{ marginTop: 16 }}>{scout}</View>
+      ) : loading && !summary ? (
         <View style={styles.loading}>
           <ActivityIndicator color={Brand.gold} />
         </View>

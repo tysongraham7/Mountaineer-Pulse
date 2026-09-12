@@ -1,32 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GameLive } from '@/components/game-live';
+import { GameLive, gameStarted } from '@/components/game-live';
 import { ReportModal } from '@/components/report-modal';
-import { SectionLabel, SheetHeader, SportIcon } from '@/components/ui';
+import { Matchup, ScoutingReport, scoutShareText } from '@/components/scouting-report';
+import { SectionLabel, SportIcon } from '@/components/ui';
 import { Brand, Font, Gradients, surfaces } from '@/constants/brand';
 import { trackFeature } from '@/lib/analytics';
 import { countdownLabel, easternDateLong, easternTime } from '@/lib/eastern';
 import { supabase } from '@/lib/supabase';
 import { Game } from '@/lib/types';
+import { useGameSummary } from '@/lib/use-game-summary';
 import { useLiveGame } from '@/lib/use-live-game';
-
-/** The scouting report generate_matchup.py writes, ~10 days out from kickoff. */
-type Matchup = {
-  headline: string;
-  opponent: { record: string; snapshot: string };
-  history: string;
-  keys: { topic: string; body: string }[];
-  strengths: string;
-  exploit: string;
-  injuries: string;
-  line: string;
-  weather: string;
-  /** Set when the report was written. Its contents move, so the sheet says when. */
-  generated_at?: string;
-};
 
 const c = surfaces(true);
 
@@ -42,6 +30,7 @@ function shortTeam(name: string): string {
 }
 
 export function GameDetail({ game, onClose }: { game: Game | null; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
   const [reportOpen, setReportOpen] = useState(false);
   // Counted here rather than at the call sites so a tap from Scores, the home card, and a
   // kickoff alert all land in the same bucket -- and so a new way in gets counted for free.
@@ -68,6 +57,7 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
 
   const wvuHome = !!game?.is_wvu_home;
   const opponent = game ? shortTeam(wvuHome ? game.away_team : game.home_team) : '';
+  const matchup = `${wvuHome ? 'vs' : 'at'} ${opponent}`;
   const final =
     game?.status === 'final' && game.home_points != null && game.away_points != null;
   const wvuPts = wvuHome ? game?.home_points : game?.away_points;
@@ -83,6 +73,21 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
   // other sport falls through to the countdown and the scouting report as before.
   const liveId = game?.sport_id === 'football' ? (game.espn_event_id ?? null) : null;
   const live = useLiveGame(liveId, iso, wvuHome, 'WVU', opponent.slice(0, 4).toUpperCase());
+  // The box score and play-by-play, on a slow tick. Lives here rather than in GameLive
+  // because whether the game has started decides where the scouting report goes: at the
+  // bottom of the sheet before kickoff, in a tab beside the box score after it.
+  const summaryState = useGameSummary(liveId, wvuHome, !!game);
+  const started = gameStarted(liveId, live, summaryState.summary);
+
+  const onShare = async () => {
+    if (!scout) return;
+    trackFeature('scout_share');
+    try {
+      await Share.share({ message: scoutShareText(scout, matchup) });
+    } catch {
+      // User dismissed the sheet, or the OS refused it. Nothing to recover from.
+    }
+  };
 
   const rows: [string, string][] = [];
   if (iso) rows.push(['Date', easternDateLong(iso)]);
@@ -98,49 +103,70 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
       <View style={{ flex: 1, backgroundColor: c.bg }}>
         {game && (
           <>
-          {/* Pinned: the scouting report runs long, and the back button used to live at the
-              top of the gradient below and scroll out of reach with it. */}
-          <SheetHeader title={`${wvuHome ? 'vs' : 'at'} ${opponent}`} onClose={onClose} />
-          <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-            <LinearGradient
-              colors={Gradients.hero}
-              start={{ x: 0.2, y: 0 }}
-              end={{ x: 0.9, y: 1 }}
-              style={styles.hero}>
-              {/* Was the centered label in the old scrolling header. Kept here rather than in
-                  the pinned bar, which now carries the game itself. */}
-              <SectionLabel style={{ color: c.blueLabel } as never}>
+          {/* The blue hero IS the header: it owns the safe area, the back button and the
+              share button, and it stays put while the sheet scrolls. There used to be a
+              plain bar above it repeating "vs UT Martin" — pinned so the back button
+              couldn't scroll away under a long scouting report. Pinning the hero itself
+              keeps that without saying the opponent's name twice. */}
+          <LinearGradient
+            colors={Gradients.hero}
+            start={{ x: 0.2, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
+            style={[styles.hero, { paddingTop: insets.top + 6 }]}>
+            <View style={styles.heroBar}>
+              <Pressable onPress={onClose} hitSlop={12} style={styles.circleBtn}>
+                <Ionicons name="chevron-back" size={20} color={c.text} />
+              </Pressable>
+              <SectionLabel style={styles.sportLabel as never}>
                 {SPORT_LABEL[game.sport_id] ?? game.sport_id}
               </SectionLabel>
+              {/* Shares the scouting report, so it appears only once there is one. The
+                  spacer keeps the sport label centered until then. */}
+              {scout ? (
+                <Pressable onPress={onShare} hitSlop={12} style={styles.circleBtn}>
+                  <Ionicons name="share-outline" size={18} color={c.text} />
+                </Pressable>
+              ) : (
+                <View style={{ width: 32, height: 32 }} />
+              )}
+            </View>
 
-              <View style={styles.heroBody}>
-                <View style={styles.tile}>
-                  <SportIcon sport={game.sport_id} size={24} color={Brand.gold} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.locator}>{wvuHome ? 'vs' : 'at'}</Text>
-                  <Text style={styles.opponent}>{opponent}</Text>
-                </View>
-                {final ? (
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.resultTag, { color: won ? Brand.green : Brand.red }]}>
-                      {won ? 'W' : 'L'}
-                    </Text>
-                    <Text style={styles.score}>{wvuPts}–{oppPts}</Text>
-                  </View>
-                ) : countdown ? (
-                  <View style={styles.countdownPill}>
-                    <Text style={styles.countdownText}>{countdown}</Text>
-                  </View>
-                ) : null}
+            <View style={styles.heroBody}>
+              <View style={styles.tile}>
+                <SportIcon sport={game.sport_id} size={24} color={Brand.gold} />
               </View>
-            </LinearGradient>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.locator}>{wvuHome ? 'vs' : 'at'}</Text>
+                <Text style={styles.opponent} numberOfLines={1}>{opponent}</Text>
+              </View>
+              {final ? (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[styles.resultTag, { color: won ? Brand.green : Brand.red }]}>
+                    {won ? 'W' : 'L'}
+                  </Text>
+                  <Text style={styles.score}>{wvuPts}–{oppPts}</Text>
+                </View>
+              ) : countdown ? (
+                <View style={styles.countdownPill}>
+                  <Text style={styles.countdownText}>{countdown}</Text>
+                </View>
+              ) : null}
+            </View>
+          </LinearGradient>
 
+          <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             <View style={{ paddingHorizontal: 20 }}>
               {/* Everything that only exists once the ball is snapped: score, box score,
-                  play-by-play, team stats. Renders nothing before kickoff, and nothing at
-                  all for a game with no ESPN id. */}
-              <GameLive game={game} live={live} />
+                  play-by-play, team stats — and the scouting report, as a tab, so it
+                  isn't the tail of every other tab. */}
+              {started && (
+                <GameLive
+                  game={game}
+                  live={live}
+                  summaryState={summaryState}
+                  scout={scout ? <ScoutingReport scout={scout} /> : undefined}
+                />
+              )}
 
               {/* The one thing in a preview a fan has to act on BEFORE leaving the house,
                   so it sits above the report rather than inside it. Home games only —
@@ -173,60 +199,9 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                 </Text>
               )}
 
-              {scout && (
-                <>
-                  <SectionLabel style={styles.head as never}>Scouting Report</SectionLabel>
-                  {!!scout.headline && <Text style={styles.scoutLede}>{scout.headline}</Text>}
-
-                  {(!!scout.opponent?.record || !!scout.opponent?.snapshot) && (
-                    <View style={styles.scoutCard}>
-                      {!!scout.opponent.record && (
-                        <Text style={styles.scoutRecord}>{scout.opponent.record}</Text>
-                      )}
-                      {!!scout.opponent.snapshot && (
-                        <Text style={styles.scoutBody}>{scout.opponent.snapshot}</Text>
-                      )}
-                    </View>
-                  )}
-
-                  {!!scout.keys?.length && (
-                    <Text style={styles.scoutSub}>Keys to Victory</Text>
-                  )}
-                  {scout.keys?.map((w, i) => (
-                    <View key={i} style={styles.scoutCard}>
-                      <Text style={styles.scoutTopic}>{w.topic}</Text>
-                      <Text style={styles.scoutBody}>{w.body}</Text>
-                    </View>
-                  ))}
-
-                  {[['What They Do Well', scout.strengths], ['Where to Attack', scout.exploit]]
-                    .filter(([, v]) => !!(v || '').trim())
-                    .map(([label, v]) => (
-                      <View key={label} style={styles.scoutCard}>
-                        <Text style={styles.scoutTopic}>{label}</Text>
-                        <Text style={styles.scoutBody}>{v}</Text>
-                      </View>
-                    ))}
-
-                  {/* "Expected Outcome", not "Line": the number is here so a fan knows what
-                      kind of game to expect, not as a betting tip. */}
-                  {[['Series', scout.history], ['Injuries', scout.injuries],
-                    ['Expected Outcome', scout.line], ['Weather', scout.weather]]
-                    .filter(([, v]) => !!(v || '').trim())
-                    .map(([label, v]) => (
-                      <View key={label} style={styles.scoutCard}>
-                        <Text style={styles.scoutTopic}>{label}</Text>
-                        <Text style={styles.scoutBody}>{v}</Text>
-                      </View>
-                    ))}
-
-                  <Text style={styles.scoutNote}>
-                    {scout.generated_at
-                      ? `Researched from public sources on ${easternDateLong(scout.generated_at)}. Injuries and availability can change before kickoff.`
-                      : 'Researched from public sources. Injuries and availability can change before kickoff.'}
-                  </Text>
-                </>
-              )}
+              {/* Before kickoff the report is the sheet's main event and reads inline.
+                  Once the game starts it has moved into the tab bar above. */}
+              {scout && !started && <ScoutingReport scout={scout} titled />}
 
               <Pressable style={styles.reportBtn} onPress={() => setReportOpen(true)} hitSlop={8}>
                 <Ionicons name="flag-outline" size={13} color={c.textMuted} />
@@ -247,9 +222,22 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
 }
 
 const styles = StyleSheet.create({
-  // No top inset any more — SheetHeader sits above this and owns the safe area.
-  hero: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 22 },
-  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14 },
+  hero: { paddingHorizontal: 20, paddingBottom: 18 },
+  heroBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  sportLabel: { flex: 1, textAlign: 'center', color: c.blueLabel },
+  // A translucent circle rather than the sheet's surface3 one: this sits on the gradient,
+  // and a near-black disc on WVU blue looks like a hole.
+  circleBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },
   tile: { width: 48, height: 48, borderRadius: 13, backgroundColor: Brand.goldTint, borderWidth: 1, borderColor: Brand.goldBorder, alignItems: 'center', justifyContent: 'center' },
   locator: { fontFamily: Font.body, fontSize: 13, color: c.blueLabel },
   opponent: { fontFamily: Font.black, fontSize: 24, color: c.text, letterSpacing: -0.4, marginTop: 1 },
@@ -279,20 +267,4 @@ const styles = StyleSheet.create({
   note: { textAlign: 'center', marginTop: 16, fontSize: 12, color: c.textMuted, lineHeight: 18, fontFamily: Font.body },
   reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 24, paddingVertical: 8 },
   reportText: { fontSize: 12.5, color: c.textMuted, fontFamily: Font.bodyMed },
-
-  // Scouting report. Same card language as Game Info above so it reads as one sheet.
-  scoutLede: { fontFamily: Font.displaySemi, fontSize: 16, lineHeight: 23, color: c.text, marginBottom: 12 },
-  scoutCard: {
-    backgroundColor: c.card,
-    borderColor: c.border,
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-  },
-  scoutSub: { fontFamily: Font.bodyBold, fontSize: 11, letterSpacing: 1.3, color: c.textMuted, marginTop: 6, marginBottom: 8 },
-  scoutRecord: { fontFamily: Font.bodyBold, fontSize: 12, letterSpacing: 0.6, color: Brand.gold, marginBottom: 6 },
-  scoutTopic: { fontFamily: Font.displaySemi, fontSize: 14.5, color: c.text, marginBottom: 5 },
-  scoutBody: { fontFamily: Font.body, fontSize: 13.5, lineHeight: 20, color: c.textSecondary },
-  scoutNote: { fontFamily: Font.body, fontSize: 11.5, lineHeight: 17, color: c.textMuted, marginTop: 4 },
 });

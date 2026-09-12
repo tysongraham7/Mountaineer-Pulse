@@ -100,6 +100,9 @@ export const FEATURES = [
   'game_sheet_open',
   // Which of Summary / Box Score / Plays / Team Stats people actually read during a game.
   'game_tab_switch',
+  // The share button on the game sheet. Counts taps, not completed shares — the OS
+  // doesn't say whether the person picked an app or backed out.
+  'scout_share',
   'player_profile_open',
   // Separate from player_profile_open so the Staff tab can be judged on its own — if
   // nobody opens a coach, it's a section to rethink rather than one to keep filling.
