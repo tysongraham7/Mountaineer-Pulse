@@ -45,7 +45,7 @@ import os
 import re
 import sys
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from typing import Iterable
 
@@ -79,10 +79,12 @@ PRE_WINDOW = timedelta(minutes=20)
 # A game that never reports a final can't hold the job open all night. Under the workflow's
 # timeout so the exit is ours and gets logged.
 MAX_WATCH = timedelta(hours=5)
-# A touchdown is worth 6 for the few seconds until the kick, and ESPN posts the two as a
-# score of 6 and then 7 on the same play. Hold a score for this long and send the latest, so
-# nobody gets "WVU touchdown, 6–0" and then "7–0" forty seconds later.
-SCORE_HOLD = timedelta(seconds=45)
+# A touchdown is worth 6 for the minute until the kick, and ESPN posts the two as a score
+# of 6 and then 7 on the same play. Hold a score for this long and send the latest, so
+# nobody gets "WVU touchdown, 6–0" and then "7–0" a minute later. It is also the window in
+# which a touchdown taken off the board on review costs nothing: UT Martin's ghost lasted
+# 42s, and the first real kick of that game took 63s to post.
+SCORE_HOLD = timedelta(seconds=75)
 # A score change on a play ESPN does NOT flag as scoring has to be seen this many polls
 # running before it's believed. See Detector.
 CONFIRM_POLLS = 3
@@ -105,11 +107,13 @@ def die(msg: str) -> None:
 def get_json(url: str) -> dict | None:
     """One ESPN read. None on any failure — the loop keeps its last snapshot, as the phone does."""
     try:
-        r = requests.get(url.replace("http://", "https://", 1), headers=UA, timeout=15)
+        r = requests.get(url.replace("http://", "https://", 1), headers=UA, timeout=10)
         if r.status_code != 200:
+            print(f"  (ESPN {r.status_code} on {url.rsplit('/', 1)[-1][:40]})", flush=True)
             return None
         return r.json()
-    except Exception:
+    except Exception as e:
+        print(f"  (ESPN unreachable: {type(e).__name__})", flush=True)
         return None
 
 
@@ -199,16 +203,32 @@ class Detector:
     penalty at 3:47 of the 4th carried 27–14 when the score was 24–14, the next play went
     back to 24–14, and a timeout at 1:51 carried a touchdown that the play after it scored.
     Read naively that is three phantom pushes in four minutes. So: a change on a play ESPN
-    flags as a scoring play is real; a change on any other play has to survive
-    CONFIRM_POLLS consecutive readings; and a score that goes DOWN is never a score.
+    flags as a scoring play is believed at once; a change on any other play has to survive
+    CONFIRM_POLLS consecutive readings.
+
+    AND A SCORE CAN GO DOWN. In WVU–UT Martin (401856791, the first live run) ESPN posted a
+    54-yard UT Martin touchdown as a scoring play, 21–6, and took it off the board 42
+    seconds later. The first version of this treated "never lower" as law, kept 21–6 as
+    the truth, and then rejected every real WVU score for the rest of the game because the
+    away side had "gone down" from 6 to 0 — and finally announced UT Martin's own fumble
+    return as a WVU touchdown. Now a reading below the accepted score cancels a score still
+    on hold outright (it was the thing being overturned), and otherwise rolls the accepted
+    score back once it has persisted CONFIRM_POLLS readings.
+
+    QUARTERS COME FROM THE PERIOD, NOT THE STATUS. ESPN never set STATUS_END_PERIOD in that
+    game — Q1 0:00 went straight to Q2 15:00 in progress — so the end of a quarter is the
+    period number ticking over, with the status name as an early trigger when it does show.
     """
     wvu_home: bool
     prev: Snapshot | None = None
     accepted: tuple[int, int] | None = None   # the score we believe (home, away)
-    cand: tuple[int, int] | None = None       # an unconfirmed change on a non-scoring play
+    cand: tuple[int, int] | None = None       # an unconfirmed reading that differs from it
     cand_n: int = 0
     pending: Event | None = None              # a score being held for its extra point
     pending_since: datetime | None = None
+    pending_from: tuple[int, int] | None = None   # the score before the held one
+    breaks_done: set = field(default_factory=set)  # 1, 2 (half), 3 — announced once each
+    deferred: Event | None = None                 # a break waiting on a held score
     started: bool = False
     done: bool = False
 
@@ -228,48 +248,70 @@ class Detector:
             return out
 
         if s.home is not None and s.away is not None:
-            raw = (s.home, s.away)
-            if self.accepted is None:
-                # First reading. A job that joins mid-game inherits the score silently.
-                self.accepted = raw
-            elif raw != self.accepted:
-                acc = self.accepted
-                up = raw[0] >= acc[0] and raw[1] >= acc[1]
-                if not up:
-                    self.cand, self.cand_n = None, 0
-                elif s.scoring:
-                    out += self._score(raw, s, s.play_text)
-                else:
-                    self.cand, self.cand_n = (raw, self.cand_n + 1) if raw == self.cand else (raw, 1)
-                    if self.cand_n >= CONFIRM_POLLS:
-                        out += self._score(raw, s, "")
-            else:
-                self.cand, self.cand_n = None, 0
+            out += self._read_score((s.home, s.away), s)
 
-        # Breaks. Matched on the status name, as the phone does — ESPN keeps state 'in'
-        # through all of them. Only on the transition INTO the break, so a 15-minute
-        # halftime is one push, not forty-five. Scores from `accepted`, not the feed.
-        prev_name = p.status_name if p else ""
-        if s.status_name != prev_name:
-            home, away = self.accepted or (0, 0)
-            if "HALFTIME" in s.status_name:
-                out += self.flush(force=True)
-                out.append(Event("half", s.at, home, away, s.period, s.clock))
-            elif "END_PERIOD" in s.status_name and s.period in (1, 3):
-                out += self.flush(force=True)
-                out.append(Event("quarter", s.at, home, away, s.period, s.clock))
+        # Breaks, announced once each. The status name is the early signal (halftime shows
+        # up reliably); the period ticking over is the one that always comes.
+        home, away = self.accepted or (0, 0)
+        ended: int | None = None
+        if "HALFTIME" in s.status_name:
+            ended = 2
+        elif "END_PERIOD" in s.status_name and s.period in (1, 2, 3):
+            ended = s.period
+        elif p is not None and p.period in (1, 2, 3) and s.period == p.period + 1:
+            ended = p.period
+        if ended is not None and ended not in self.breaks_done and s.state != "post":
+            self.breaks_done.add(ended)
+            kind = "half" if ended == 2 else "quarter"
+            ev = Event(kind, s.at, home, away, ended, s.clock)
+            # A touchdown at 0:00 is still on hold when the quarter ticks over. Releasing
+            # it early would defeat the hold — it is exactly the reading a review might
+            # take back — so the break waits for it and then reports the score it settled
+            # on. Ordering stays right: the score, then the end of the quarter.
+            if self.pending:
+                self.deferred = ev
+            else:
+                out.append(ev)
 
         if s.state == "post" and not self.done:
             self.done = True
             # The final carries the score; a held last-second field goal would only
-            # duplicate it. ESPN's final reading is trusted unless it goes backwards.
-            self.pending = None
-            home, away = self.accepted or (0, 0)
-            if s.home is not None and s.away is not None and s.home >= home and s.away >= away:
+            # duplicate it. ESPN's final reading is taken as read.
+            self.pending, self.deferred = None, None
+            if s.home is not None and s.away is not None:
                 home, away = s.home, s.away
             out.append(Event("final", s.at, home, away, s.period, s.clock))
 
         return out + self.flush(now=s.at)
+
+    def _read_score(self, raw: tuple[int, int], s: Snapshot) -> list[Event]:
+        if self.accepted is None:
+            # First reading. A job that joins mid-game inherits the score silently.
+            self.accepted = raw
+            return []
+        acc = self.accepted
+        if raw == acc:
+            self.cand, self.cand_n = None, 0
+            return []
+        up = raw[0] >= acc[0] and raw[1] >= acc[1]
+        # The held score just got taken off the board. Drop it — nothing was sent, and
+        # if the feed was merely glitching the higher reading will come back and start
+        # a fresh hold.
+        if self.pending and raw == self.pending_from:
+            self.pending, self.pending_since, self.pending_from = None, None, None
+            self.accepted, self.cand, self.cand_n = raw, None, 0
+            return self._release_deferred()
+        if up and s.scoring:
+            return self._score(raw, s, s.play_text)
+        self.cand, self.cand_n = (raw, self.cand_n + 1) if raw == self.cand else (raw, 1)
+        if self.cand_n < CONFIRM_POLLS:
+            return []
+        if up:
+            return self._score(raw, s, "")
+        # Persistently lower: an overturn that had already been sent, or a correction.
+        # Believe it quietly so the next score is measured from the right place.
+        self.accepted, self.cand, self.cand_n = raw, None, 0
+        return []
 
     def _score(self, raw: tuple[int, int], s: Snapshot, text: str) -> list[Event]:
         """Accept a new score. Held rather than sent — see SCORE_HOLD."""
@@ -285,7 +327,7 @@ class Detector:
         out = [self.pending] if self.pending else []
         self.pending = Event("score", s.at, raw[0], raw[1], s.period, s.clock, wvu_scored,
                              s.scoring_type if text else "", text)
-        self.pending_since = s.at
+        self.pending_since, self.pending_from = s.at, acc
         return out
 
     def flush(self, now: datetime | None = None, force: bool = False) -> list[Event]:
@@ -293,9 +335,18 @@ class Detector:
         if not self.pending:
             return []
         if force or (now is not None and now - self.pending_since >= SCORE_HOLD):
-            ev, self.pending, self.pending_since = self.pending, None, None
-            return [ev]
+            ev = self.pending
+            self.pending, self.pending_since, self.pending_from = None, None, None
+            return [ev] + self._release_deferred()
         return []
+
+    def _release_deferred(self) -> list[Event]:
+        """The break that was waiting on a held score, with the score as it settled."""
+        if not self.deferred:
+            return []
+        home, away = self.accepted or (0, 0)
+        ev, self.deferred = replace(self.deferred, home=home, away=away), None
+        return [ev]
 
 
 # ---------------------------------------------------------------- what to say
