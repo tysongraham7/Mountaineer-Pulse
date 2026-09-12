@@ -56,12 +56,15 @@ export function GameLive({
   live,
   summaryState,
   scout,
+  recap,
 }: {
   game: Game;
   live: LiveGame | null;
   summaryState: SummaryState;
   /** The rendered scouting report, when one exists. Gets its own tab. */
   scout?: ReactNode;
+  /** The rendered post-game "By the Numbers", once there is one. Tops the Summary tab. */
+  recap?: ReactNode;
 }) {
   const [tab, setTab] = useState<TabId>('summary');
   const { summary, loading, failed, refresh } = summaryState;
@@ -109,8 +112,10 @@ export function GameLive({
         })}
       </View>
 
-      {/* The report doesn't come from the ESPN feed, so it must not sit behind the
-          feed's spinner or its error state. */}
+      {/* Neither the recap nor the report comes from the ESPN feed, so neither may sit
+          behind the feed's spinner or its error state. The recap goes first because it
+          is the reason a fan opens a finished game: the numbers, then the plays. */}
+      {tab === 'summary' && recap}
       {tab === 'scout' ? (
         <View style={{ marginTop: 16 }}>{scout}</View>
       ) : loading && !summary ? (

@@ -5,6 +5,7 @@ import { Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GameLive, gameStarted } from '@/components/game-live';
+import { GameRecap, Recap } from '@/components/game-recap';
 import { ReportModal } from '@/components/report-modal';
 import { Matchup, ScoutingReport, scoutShareText } from '@/components/scouting-report';
 import { SectionLabel, SportIcon } from '@/components/ui';
@@ -41,15 +42,26 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
   // Absent for most of the year — the report is only written near kickoff, so every field
   // below renders conditionally and the sheet looks normal when there is nothing yet.
   const [scout, setScout] = useState<Matchup | null>(null);
+  // The post-game "By the Numbers". Written within half an hour of a football final and
+  // refreshed once the next morning, so like the report it is absent far more often than
+  // present and everything that shows it is conditional.
+  const [recap, setRecap] = useState<Recap | null>(null);
 
   useEffect(() => {
-    if (!game?.id) { setScout(null); return; }
+    if (!game?.id) { setScout(null); setRecap(null); return; }
     let live = true;
     supabase.from('matchups').select('sections,generated_at').eq('game_id', game.id).maybeSingle()
       .then(({ data }) => {
         if (!live) return;
         setScout(data?.sections
           ? { ...(data.sections as Matchup), generated_at: data.generated_at as string }
+          : null);
+      });
+    supabase.from('game_recaps').select('sections,generated_at').eq('game_id', game.id).maybeSingle()
+      .then(({ data }) => {
+        if (!live) return;
+        setRecap(data?.sections
+          ? { ...(data.sections as Recap), generated_at: data.generated_at as string }
           : null);
       });
     return () => { live = false; };
@@ -171,8 +183,15 @@ export function GameDetail({ game, onClose }: { game: Game | null; onClose: () =
                   live={live}
                   summaryState={summaryState}
                   scout={scout ? <ScoutingReport scout={scout} /> : undefined}
+                  recap={recap ? <GameRecap recap={recap} /> : undefined}
                 />
               )}
+
+              {/* The recap lives in the Summary tab above, but that tab only exists once
+                  ESPN's feeds answer. A final with a recap and no feed — offline for
+                  ESPN but not for us, or a game ESPN never listed — still gets its
+                  numbers, here, where the box score would have been. */}
+              {final && !started && recap && <GameRecap recap={recap} />}
 
               {/* The one thing in a preview a fan has to act on BEFORE leaving the house,
                   so it sits above the report rather than inside it. Home games only —

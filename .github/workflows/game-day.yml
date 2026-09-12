@@ -49,10 +49,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      # notify_games.py needs only these three; the full requirements.txt would add a
-      # minute to a job that usually has nothing to do.
+      # notify_games.py needs only the first three; the full requirements.txt would add a
+      # minute to a job that usually has nothing to do. anthropic is for the recap step.
       - name: Install dependencies
-        run: pip install requests supabase python-dotenv
+        run: pip install requests supabase python-dotenv anthropic
 
       # CFBD_API_KEY is here because a live game triggers a score refresh from inside the
       # script — the daily sync is far too slow to catch a final while it's still news.
@@ -62,3 +62,15 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           CFBD_API_KEY: ${{ secrets.CFBD_API_KEY }}
         run: python notify_games.py
+
+      # Post-game "By the Numbers" for a football final. Exits in a second unless a final
+      # from the last three days still owes one, so it rides this cron rather than the
+      # daily pipeline: a fan opens a finished game that evening, not the next morning.
+      # Never fails the job — the score alert above has already gone out.
+      - name: Post-game recap
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python generate_recap.py
+        continue-on-error: true

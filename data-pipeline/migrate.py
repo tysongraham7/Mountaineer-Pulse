@@ -299,6 +299,26 @@ ALTERS = [
     "alter table games add column if not exists theme text;",
     # --- Where to watch ("TNT", "ESPN+"), from ESPN's schedule feed ---
     "alter table games add column if not exists broadcast text;",
+    # --- Post-game "By the Numbers" (generate_recap.py) ---
+    # The scouting report's other half: one row per finished game, same shape as matchups
+    # so the app reads both the same way. Keyed by game_id so the settled second pass
+    # overwrites the quick first one rather than accumulating. The final score is on the
+    # row so the plain-text fallback and any future digest can read it without a join.
+    """create table if not exists game_recaps (
+        game_id      bigint primary key,
+        sport_id     text references sports(id),
+        kickoff      timestamptz,
+        opponent     text,
+        wvu_points   int,
+        opp_points   int,
+        sections     jsonb,                 -- {headline, notes:[{figure,label,body,source}]}
+        content      text,                  -- plain-text fallback
+        generated_at timestamptz not null default now()
+    );""",
+    "create index if not exists game_recaps_kickoff_idx on game_recaps (kickoff);",
+    "alter table game_recaps enable row level security;",
+    "drop policy if exists \"public read game_recaps\" on game_recaps;",
+    "create policy \"public read game_recaps\" on game_recaps for select using (true);",
 ]
 
 

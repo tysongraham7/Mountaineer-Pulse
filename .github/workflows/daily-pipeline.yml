@@ -145,6 +145,14 @@ jobs:
         run: python generate_matchup.py
         continue-on-error: true
 
+      # The settled pass of the post-game recap: the game-day cron writes one within half
+      # an hour of a final, and this rewrites it the next morning once WVU's postgame
+      # notes and the Sunday stories are indexed. Self-limiting like the report above.
+      - name: Post-game recap (settled pass)
+        if: ${{ !cancelled() }}
+        run: python generate_recap.py
+        continue-on-error: true
+
       # Cheap, no-AI sweep for facts that have gone stale (a passed deadline, a still-'pending'
       # decision). Emails a short review list only if something turns up and Gmail secrets exist.
       - name: Stale-fact check
