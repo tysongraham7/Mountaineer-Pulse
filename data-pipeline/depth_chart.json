@@ -15,18 +15,6 @@
   {
     "sport_id": "football",
     "season": null,
-    "unit": "Offense",
-    "position": "WR-X",
-    "pos_order": 4,
-    "rank": 1,
-    "player_name": "Prince Strachan",
-    "class_year": "R-Jr.",
-    "status": "out",
-    "note": "Injured — on Ourlads' reserve list; Jaden Bray slid over from Z to take the X spot."
-  },
-  {
-    "sport_id": "football",
-    "season": null,
     "unit": "Defense",
     "position": "DE",
     "pos_order": 13,
