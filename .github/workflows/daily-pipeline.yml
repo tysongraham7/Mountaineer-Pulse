@@ -114,7 +114,9 @@ jobs:
         run: python sync_game_themes.py
         continue-on-error: true
 
-      - name: Depth chart
+      # Football reads Ourlads' two-deep; depth_chart.json adds injuries on top. If Ourlads
+      # can't be read, yesterday's football chart stays and the step goes yellow.
+      - name: Depth chart (Ourlads + curated overrides)
         run: python sync_depth.py
         continue-on-error: true
 

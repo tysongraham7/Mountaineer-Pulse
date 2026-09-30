@@ -266,9 +266,10 @@ alter table roster_moves enable row level security;
 create policy "public read moves" on roster_moves for select using (true);
 
 -- ---------------------------------------------------------------------------
--- depth_chart: curated projected lineup by position. Absorbs injuries (status)
--- and departures/replacements. No official college source exists — founder
--- maintains data-pipeline/depth_chart.json from beat-writer projections.
+-- depth_chart: projected lineup by position. Absorbs injuries (status) and
+-- departures/replacements. Football is read from Ourlads every night, with
+-- data-pipeline/depth_chart.json layered on as overrides (injuries, pinned rows);
+-- basketball and baseball are curated in that file outright. See sync_depth.py.
 -- ---------------------------------------------------------------------------
 create table if not exists depth_chart (
   id          text primary key,          -- hash of sport + season + position + player

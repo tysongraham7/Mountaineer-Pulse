@@ -245,7 +245,7 @@ export default function YouScreen() {
         </View>
         <Text style={styles.about}>
           Unofficial — not affiliated with or endorsed by West Virginia University. Data from
-          CollegeFootballData, ESPN, wvusports.com, and public news feeds. Team names are property of
+          CollegeFootballData, ESPN, wvusports.com, Ourlads, and public news feeds. Team names are property of
           their respective owners.
         </Text>
       </View>
