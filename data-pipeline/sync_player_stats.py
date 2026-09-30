@@ -23,6 +23,8 @@ Run:  python sync_player_stats.py
 
 import os
 import sys
+from datetime import date, timedelta
+
 import requests
 from dotenv import load_dotenv
 from supabase import create_client
@@ -71,6 +73,25 @@ def stat_row(pid, season, team, d) -> dict:
     }
 
 
+def stored_rows(sb) -> list[dict]:
+    out, start = [], 0
+    while True:
+        page = (sb.table("player_stats")
+                .select("player_id,season,player_name,position,category,stat_type,stat,team")
+                .eq("sport_id", SPORT).range(start, start + 999).execute().data or [])
+        out += page
+        if len(page) < 1000:
+            return out
+        start += 1000
+
+
+def as_cfbd(r: dict) -> dict:
+    """A stored row back in the shape stat_row() takes, so re-linked and freshly fetched
+    lines are built by the same code."""
+    return {"player": r["player_name"], "position": r["position"], "category": r["category"],
+            "statType": r["stat_type"], "stat": r["stat"]}
+
+
 def main() -> None:
     for name, val in [("CFBD_API_KEY", CFBD_KEY), ("SUPABASE_URL", SB_URL),
                       ("SUPABASE_SECRET_KEY", SB_KEY)]:
@@ -95,9 +116,24 @@ def main() -> None:
 
     rows = []
 
+    # What's stored now, read before the wipe below. CFBD's free tier is 1,000 calls a
+    # month, and re-downloading every finished season each morning (WVU 2024-25 plus two
+    # seasons at ~27 transfers' old schools) spent ~58 a day — the quota ran out mid-month
+    # and froze every player's stats from 2026-09-13 on. A finished season can't change, so
+    # it's re-linked from here; only the live season and anything new cost a call.
+    cache = stored_rows(sb)
+    live = max(SEASONS)
+
     # --- Phase 1: WVU stats -------------------------------------------------
     wvu_seasons = {}
     for season in SEASONS:
+        prior = [r for r in cache if r["team"] == TEAM and r["season"] == season] if season < live else []
+        if prior:
+            for r in prior:
+                pid = name_to_id.get(norm_name(r["player_name"] or "")) or r["player_id"]
+                rows.append(stat_row(pid, season, TEAM, as_cfbd(r)))
+            wvu_seasons[season] = f"{len(prior)} stored"
+            continue
         data = cfbd("/stats/player/season", {"year": season, "team": TEAM})
         wvu_seasons[season] = len(data)
         for d in data:
@@ -128,6 +164,30 @@ def main() -> None:
         else:
             unlinked.append(f"{full} ({d['origin']})")
 
+    # The portal feed misses anyone who arrived another way: JaCorey Thomas left Georgia for
+    # the NFL, not the portal, and NaQuari Rogers committed after the feed's cycle closed. Our
+    # own Movement rows (curated and news-extracted) name the previous school too, so every
+    # arrival the app announces gets his old numbers, however he got here.
+    have_incoming = {rid for rid, _, _ in incoming}
+    moves_in = (sb.table("roster_moves").select("player_name,other_school,move_date")
+                .eq("sport_id", SPORT).eq("direction", "in").execute().data or [])
+    recent = (date.today() - timedelta(days=14)).isoformat()
+    fresh_names = {norm_name(m["player_name"]) for m in moves_in
+                   if (m.get("move_date") or "") >= recent and m.get("player_name")}
+    monday = date.today().weekday() == 0
+    for mv in moves_in:
+        origin = (mv.get("other_school") or "").strip()
+        full = (mv.get("player_name") or "").strip()
+        if not origin or not full:
+            continue
+        rid = name_to_id.get(norm_name(full))
+        if not rid:
+            roster_spelling = canonical(full, roster_names)
+            rid = id_by_roster_name.get(roster_spelling) if roster_spelling else None
+        if rid and rid not in have_incoming:
+            incoming.append((rid, norm_name(full), origin))
+            have_incoming.add(rid)
+
     by_origin = {}
     for rid, nm, origin in incoming:
         by_origin.setdefault(origin, []).append((rid, nm))
@@ -136,6 +196,23 @@ def main() -> None:
     for origin, players in by_origin.items():
         wanted = {nm for _, nm in players}
         id_of = {nm: rid for rid, nm in players}
+        # Old-school seasons are final. Once every arrival from this school has his lines
+        # stored, re-link those instead of asking CFBD again; fetch only when someone new
+        # (or someone CFBD had nothing for) is waiting on this school.
+        have = [r for r in cache if r["team"] == origin and r["season"] in PREV_SEASONS
+                and norm_name(r["player_name"] or "") in wanted]
+        missing = wanted - {norm_name(r["player_name"] or "") for r in have}
+        # About a dozen arrivals have nothing in CFBD at all (FCS schools, walk-ons), and
+        # asking about them daily would spend ~24 calls a day on answers that don't change.
+        # Ask daily while the move is new, then only on Mondays.
+        if missing and not (missing & fresh_names) and not monday:
+            missing = set()
+        if not missing:
+            for r in have:
+                rid = id_of[norm_name(r["player_name"])]
+                rows.append(stat_row(rid, r["season"], origin, as_cfbd(r)))
+                prev_linked.add(rid)
+            continue
         for season in PREV_SEASONS:
             for d in cfbd("/stats/player/season", {"year": season, "team": origin}):
                 nm = norm_name(d.get("player", ""))

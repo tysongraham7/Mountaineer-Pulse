@@ -204,9 +204,14 @@ def main() -> None:
     except (OSError, ValueError):
         additions = []
     if additions:
-        # Don't fight the scrape: if the official page now lists them, its row wins.
-        have = {r["id"] for r in (sb.table("players").select("id").execute().data or [])}
-        fresh = [a for a in additions if a.get("id") not in have]
+        # Don't fight the scrape: if the official page now lists them, its row wins. Matched on
+        # NAME, because the page lists a player under its own new id — an id check kept
+        # re-adding Lorient beside the scraped wvu_20224, so he showed on the roster twice.
+        def key(r: dict) -> tuple:
+            return (r.get("sport_id"), f'{r.get("first_name") or ""} {r.get("last_name") or ""}'.strip().lower())
+        have = {key(r) for r in (sb.table("players").select("sport_id,first_name,last_name")
+                                 .execute().data or [])}
+        fresh = [a for a in additions if key(a) not in have]
         if fresh:
             sb.table("players").upsert(fresh).execute()
         print(f"  curated additions: {len(fresh)} added, {len(additions) - len(fresh)} "

@@ -120,11 +120,22 @@ def main() -> None:
         if str(r["id"]).startswith(("pt-", "auto-")):
             continue
         loose = (r["sport_id"], norm_name(r["player_name"])) in provisional
-        if any(f["sport_id"] == r["sport_id"]
-               and (loose or f["direction"] == r["direction"])
-               and same_person(f["player_name"], r["player_name"]) for f in feed):
-            sb.table("roster_moves").delete().eq("id", r["id"]).execute()
-            dupes += 1
+        match = [f for f in feed if f["sport_id"] == r["sport_id"]
+                 and (loose or f["direction"] == r["direction"])
+                 and same_person(f["player_name"], r["player_name"])]
+        if not match:
+            continue
+        # A news-extracted row never outranks a confirmed hand entry. Auto rows now persist
+        # between runs, so dropping the curated row here would lose both: extract_moves
+        # deletes auto rows that curated entries cover, and runs right after this.
+        news = [f for f in match if str(f["id"]).startswith("auto-")]
+        if news and not loose:
+            for f in news:
+                sb.table("roster_moves").delete().eq("id", f["id"]).execute()
+            if len(news) == len(match):
+                continue
+        sb.table("roster_moves").delete().eq("id", r["id"]).execute()
+        dupes += 1
     if dupes:
         print(f"   dropped {dupes} curated row(s) the portal/news feed already covers")
 
