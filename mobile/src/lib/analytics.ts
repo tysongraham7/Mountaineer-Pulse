@@ -113,6 +113,11 @@ export const FEATURES = [
   'team_mode_switch',
   // Which depth-chart look people actually use: the field of starters or the full two-deep.
   'depth_layout_switch',
+  // Leaders: which window people browse (this season / a past year / career / best seasons),
+  // whether anyone opens Team stats, and which boards get a full "See all".
+  'leaders_scope_switch',
+  'leaders_view_switch',
+  'leaders_board_open',
   'favorite_toggle',
   'report_open',
   // Onboarding / comprehension. The beta shipped with the Pulse detail opened by only ~4% of

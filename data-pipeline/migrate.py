@@ -319,6 +319,72 @@ ALTERS = [
     "alter table game_recaps enable row level security;",
     "drop policy if exists \"public read game_recaps\" on game_recaps;",
     "create policy \"public read game_recaps\" on game_recaps for select using (true);",
+    # --- Stat archive: every WVU season wvusports.com publishes (see sync_stat_archive.py) ---
+    # Its own tables, not player_stats: the nightly football and basketball syncs wipe their
+    # sport from player_stats and rewrite only the seasons they fetch, so history kept there
+    # would be gone by morning.
+    """create table if not exists stat_archive (
+        id          text primary key,      -- sport|season|player_key|category|stat
+        sport_id    text not null references sports(id),
+        season      int  not null,         -- football fall year; basketball the year it ENDS
+        player_key  text not null,         -- normalized name: links one player's seasons
+        player_name text not null,
+        jersey      text,
+        photo_url   text,
+        category    text not null,         -- rushing | passing | defense | basketball | hitting ...
+        stat        text not null,         -- yds | td | tkl | pts | ab | outs ...
+        value       numeric not null,
+        updated_at  timestamptz not null default now()
+    );""",
+    "create index if not exists stat_archive_sport_season_idx on stat_archive (sport_id, season);",
+    "alter table stat_archive enable row level security;",
+    "drop policy if exists \"public read stat_archive\" on stat_archive;",
+    "create policy \"public read stat_archive\" on stat_archive for select using (true);",
+    """create table if not exists team_season_stats (
+        id        text primary key,        -- sport|season|stat
+        sport_id  text not null references sports(id),
+        season    int  not null,
+        stat      text not null,
+        label     text not null,
+        grp       text not null,
+        ord       int  not null,
+        wvu       text,                    -- display strings, formatted once in the pipeline
+        opp       text,
+        updated_at timestamptz not null default now()
+    );""",
+    "create index if not exists team_season_stats_idx on team_season_stats (sport_id, season, ord);",
+    "alter table team_season_stats enable row level security;",
+    "drop policy if exists \"public read team_season_stats\" on team_season_stats;",
+    "create policy \"public read team_season_stats\" on team_season_stats for select using (true);",
+    """create table if not exists stat_leaders (
+        id          text primary key,      -- sport|scope|season|board|rank-slot
+        sport_id    text not null references sports(id),
+        scope       text not null,         -- season | career | best
+        season      int  not null,         -- the season for scope=season, else 0
+        board       text not null,
+        board_title text not null,
+        board_group text not null,
+        board_order int  not null,
+        hero        boolean not null default false,
+        rank        int  not null,
+        player_key  text not null,
+        player_name text not null,
+        jersey      text,
+        photo_url   text,
+        value       numeric not null,
+        display     text not null,
+        detail      text,
+        updated_at  timestamptz not null default now()
+    );""",
+    "create index if not exists stat_leaders_lookup_idx on stat_leaders (sport_id, scope, season, board_order, rank);",
+    "alter table stat_leaders enable row level security;",
+    "drop policy if exists \"public read stat_leaders\" on stat_leaders;",
+    "create policy \"public read stat_leaders\" on stat_leaders for select using (true);",
+    # Position from that season's roster page, shown beside the name on a leaderboard.
+    "alter table stat_archive add column if not exists position text;",
+    "alter table stat_leaders add column if not exists position text;",
+    # Football's year-by-year record goes back to 1891, and early seasons had ties.
+    "alter table team_records add column if not exists ties int not null default 0;",
 ]
 
 

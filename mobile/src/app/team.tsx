@@ -19,6 +19,7 @@ import { DepthField } from '@/components/depth-field';
 import { OfflineNotice } from '@/components/offline-notice';
 import { PlayerProfile } from '@/components/player-profile';
 import { ListRowSkeleton, SkeletonList } from '@/components/skeleton';
+import { StatLeaders } from '@/components/stat-leaders';
 import { Brand, Font, StatusMeta, surfaces } from '@/constants/brand';
 import { trackFeature } from '@/lib/analytics';
 import { normName, playerFullName } from '@/lib/names';
@@ -41,59 +42,6 @@ const MODES = [
   { id: 'leaders', label: 'Leaders' },
   { id: 'staff', label: 'Staff' },
 ] as const;
-
-// Completed seasons we have stats for, per sport.
-const LEADER_SEASONS_BY_SPORT: Record<string, number[]> = {
-  football: [2025, 2024],
-  baseball: [2026],
-  mbb: [2026], // 2025-26 season
-};
-
-// Leaderboards per sport. `asc` = lower is better (ERA); `qual*` gates rate stats
-// by a minimum (e.g. AVG needs enough at-bats) so tiny samples don't top the board.
-type Board = {
-  title: string;
-  cat: string;
-  type: string;
-  top: number;
-  asc?: boolean;
-  qualCat?: string;
-  qualType?: string;
-  qualMin?: number;
-};
-
-const LEADERBOARDS_BY_SPORT: Record<string, Board[]> = {
-  football: [
-    { title: 'Passing Yards', cat: 'passing', type: 'YDS', top: 3 },
-    { title: 'Rushing Yards', cat: 'rushing', type: 'YDS', top: 3 },
-    { title: 'Receiving Yards', cat: 'receiving', type: 'YDS', top: 3 },
-    { title: 'Receptions', cat: 'receiving', type: 'REC', top: 3 },
-    { title: 'Total Tackles', cat: 'defensive', type: 'TOT', top: 5 },
-    { title: 'Tackles for Loss', cat: 'defensive', type: 'TFL', top: 3 },
-    { title: 'Sacks', cat: 'defensive', type: 'SACKS', top: 3 },
-    { title: 'Interceptions', cat: 'interceptions', type: 'INT', top: 3 },
-    { title: 'Kicking Points', cat: 'kicking', type: 'PTS', top: 3 },
-  ],
-  baseball: [
-    { title: 'Batting Average', cat: 'hitting', type: 'AVG', top: 5, qualCat: 'hitting', qualType: 'AB', qualMin: 60 },
-    { title: 'Hits', cat: 'hitting', type: 'H', top: 5 },
-    { title: 'RBI', cat: 'hitting', type: 'RBI', top: 5 },
-    { title: 'Runs', cat: 'hitting', type: 'R', top: 5 },
-    { title: 'Walks', cat: 'hitting', type: 'BB', top: 3 },
-    { title: 'ERA', cat: 'pitching', type: 'ERA', top: 5, asc: true, qualCat: 'pitching', qualType: 'IP', qualMin: 20 },
-    { title: 'Wins', cat: 'pitching', type: 'W', top: 3 },
-  ],
-  mbb: [
-    { title: 'Points / G', cat: 'basketball', type: 'PPG', top: 5 },
-    { title: 'Rebounds / G', cat: 'basketball', type: 'RPG', top: 5 },
-    { title: 'Assists / G', cat: 'basketball', type: 'APG', top: 5 },
-    { title: 'Steals / G', cat: 'basketball', type: 'SPG', top: 3 },
-    { title: 'Blocks / G', cat: 'basketball', type: 'BPG', top: 3 },
-    { title: '3-Pointers Made', cat: 'basketball', type: '3PM', top: 5 },
-    { title: '3PT %', cat: 'basketball', type: '3P%', top: 5, qualCat: 'basketball', qualType: '3PA', qualMin: 30 },
-    { title: 'FG %', cat: 'basketball', type: 'FG%', top: 5, qualCat: 'basketball', qualType: 'FGA', qualMin: 75 },
-  ],
-};
 
 const SPORT_LABEL: Record<string, string> = {
   football: 'Football',
@@ -258,6 +206,8 @@ export default function TeamScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Bumped by pull-to-refresh so Leaders refetches too; it loads its own data, not via load().
+  const [refreshKey, setRefreshKey] = useState(0);
   // Set when something deep-linked here — a breaking-news card sending you to the roster
   // change it's about. Without them this screen always opened on football's roster, so a
   // basketball story sent you to the wrong team and left you to find it yourself.
@@ -274,7 +224,6 @@ export default function TeamScreen() {
     if (linkedSport) setFilter(linkedSport);
     if (linkedMode) setMode(linkedMode);
   }, [linkedSport, linkedMode]);
-  const [leaderSeason, setLeaderSeason] = useState<number>(2025);
   const [rosterView, setRosterView] = useState<'projected' | 'last'>('projected');
   // One query drives every roster section on screen, so searching with the sport filter on
   // "All" looks through football, basketball and baseball at once. The roster is already
@@ -347,8 +296,6 @@ export default function TeamScreen() {
 
   const sports = [filter];
   const visibleMoves = moves.filter((m) => m.sport_id === filter);
-  const leaderSeasonList = LEADER_SEASONS_BY_SPORT[filter] ?? [];
-  const effLeaderSeason = leaderSeasonList.includes(leaderSeason) ? leaderSeason : leaderSeasonList[0];
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 10 }}>
@@ -388,21 +335,6 @@ export default function TeamScreen() {
               );
             })}
           </View>
-          {leaderSeasonList.length > 1 && (
-            <View style={styles.filterRow}>
-              {leaderSeasonList.map((yr) => {
-                const active = effLeaderSeason === yr;
-                return (
-                  <Pressable
-                    key={yr}
-                    onPress={() => setLeaderSeason(yr)}
-                    style={[styles.chip, { backgroundColor: active ? Brand.gold : c.card, borderColor: active ? Brand.gold : c.border }]}>
-                    <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{yr} Season</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
         </>
       ) : (
         <>
@@ -500,7 +432,7 @@ export default function TeamScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={Brand.gold} />
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setRefreshKey((k) => k + 1); load(); }} tintColor={Brand.gold} />
         }>
         {mode === 'roster' &&
           sports.map((sp) => (
@@ -539,7 +471,13 @@ export default function TeamScreen() {
 
         {mode === 'movement' && <MovementView moves={visibleMoves} c={c} showTag={false} />}
 
-        {mode === 'leaders' && <LeadersView sport={filter} season={effLeaderSeason} c={c} />}
+        {mode === 'leaders' && (
+          <StatLeaders
+            sport={filter}
+            players={players.filter((p) => p.sport_id === filter)}
+            refreshKey={refreshKey}
+          />
+        )}
 
         {mode === 'staff' && (
           <StaffSection
@@ -1198,121 +1136,6 @@ function MoveCard({
   return body;
 }
 
-/* ---------------- Leaders ---------------- */
-
-type StatLine = { player_id: string; player_name: string | null; category: string; stat_type: string; stat: string | null };
-type LeaderEntry = { name: string; display: string; val: number };
-
-function LeadersView({ sport, season, c }: { sport: string; season: number | undefined; c: ReturnType<typeof surfaces> }) {
-  const [rows, setRows] = useState<StatLine[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (season == null) {
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    supabase
-      .from('player_stats')
-      .select('player_id,player_name,category,stat_type,stat')
-      .eq('sport_id', sport)
-      .eq('team', 'West Virginia') // WVU leaders only — never a transfer's old-school stats
-      .eq('season', season)
-      .then(({ data }) => {
-        setRows((data ?? []) as StatLine[]);
-        setLoading(false);
-      });
-  }, [sport, season]);
-
-  if (season == null) {
-    return <Text style={[styles.empty, { color: c.textSecondary }]}>Leaders coming soon for this sport.</Text>;
-  }
-  if (loading) {
-    return (
-      <View style={{ marginTop: 16, gap: 8 }}>
-        <SkeletonList count={6}>
-          <ListRowSkeleton />
-        </SkeletonList>
-      </View>
-    );
-  }
-
-  // One value map per player, so a board can gate a rate stat by a counting stat.
-  const byPlayer = new Map<string, { name: string; vals: Map<string, { num: number; raw: string }> }>();
-  for (const r of rows) {
-    if (r.stat == null) continue;
-    const num = parseFloat(r.stat);
-    if (Number.isNaN(num)) continue;
-    if (!byPlayer.has(r.player_id)) byPlayer.set(r.player_id, { name: r.player_name ?? '—', vals: new Map() });
-    byPlayer.get(r.player_id)!.vals.set(`${r.category}|${r.stat_type}`, { num, raw: r.stat });
-  }
-
-  const board = (b: Board): LeaderEntry[] => {
-    const out: LeaderEntry[] = [];
-    for (const p of byPlayer.values()) {
-      const main = p.vals.get(`${b.cat}|${b.type}`);
-      if (!main) continue;
-      if (b.qualCat && b.qualType) {
-        const q = p.vals.get(`${b.qualCat}|${b.qualType}`);
-        if (!q || q.num < (b.qualMin ?? 0)) continue;
-      }
-      if (!b.asc && main.num <= 0) continue; // drop zeros on counting boards
-      const display = b.type === 'AVG' ? main.raw.replace(/^0(?=\.)/, '') : main.raw;
-      out.push({ name: p.name, display, val: main.num });
-    }
-    out.sort((x, y) => (b.asc ? x.val - y.val : y.val - x.val));
-    return out.slice(0, b.top);
-  };
-
-  const boards = (LEADERBOARDS_BY_SPORT[sport] ?? [])
-    .map((b) => ({ b, list: board(b) }))
-    .filter((x) => x.list.length > 0);
-
-  if (boards.length === 0) {
-    return (
-      <Text style={[styles.empty, { color: c.textSecondary }]}>No stats for the {season} season yet.</Text>
-    );
-  }
-
-  return (
-    <>
-      <Text style={[styles.depthNote, { color: c.textSecondary }]}>
-        {season} team leaders · West Virginia {SPORT_LABEL[sport] ?? ''}
-      </Text>
-      {boards.map(({ b, list }) => (
-        <LeaderCard key={b.title} title={b.title} rows={list} c={c} />
-      ))}
-    </>
-  );
-}
-
-function LeaderCard({
-  title,
-  rows,
-  c,
-}: {
-  title: string;
-  rows: LeaderEntry[];
-  c: ReturnType<typeof surfaces>;
-}) {
-  return (
-    <View style={[styles.leaderCard, { backgroundColor: c.card, borderColor: c.border }]}>
-      <Text style={[styles.leaderTitle, { color: c.text }]}>{title}</Text>
-      {rows.map((r, i) => (
-        <View key={r.name + i} style={styles.leaderRow}>
-          <Text style={[styles.leaderRank, { color: i === 0 ? Brand.gold : c.textSecondary }]}>{i + 1}</Text>
-          <Text style={[styles.leaderName, { color: c.text }]} numberOfLines={1}>
-            {r.name}
-          </Text>
-          <Text style={[styles.leaderVal, { color: i === 0 ? Brand.gold : c.text }]}>{r.display}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 /* ---------------- Shared ---------------- */
 
 function SectionTitle({ text, color }: { text: string; color: string }) {
@@ -1401,13 +1224,6 @@ const styles = StyleSheet.create({
   projTag: { color: Brand.gold, fontSize: 10, fontFamily: Font.bodyBold },
   statusBadge: { borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 },
   statusText: { color: '#fff', fontSize: 10, fontFamily: Font.bodyBold },
-  // leaders
-  leaderCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 10, overflow: 'hidden' },
-  leaderTitle: { fontSize: 11, fontFamily: Font.bodyBold, letterSpacing: 1.4, color: Brand.gold, textTransform: 'uppercase', marginBottom: 10 },
-  leaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
-  leaderRank: { width: 16, fontSize: 14, fontFamily: Font.black, textAlign: 'center' },
-  leaderName: { flex: 1, fontSize: 14, fontFamily: Font.bodySemi },
-  leaderVal: { fontSize: 16, fontFamily: Font.display, fontVariant: ['tabular-nums'] },
   // movement
   moveSectionRow: { flexDirection: 'row', alignItems: 'center', marginTop: 18, marginBottom: 10 },
   countPill: { marginLeft: 8, minWidth: 22, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, alignItems: 'center' },
