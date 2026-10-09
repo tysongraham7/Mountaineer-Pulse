@@ -20,15 +20,16 @@ Nothing earlier exists there; the archive says "since" its first season rather
 than pretending to be all-time.
 
 Each run:
-  1. Fetches any season not stored yet, plus the newest stored season and the ones
-     after it (the live season changes nightly; finished ones never do). A normal
-     night is two or three pages per sport.
-  2. Rewrites stat_archive / team_season_stats for each season it fetched.
+  1. Reads a season's page only if WVU played a game in it since that season was last
+     read (from the games table), and once more the night after, in case the stats
+     posted late. Finished seasons were stored once and are never downloaded again; a
+     night with no WVU game downloads nothing at all. (--full rereads everything.)
+  2. Writes only the rows that changed into stat_archive / team_season_stats.
   3. Fills team_records for past seasons: football's from CFBD (one call, back to
      1891, only while those seasons are missing), the others from the stats pages.
      Seasons already there are left alone; sync_football / sync_espn own the
      current ones.
-  4. Re-ranks stat_leaders for every sport from the whole archive.
+  4. Re-ranks stat_leaders from the stored archive -- only when step 2 changed something.
   5. Rebuilds record_book: WVU's all-time top-10 lists (record_book.json, made by
      build_record_book.py) brought current with every archived season.
 
@@ -47,7 +48,8 @@ import re
 import sys
 import time
 from collections import defaultdict
-from datetime import date
+import hashlib
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 from dotenv import load_dotenv
@@ -1340,17 +1342,34 @@ def read_all(sb, table: str, cols: str, **eq) -> list[dict]:
         start += 1000
 
 
-def replace(sb, table: str, rows: list[dict], scope: dict) -> None:
-    """Upsert `rows`, then delete whatever else is stored under `scope`.
+def _same(a, b) -> bool:
+    if a == b:
+        return True
+    try:
+        return float(a) == float(b)   # numeric columns come back as 1519 for a stored 1519.0
+    except (TypeError, ValueError):
+        return False
+
+
+def replace(sb, table: str, rows: list[dict], scope: dict) -> int:
+    """Make what's stored under `scope` equal `rows`, writing only the difference.
 
     Upsert first, so readers never see the season empty mid-run; then drop rows that no
-    longer exist (a player whose line was corrected away, a board that lost a slot)."""
-    for i in range(0, len(rows), 500):
-        sb.table(table).upsert(rows[i:i + 500]).execute()
+    longer exist (a player whose line was corrected away, a board that lost a slot). A
+    re-rank that changes nothing writes nothing, rather than rewriting thousands of rows
+    with the same numbers every night. Returns how many rows it wrote or removed."""
+    cols = sorted({"id", *(k for r in rows for k in r)})
+    have = {r["id"]: r for r in read_all(sb, table, ",".join(cols), **scope)}
+    now = datetime.now(timezone.utc).isoformat()
+    changed = [{**r, "updated_at": now} for r in rows
+               if r["id"] not in have or any(not _same(have[r["id"]].get(k), v) for k, v in r.items())]
+    for i in range(0, len(changed), 500):
+        sb.table(table).upsert(changed[i:i + 500]).execute()
     keep = {r["id"] for r in rows}
-    stale = [r["id"] for r in read_all(sb, table, "id", **scope) if r["id"] not in keep]
+    stale = [i for i in have if i not in keep]
     for i in range(0, len(stale), 200):
         sb.table(table).delete().in_("id", stale[i:i + 200]).execute()
+    return len(changed) + len(stale)
 
 
 def archive_rows(sport: str, season: int, parsed: Season) -> list[dict]:
@@ -1420,6 +1439,37 @@ def record_from_page(sb, sport: str, season: int, block: dict, have: set[int]) -
 
 # ---------------------------------------------------------------------------
 
+# A finished game's stats can take a while to reach wvusports.com, so a season is read
+# again the night after its last game too. Two looks per game, then it's left alone.
+REFETCH_AFTER_GAME = timedelta(hours=24)
+
+
+def plan_seasons(first: int, last_possible: int, stored: list[int], last_final: dict[int, datetime],
+                 fetched_at: dict[int, datetime], full: bool) -> list[int]:
+    """Which seasons' pages to read tonight.
+
+    Only a season WVU has played in since it was last read -- a night without a game reads
+    nothing from wvusports.com. Finished seasons were stored once and never change. A
+    season that has never landed (a failed first read) is retried."""
+    if full or not stored:
+        return list(range(first, last_possible + 1))
+    todo = {yr for yr in range(first, max(stored)) if yr not in stored}
+    for yr, final in last_final.items():
+        if yr < first:
+            continue
+        seen = fetched_at.get(yr)
+        if seen is None or seen < final + REFETCH_AFTER_GAME:
+            todo.add(yr)
+    return sorted(todo)
+
+
+def _ts(v) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00")) if v else None
+    except ValueError:
+        return None
+
+
 def main() -> None:
     for name, val in [("SUPABASE_URL", SB_URL), ("SUPABASE_SECRET_KEY", SB_KEY)]:
         if not val:
@@ -1441,19 +1491,37 @@ def main() -> None:
     except Exception as e:   # history is a nice-to-have; never block the stats on it
         print(f"  [!] football records backfill failed: {e}")
 
+    sync = {(r["sport_id"], r["season"]): r
+            for r in sb.table("stat_archive_sync").select("*").execute().data or []}
+
+    def mark(sport: str, season: int, note: str | None = None) -> None:
+        sb.table("stat_archive_sync").upsert({
+            "sport_id": sport, "season": season, "note": note,
+            "fetched_at": datetime.now(timezone.utc).isoformat()}).execute()
+
     for sport, cfg in SPORTS.items():
         stored = sorted({r["season"] for r in read_all(sb, "team_season_stats", "id,season",
                                                         sport_id=sport)})
-        newest = max(stored) if stored else None
-        page_records: dict[int, dict] = {}
+        last_final: dict[int, datetime] = {}
+        for gm in read_all(sb, "games", "id,season,start_date", sport_id=sport, status="final"):
+            t = _ts(gm.get("start_date"))
+            if t and (gm["season"] not in last_final or t > last_final[gm["season"]]):
+                last_final[gm["season"]] = t
+        fetched_at = {yr: _ts(r.get("fetched_at")) for (sp, yr), r in sync.items() if sp == sport and yr}
+        fetched_at = {k: v for k, v in fetched_at.items() if v}
         # Basketball's season is named for the year it ends, so next spring's is this_year + 1.
-        last_possible = this_year + 1
-        todo = [s for s in range(cfg["first"], last_possible + 1)
-                if full or s not in stored or (newest is not None and s >= newest)]
+        todo = plan_seasons(cfg["first"], this_year + 1, stored, last_final, fetched_at, full)
+
+        page_records: dict[int, dict] = {}
         rec_have = {r["season"] for r in sb.table("team_records").select("season")
                     .eq("sport_id", sport).eq("team", "West Virginia").execute().data or []}
 
-        print(f"\n{sport}: {len(stored)} seasons stored; fetching {', '.join(map(str, todo)) or 'none'}")
+        if todo:
+            print(f"\n{sport}: fetching {', '.join(season_label(sport, x) for x in todo)}")
+        else:
+            last = max(last_final.values(), default=None)
+            when = f" (last final {last:%b %d})" if last else ""
+            print(f"\n{sport}: no WVU game since the last read{when} - nothing fetched")
         # Fetch and parse everything first: telling a visiting player from a Mountaineer
         # needs every season in view (see drop_visitors).
         fetched: dict[int, tuple[dict, Season, list, int]] = {}
@@ -1469,6 +1537,7 @@ def main() -> None:
                 time.sleep(REQUEST_PAUSE)
             if not block:
                 print(f"  {season_label(sport, season)}: no stats published (yet)")
+                mark(sport, season)
                 continue
             parsed = parse_season(sport, block)
             try:
@@ -1485,24 +1554,28 @@ def main() -> None:
                 continue
             fetched[season] = (block, parsed, roster, completed)
 
+        written = 0
         known: dict[str, set[int]] = defaultdict(set)
-        for r in read_all(sb, "stat_archive", "id,season,player_key,player_name",
-                          sport_id=sport, category="general", stat="gp"):
-            if r["season"] not in fetched:
-                known[r["player_name"]].add(r["season"])
-        for season, (_, parsed, _, _) in fetched.items():
-            for p in parsed.players.values():
-                known[p["name"]].add(season)
+        if fetched:
+            for r in read_all(sb, "stat_archive", "id,season,player_key,player_name",
+                              sport_id=sport, category="general", stat="gp"):
+                if r["season"] not in fetched:
+                    known[r["player_name"]].add(r["season"])
+            for season, (_, parsed, _, _) in fetched.items():
+                for p in parsed.players.values():
+                    known[p["name"]].add(season)
 
         for season, (block, parsed, roster, completed) in sorted(fetched.items()):
             visitors = drop_visitors(parsed, season, roster, known)
             arch = archive_rows(sport, season, parsed)
             team = team_rows(sport, season, block, parsed.team_games)
-            replace(sb, "stat_archive", arch, {"sport_id": sport, "season": season})
-            replace(sb, "team_season_stats", team, {"sport_id": sport, "season": season})
+            n = replace(sb, "stat_archive", arch, {"sport_id": sport, "season": season})
+            n += replace(sb, "team_season_stats", team, {"sport_id": sport, "season": season})
+            written += n
+            mark(sport, season)
             page_records[season] = block
             print(f"  {season_label(sport, season)}: {len(parsed.players)} players, "
-                  f"{len(arch)} stat lines, {len(team)} team stats, {parsed.team_games} games; "
+                  f"{len(arch)} stat lines, {parsed.team_games} games; {n} rows changed; "
                   f"roster {len(roster)} ({completed} names completed)")
             for x in sorted(parsed.relinked):
                 print(f"      relinked {x}")
@@ -1520,6 +1593,16 @@ def main() -> None:
             if newest is not None and season < newest:
                 record_from_page(sb, sport, season, block, rec_have)
 
+        # Re-rank only when something moved: new stats, or a record book rebuilt by hand.
+        book_hash = None
+        if sport in record_book:
+            blob = json.dumps(record_book[sport], sort_keys=True).encode()
+            book_hash = hashlib.sha256(blob).hexdigest()[:16]
+        book_moved = book_hash is not None and (sync.get((sport, 0)) or {}).get("note") != book_hash
+        if not (written or book_moved or full):
+            print("  leaderboards and record book unchanged - not re-ranked")
+            continue
+
         # Re-rank from the whole archive: a new season can change the career boards.
         archive = read_all(sb, "stat_archive",
                            "id,season,player_key,player_name,jersey,photo_url,position,category,stat,value",
@@ -1527,16 +1610,14 @@ def main() -> None:
         games = {r["season"]: int(num(r["wvu"]) or 0)
                  for r in read_all(sb, "team_season_stats", "id,season,wvu", sport_id=sport, stat="games")}
         leaders = build_leaders(sport, archive, games)
-        replace(sb, "stat_leaders", leaders, {"sport_id": sport})
+        n = replace(sb, "stat_leaders", leaders, {"sport_id": sport})
+        print(f"  stat_leaders -> {len(leaders)} rows, {n} changed")
         if sport in record_book:
             book_rows = merge_record_book(sport, record_book[sport], archive)
-            replace(sb, "record_book", book_rows, {"sport_id": sport})
-            print(f"  record_book -> {len(book_rows)} rows in {len(record_book[sport]['lists'])} lists "
+            n = replace(sb, "record_book", book_rows, {"sport_id": sport})
+            mark(sport, 0, book_hash)
+            print(f"  record_book -> {len(book_rows)} rows, {n} changed "
                   f"(book through {season_label(sport, record_book[sport]['through'])})")
-        seasons = sorted({r["season"] for r in archive})
-        print(f"  stat_leaders -> {len(leaders)} rows across {len(seasons)} seasons "
-              f"({season_label(sport, seasons[0]) if seasons else '-'} to "
-              f"{season_label(sport, seasons[-1]) if seasons else '-'})")
 
     if failures:
         print("\n[!] Some seasons could not be refreshed (stored rows kept):")

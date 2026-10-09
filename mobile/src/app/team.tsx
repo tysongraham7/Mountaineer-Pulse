@@ -39,8 +39,8 @@ const MODES = [
   { id: 'roster', label: 'Roster' },
   { id: 'depth', label: 'Depth' },
   { id: 'movement', label: 'Movement' },
-  { id: 'leaders', label: 'Leaders' },
   { id: 'staff', label: 'Staff' },
+  { id: 'stats', label: 'Stats' },
 ] as const;
 
 const SPORT_LABEL: Record<string, string> = {
@@ -206,7 +206,7 @@ export default function TeamScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  // Bumped by pull-to-refresh so Leaders refetches too; it loads its own data, not via load().
+  // Bumped by pull-to-refresh so Stats refetches too; it loads its own data, not via load().
   const [refreshKey, setRefreshKey] = useState(0);
   // Set when something deep-linked here — a breaking-news card sending you to the roster
   // change it's about. Without them this screen always opened on football's roster, so a
@@ -303,7 +303,7 @@ export default function TeamScreen() {
         <Text style={styles.screenTitle}>Team</Text>
       </View>
 
-      {/* Roster / Depth Chart / Movement / Leaders segmented control */}
+      {/* Roster / Depth / Movement / Staff / Stats segmented control */}
       <View style={styles.segment}>
         {MODES.map((m) => {
           const active = mode === m.id;
@@ -320,7 +320,7 @@ export default function TeamScreen() {
         })}
       </View>
 
-      {mode === 'leaders' ? (
+      {mode === 'stats' ? (
         <>
           <View style={styles.filterRow}>
             {FILTERS.map((f) => {
@@ -471,7 +471,7 @@ export default function TeamScreen() {
 
         {mode === 'movement' && <MovementView moves={visibleMoves} c={c} showTag={false} />}
 
-        {mode === 'leaders' && (
+        {mode === 'stats' && (
           <StatLeaders
             sport={filter}
             players={players.filter((p) => p.sport_id === filter)}

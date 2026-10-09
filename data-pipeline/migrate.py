@@ -407,6 +407,16 @@ ALTERS = [
     "alter table record_book enable row level security;",
     "drop policy if exists \"public read record_book\" on record_book;",
     "create policy \"public read record_book\" on record_book for select using (true);",
+    # When sync_stat_archive.py last read each season's stats page, so a night with no WVU
+    # game reads nothing. season = 0 holds the record book's hash: re-rank only when it moves.
+    """create table if not exists stat_archive_sync (
+        sport_id   text not null references sports(id),
+        season     int  not null,
+        fetched_at timestamptz,
+        note       text,
+        primary key (sport_id, season)
+    );""",
+    "alter table stat_archive_sync enable row level security;",
     # Football's year-by-year record goes back to 1891, and early seasons had ties.
     "alter table team_records add column if not exists ties int not null default 0;",
 ]

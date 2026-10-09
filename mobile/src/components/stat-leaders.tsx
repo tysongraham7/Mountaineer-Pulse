@@ -1,4 +1,4 @@
-// Leaders: WVU's stat leaderboards for this season, any past season, careers and best single
+// Stats (Team tab): WVU's stat leaderboards for this season, any past season, careers and best single
 // seasons, plus team stats and the year-by-year record.
 //
 // Everything is ranked by the pipeline (sync_stat_archive.py) into stat_leaders, including

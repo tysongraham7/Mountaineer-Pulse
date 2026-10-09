@@ -186,6 +186,20 @@ def test_record_book_merge():
         "a new career joins a rate list, but a listed one isn't recombined with his .300 in 2015"
 
 
+def test_nightly_reads_only_seasons_with_new_games():
+    from datetime import datetime, timezone
+    t = lambda d, h=0: datetime(2026, 10, d, h, tzinfo=timezone.utc)
+    stored = list(range(2014, 2027))
+    finals = {2025: datetime(2025, 11, 29, tzinfo=timezone.utc), 2026: t(3, 16)}
+    plan = lambda fetched, full=False: m.plan_seasons(2014, 2027, stored, finals, fetched, full)
+    assert plan({2025: t(8), 2026: t(5, 10)}) == [], "no game since the last read: nothing fetched"
+    assert plan({2025: t(8), 2026: t(4, 10)}) == [2026], "the night after a game, read once more"
+    assert plan({2025: t(8), 2026: t(1)}) == [2026], "a new game since the last read"
+    assert plan({}) == [2025, 2026], "first night after the switch: one read of each played season"
+    assert plan({2025: t(8), 2026: t(8)}, full=True) == list(range(2014, 2028))
+    assert m.plan_seasons(2014, 2027, [2014, 2016], {}, {}, False) == [2015], "a season that never landed"
+
+
 if __name__ == "__main__":
     tests = [v for k, v in dict(globals()).items() if k.startswith("test_")]
     for t in tests:

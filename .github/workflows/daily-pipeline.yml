@@ -108,9 +108,9 @@ jobs:
         run: python sync_basketball.py
         continue-on-error: true
 
-      # The Leaders tab's archive: every season wvusports.com publishes (football 2014-,
-      # basketball 2014-15-, baseball 2015-). Finished seasons are stored once; a normal night
-      # re-reads only the live season's stats and roster pages per sport, then re-ranks.
+      # The Team tab's Stats archive: every season wvusports.com publishes (football 2014-,
+      # basketball 2014-15-, baseball 2015-). Finished seasons were stored once; a night reads a
+      # season's page only if WVU played since, and a night with no game reads nothing.
       - name: Stat archive and leaderboards (wvusports.com)
         run: python sync_stat_archive.py
         continue-on-error: true
