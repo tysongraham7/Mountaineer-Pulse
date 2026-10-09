@@ -42,6 +42,12 @@ WIKI = "https://en.wikipedia.org/w/index.php?title={}&action=raw"
 FB_PAGE = "West_Virginia_Mountaineers_football_statistical_leaders"
 MBB_PAGE = "West_Virginia_Mountaineers_men%27s_basketball_statistical_leaders"
 BSB_PDF = "https://static.wvusports.com/custompages/content/files/general/baseball_records.pdf"
+# The 2023-24 basketball record book (records through 2022-23). wvusports.com/documents/... is a
+# viewer page; this is the file behind it.
+MBB_PDF = ("https://s3.us-east-2.amazonaws.com/sidearm.nextgen.sites/wvuni.sidearmsports.com"
+           "/documents/2024/1/14/23-24_Record_Book.pdf")
+MBB_PDF_SOURCE = "WVU men's basketball record book (2023-24 edition)"
+MBB_PDF_THROUGH = 2023
 
 # The last season each source has counted. Everything after it comes from the stat archive
 # each night, so these must move when a source is refreshed. Wikipedia's pages were last
@@ -294,6 +300,122 @@ def baseball_lists(text: str) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Basketball record book PDF: the lists Wikipedia doesn't carry
+# ---------------------------------------------------------------------------
+
+# Table title in the 2023-24 book (after "Career " / "Season ") -> list. The book's
+# "Season 3-Point Field Goals" / "Attempted" title wraps, so the attempts list matches on
+# its first line.
+MBB_PDF_LISTS = {
+    "Scoring Average": ("ppg", "Points / Game", "Scoring", "1"),
+    "Field Goals Made": ("fgm", "Field Goals Made", "Scoring", "int"),
+    "Free Throws Made": ("ftm", "Free Throws Made", "Scoring", "int"),
+    "3-Point Field Goals Made": ("tpm", "3-Pointers Made", "3-Pointers", "int"),
+    "3-Point Field Goals": ("tpa", "3-Point Attempts", "3-Pointers", "int"),
+    "3-Point Field Goal": ("tp_pct", "3PT %", "3-Pointers", "pct"),
+    "Field Goal Percentage": ("fg_pct", "FG %", "Shooting %", "pct"),
+    "Free Throw Percentage": ("ft_pct", "FT %", "Shooting %", "pct"),
+    "Rebound Average": ("rpg", "Rebounds / Game", "Rebounding", "1"),
+    "Offensive Rebounds": ("oreb", "Offensive Rebounds", "Rebounding", "int"),
+    "Assist Average": ("apg", "Assists / Game", "Playmaking", "1"),
+    "Steal Average": ("spg", "Steals / Game", "Defense", "1"),
+    "Minutes Played": ("min", "Minutes", "Playing Time", "int"),
+    "Games Started": ("gs", "Games Started", "Playing Time", "int"),
+    "Games Played": ("gp", "Games Played", "Playing Time", "int"),
+}
+YEARS = re.compile(r"^(\d{4})(?:-(\d{2}))?$")
+
+
+def mbb_pdf_lists(text: str) -> list[dict]:
+    """Rows read 'Name [GP] [made/att] value year(s)': the stat is the last number before
+    the year. Each page also carries photo captions and sidebar tables in the text flow, so
+    a list ends at the first row that isn't a well-formed entry, has the wrong kind of year
+    (a single season in a career list), or breaks the list's descending order."""
+    out = []
+    cur, scope, prev = None, None, None
+    for raw in text.splitlines():
+        # "Robinson546/1,034" -> "Robinson 546/1,034". Letters only: a "." before a digit is
+        # a decimal point (".663", "24.8").
+        line = re.sub(r"([A-Za-z'])(\d)", r"\1 \2", raw.strip())
+        m = re.match(r"^(Career|Season) (.+)$", line)
+        if m and m.group(2) in MBB_PDF_LISTS:
+            key, title, group, fmt = MBB_PDF_LISTS[m.group(2)]
+            scope = m.group(1).lower()
+            cur = {"key": key, "title": title, "group": group, "fmt": fmt, "scope": scope, "entries": []}
+            out.append(cur)
+            prev = None
+            continue
+        if cur is None or not line or line.upper().startswith(("PLAYER", "(MIN", "ATTEMPTED", "PERCENTAGE")):
+            continue
+        if line.isupper() and not re.search(r"\d", line):
+            continue   # a photo caption ("JEVON CARTER") lands mid-list in the text flow
+        if re.fullmatch(r"\[\s*\d+\s*\]", line) or line.replace(" ", "") == "RECORDBOOK":
+            continue   # page number and running head: a list can carry over to the next page
+        toks = line.split()
+        y = YEARS.match(toks[-1]) if toks else None
+        nums_at = next((i for i, t in enumerate(toks) if re.match(r"^[\d.,/]+$", t)), None)
+        if not y or nums_at is None or nums_at == 0 or nums_at >= len(toks) - 1:
+            if cur["entries"]:
+                cur = None   # the list is over; whatever follows belongs to something else
+            continue
+        if scope == "season" and y.group(2):
+            cur = None          # a career span inside a season list: a sidebar, not this list
+            continue
+        value = num(toks[-2].split("/")[-1])
+        if value is None:
+            continue
+        if cur["fmt"] == "pct":
+            # From made/attempted when the row has it: the printed rate has typos (Taz
+            # Sherman's 89/102 is printed .783; it's .873).
+            made_att = next((t for t in toks if re.fullmatch(r"[\d,]+/[\d,]+", t)), None)
+            if made_att:
+                a, b = (num(x) for x in made_att.split("/"))
+                value = round(100 * a / b, 1) if a is not None and b else value
+            else:
+                value = round(value * 100, 1) if value < 1 else value
+        if prev is not None and value > prev + 1e-9:
+            cur = None
+            continue
+        prev = value
+        name = " ".join(toks[:nums_at])
+        start = int(y.group(1))
+        if scope == "career":
+            # One-season careers are printed as a single year (Jonathan Hargett, 2002).
+            end = int(y.group(1)[:2] + y.group(2)) if y.group(2) else start
+            if end < start:
+                end += 100
+            cur["entries"].append({"name": name, "value": value, "seasons": [start, end]})
+        else:
+            cur["entries"].append({"name": name, "value": value, "season": start})
+    return [l for l in out if len(l["entries"]) >= 5]
+
+
+def mbb_lists() -> list[dict]:
+    """Wikipedia's lists (points, rebounds, assists, steals, blocks -- current through
+    2024-25), then every other list from WVU's 2023-24 book, each tagged with its own source
+    and through-season so the nightly merge and the app's footnote treat it correctly."""
+    lists = wiki_lists(MBB_PAGE, MBB_LISTS, "mbb")
+    have = {(l["key"], l["scope"]) for l in lists}
+    for l in mbb_pdf_lists(pdf_text(MBB_PDF)):
+        if (l["key"], l["scope"]) not in have:
+            lists.append({**l, "source": MBB_PDF_SOURCE, "through": MBB_PDF_THROUGH})
+    # The book prints Mike Boyd's steals career as "1994-94"; his other lists say 1991-94.
+    # A one-year span inside a wider one the same player has elsewhere takes the wider one.
+    spans: dict[str, list[int]] = {}
+    for l in lists:
+        for e in l["entries"]:
+            if "seasons" in e:
+                a, b = spans.get(e["name"], e["seasons"])
+                spans[e["name"]] = [min(a, e["seasons"][0]), max(b, e["seasons"][1])]
+    for l in lists:
+        for e in l["entries"]:
+            s = e.get("seasons")
+            if s and s[0] == s[1] and spans[e["name"]][0] <= s[0] <= spans[e["name"]][1]:
+                e["seasons"] = list(spans[e["name"]])
+    return lists
+
+
+# ---------------------------------------------------------------------------
 
 def main() -> None:
     book = {
@@ -308,7 +430,7 @@ def main() -> None:
             "source": "WVU men's basketball record book (via Wikipedia's statistical leaders)",
             "source_url": f"https://en.wikipedia.org/wiki/{MBB_PAGE}",
             "through": MBB_THROUGH,
-            "lists": wiki_lists(MBB_PAGE, MBB_LISTS, "mbb"),
+            "lists": mbb_lists(),
         },
         "baseball": {
             "source": "WVU baseball record book",
@@ -328,7 +450,7 @@ def main() -> None:
             die(f"{sport}: only {len(lists)} lists parsed - has the source's layout changed?")
         through = book[sport]["through"]
         late = [f"{l['title']} ({l['scope']}): {e['name']}" for l in lists for e in l["entries"]
-                if max(e.get("seasons") or [e["season"]]) > through]
+                if max(e.get("seasons") or [e["season"]]) > l.get("through", through)]
         if late:
             die(f"{sport}: entries after the stated through-season {through} - update it:\n  "
                 + "\n  ".join(late))

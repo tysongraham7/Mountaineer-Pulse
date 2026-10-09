@@ -777,6 +777,21 @@ def n(v):
     return f"{v:,.0f}"
 
 
+def per_game(key, title, group, stat_key, hero=False):
+    """A basketball per-game board: needs half the team's games in a season, 50 in a career."""
+    return B(key, title, group, lambda t: ratio(g(t, stat_key), g(t, "general.gp")), fmt="1", hero=hero,
+             q_season=at_least("general.gp", per_game=0.5), q_career=at_least("general.gp", total=50),
+             detail=lambda t: f"{n(g(t, 'general.gp'))} gp")
+
+
+def made_of(made, att):
+    return lambda t: f"{n(g(t, made))}/{n(g(t, att))}"
+
+
+FG_SEASON = at_least("basketball.fgm", per_game=2.5)
+FG_CAREER = at_least("basketball.fgm", total=200)
+
+
 BOARDS = {
     "football": [
         B("pass_yds", "Passing Yards", "Passing", stat("passing.yds"), hero=True,
@@ -828,40 +843,63 @@ BOARDS = {
           detail=lambda t: f"{n(g(t, 'kick_ret.no'))} ret"),
     ],
     "mbb": [
-        B("ppg", "Points / Game", "Scoring", lambda t: ratio(g(t, "basketball.pts"), g(t, "general.gp")),
-          fmt="1", hero=True, q_season=at_least("general.gp", per_game=0.5),
-          q_career=at_least("general.gp", total=50), detail=lambda t: f"{n(g(t, 'general.gp'))} gp"),
+        per_game("ppg", "Points / Game", "Scoring", "basketball.pts", hero=True),
         B("pts", "Points", "Scoring", stat("basketball.pts")),
         B("high", "Season High", "Scoring", stat("basketball.high"), career=False),
-        B("rpg", "Rebounds / Game", "Rebounding", lambda t: ratio(g(t, "basketball.reb"), g(t, "general.gp")),
-          fmt="1", hero=True, q_season=at_least("general.gp", per_game=0.5),
-          q_career=at_least("general.gp", total=50), detail=lambda t: f"{n(g(t, 'general.gp'))} gp"),
+        B("fgm", "Field Goals Made", "Scoring", stat("basketball.fgm"),
+          detail=made_of("basketball.fgm", "basketball.fga")),
+        B("ftm", "Free Throws Made", "Scoring", stat("basketball.ftm"),
+          detail=made_of("basketball.ftm", "basketball.fta")),
+
+        B("tpm", "3-Pointers Made", "3-Pointers", stat("basketball.tpm"),
+          detail=made_of("basketball.tpm", "basketball.tpa")),
+        per_game("tpg", "3-Pointers / Game", "3-Pointers", "basketball.tpm"),
+        B("tpa", "3-Point Attempts", "3-Pointers", stat("basketball.tpa")),
+        B("tp_pct", "3PT %", "3-Pointers", lambda t: ratio(g(t, "basketball.tpm"), g(t, "basketball.tpa"), 100),
+          fmt="pct", q_season=at_least("basketball.tpm", per_game=1),
+          q_career=at_least("basketball.tpm", total=75),
+          detail=made_of("basketball.tpm", "basketball.tpa")),
+
+        B("fg_pct", "FG %", "Shooting %", lambda t: ratio(g(t, "basketball.fgm"), g(t, "basketball.fga"), 100),
+          fmt="pct", q_season=FG_SEASON, q_career=FG_CAREER,
+          detail=made_of("basketball.fgm", "basketball.fga")),
+        B("ft_pct", "FT %", "Shooting %", lambda t: ratio(g(t, "basketball.ftm"), g(t, "basketball.fta"), 100),
+          fmt="pct", q_season=at_least("basketball.ftm", per_game=1.5),
+          q_career=at_least("basketball.ftm", total=100),
+          detail=made_of("basketball.ftm", "basketball.fta")),
+        # A three is worth half again a two, so eFG% credits it: (FGM + 0.5 x 3PM) / FGA.
+        B("efg_pct", "Effective FG %", "Shooting %",
+          lambda t: ratio(g(t, "basketball.fgm") + 0.5 * g(t, "basketball.tpm"), g(t, "basketball.fga"), 100),
+          fmt="pct", q_season=FG_SEASON, q_career=FG_CAREER,
+          detail=made_of("basketball.fgm", "basketball.fga")),
+        # Points per shooting possession, free throws included: PTS / (2 x (FGA + 0.44 x FTA)).
+        B("ts_pct", "True Shooting %", "Shooting %",
+          lambda t: ratio(g(t, "basketball.pts"),
+                          2 * (g(t, "basketball.fga") + 0.44 * g(t, "basketball.fta")), 100),
+          fmt="pct", q_season=FG_SEASON, q_career=FG_CAREER,
+          detail=lambda t: f"{n(g(t, 'basketball.pts'))} pts"),
+
+        per_game("rpg", "Rebounds / Game", "Rebounding", "basketball.reb", hero=True),
         B("reb", "Rebounds", "Rebounding", stat("basketball.reb")),
         B("oreb", "Offensive Rebounds", "Rebounding", stat("basketball.oreb")),
-        B("apg", "Assists / Game", "Playmaking", lambda t: ratio(g(t, "basketball.ast"), g(t, "general.gp")),
-          fmt="1", hero=True, q_season=at_least("general.gp", per_game=0.5),
-          q_career=at_least("general.gp", total=50), detail=lambda t: f"{n(g(t, 'general.gp'))} gp"),
+        B("dreb", "Defensive Rebounds", "Rebounding", stat("basketball.dreb")),
+
+        per_game("apg", "Assists / Game", "Playmaking", "basketball.ast", hero=True),
         B("ast", "Assists", "Playmaking", stat("basketball.ast")),
         B("ato", "Assist / Turnover", "Playmaking", lambda t: ratio(g(t, "basketball.ast"), g(t, "basketball.to")),
           fmt="2", q_season=at_least("basketball.ast", per_game=1.5),
           q_career=at_least("basketball.ast", total=150),
           detail=lambda t: f"{n(g(t, 'basketball.ast'))} ast"),
+
         B("stl", "Steals", "Defense", stat("basketball.stl")),
+        per_game("spg", "Steals / Game", "Defense", "basketball.stl"),
         B("blk", "Blocks", "Defense", stat("basketball.blk")),
-        B("fg_pct", "FG %", "Shooting", lambda t: ratio(g(t, "basketball.fgm"), g(t, "basketball.fga"), 100),
-          fmt="pct", q_season=at_least("basketball.fgm", per_game=2.5),
-          q_career=at_least("basketball.fgm", total=200),
-          detail=lambda t: f"{n(g(t, 'basketball.fgm'))}/{n(g(t, 'basketball.fga'))}"),
-        B("tpm", "3-Pointers Made", "Shooting", stat("basketball.tpm"),
-          detail=lambda t: f"{n(g(t, 'basketball.tpm'))}/{n(g(t, 'basketball.tpa'))}"),
-        B("tp_pct", "3PT %", "Shooting", lambda t: ratio(g(t, "basketball.tpm"), g(t, "basketball.tpa"), 100),
-          fmt="pct", q_season=at_least("basketball.tpm", per_game=1),
-          q_career=at_least("basketball.tpm", total=75),
-          detail=lambda t: f"{n(g(t, 'basketball.tpm'))}/{n(g(t, 'basketball.tpa'))}"),
-        B("ft_pct", "FT %", "Shooting", lambda t: ratio(g(t, "basketball.ftm"), g(t, "basketball.fta"), 100),
-          fmt="pct", q_season=at_least("basketball.ftm", per_game=1.5),
-          q_career=at_least("basketball.ftm", total=100),
-          detail=lambda t: f"{n(g(t, 'basketball.ftm'))}/{n(g(t, 'basketball.fta'))}"),
+        per_game("bpg", "Blocks / Game", "Defense", "basketball.blk"),
+
+        B("min", "Minutes", "Playing Time", stat("basketball.min")),
+        per_game("mpg", "Minutes / Game", "Playing Time", "basketball.min"),
+        B("gs", "Games Started", "Playing Time", stat("basketball.gs")),
+        B("gp", "Games Played", "Playing Time", stat("general.gp")),
     ],
     "baseball": [
         B("avg", "Batting Average", "Hitting", lambda t: ratio(g(t, "hitting.h"), g(t, "hitting.ab")),
@@ -1194,6 +1232,16 @@ RB_STATS = {
     "mbb": {
         "pts": stat("basketball.pts"), "reb": stat("basketball.reb"), "ast": stat("basketball.ast"),
         "stl": stat("basketball.stl"), "blk": stat("basketball.blk"),
+        "fgm": stat("basketball.fgm"), "ftm": stat("basketball.ftm"), "tpm": stat("basketball.tpm"),
+        "tpa": stat("basketball.tpa"), "oreb": stat("basketball.oreb"), "min": stat("basketball.min"),
+        "gs": stat("basketball.gs"), "gp": stat("general.gp"),
+        "ppg": lambda t: ratio(g(t, "basketball.pts"), g(t, "general.gp")),
+        "rpg": lambda t: ratio(g(t, "basketball.reb"), g(t, "general.gp")),
+        "apg": lambda t: ratio(g(t, "basketball.ast"), g(t, "general.gp")),
+        "spg": lambda t: ratio(g(t, "basketball.stl"), g(t, "general.gp")),
+        "fg_pct": lambda t: ratio(g(t, "basketball.fgm"), g(t, "basketball.fga"), 100),
+        "tp_pct": lambda t: ratio(g(t, "basketball.tpm"), g(t, "basketball.tpa"), 100),
+        "ft_pct": lambda t: ratio(g(t, "basketball.ftm"), g(t, "basketball.fta"), 100),
     },
     "baseball": {
         "avg": lambda t: ratio(g(t, "hitting.h"), g(t, "hitting.ab")),
@@ -1205,15 +1253,25 @@ RB_STATS = {
         "ip": stat("pitching.outs"),   # innings are kept as outs until display
     },
 }
-RB_RATES = {"fg_pct", "avg", "era"}
-# The record books' own minimums for rate lists (baseball's are printed beside each list).
+# Averages and percentages: never recombined (see above). Per-game averages count too.
+RB_RATES = {"fg_pct", "avg", "era", "ppg", "rpg", "apg", "spg", "tp_pct", "ft_pct"}
+# The record books' own minimums for rate lists, printed beside each list (basketball's
+# season averages print none; half a 30-game season keeps a 4-game cameo off them).
 RB_QUAL = {
-    ("fg_pct", "season"): lambda t, n: g(t, "kicking.fga") >= 15,
-    ("fg_pct", "career"): lambda t, n: g(t, "kicking.fga") >= 40,
-    ("avg", "season"): lambda t, n: g(t, "hitting.ab") >= 75,
-    ("avg", "career"): lambda t, n: g(t, "hitting.ab") >= 150 and n >= 2,
-    ("era", "season"): lambda t, n: g(t, "pitching.outs") >= 150,
-    ("era", "career"): lambda t, n: g(t, "pitching.outs") >= 300 and n >= 2,
+    ("football", "fg_pct", "season"): lambda t, n: g(t, "kicking.fga") >= 15,
+    ("football", "fg_pct", "career"): lambda t, n: g(t, "kicking.fga") >= 40,
+    ("baseball", "avg", "season"): lambda t, n: g(t, "hitting.ab") >= 75,
+    ("baseball", "avg", "career"): lambda t, n: g(t, "hitting.ab") >= 150 and n >= 2,
+    ("baseball", "era", "season"): lambda t, n: g(t, "pitching.outs") >= 150,
+    ("baseball", "era", "career"): lambda t, n: g(t, "pitching.outs") >= 300 and n >= 2,
+    ("mbb", "fg_pct", "season"): lambda t, n: g(t, "basketball.fga") >= 100,
+    ("mbb", "fg_pct", "career"): lambda t, n: g(t, "basketball.fga") >= 500,
+    ("mbb", "tp_pct", "season"): lambda t, n: g(t, "basketball.tpa") >= 30,
+    ("mbb", "tp_pct", "career"): lambda t, n: g(t, "basketball.tpa") >= 100,
+    ("mbb", "ft_pct", "season"): lambda t, n: g(t, "basketball.fta") >= 50,
+    ("mbb", "ft_pct", "career"): lambda t, n: g(t, "basketball.fta") >= 100,
+    **{("mbb", k, "season"): (lambda t, n: g(t, "general.gp") >= 15) for k in ("ppg", "rpg", "apg", "spg")},
+    **{("mbb", k, "career"): (lambda t, n: g(t, "general.gp") >= 50) for k in ("ppg", "rpg", "apg", "spg")},
 }
 
 
@@ -1230,7 +1288,6 @@ def _show(v: float, fmt: str) -> str:
 
 def merge_record_book(sport: str, book: dict, archive: list[dict]) -> list[dict]:
     lines, careers = player_lines(archive, quiet=True)
-    through = book["through"]
     stats = RB_STATS.get(sport, {})
     rows: list[dict] = []
 
@@ -1243,8 +1300,11 @@ def merge_record_book(sport: str, book: dict, archive: list[dict]) -> list[dict]
 
     for order, (_, lst) in enumerate(ordered):
         key, scope, fmt = lst["key"], lst["scope"], lst["fmt"]
+        # A sport's lists can come from more than one book, each counted to its own season.
+        through = lst.get("through", book["through"])
+        source = lst.get("source", book["source"])
         fn, rate, asc = stats.get(key), key in RB_RATES, key == "era"
-        qual = RB_QUAL.get((key, scope))
+        qual = RB_QUAL.get((sport, key, scope))
         entries = [{**e, "value": _book_value(e["value"], fmt), "photo": None} for e in lst["entries"]]
         size = len(entries)
 
@@ -1324,7 +1384,7 @@ def merge_record_book(sport: str, book: dict, archive: list[dict]) -> list[dict]
                 "list_key": key, "title": lst["title"], "grp": lst["group"], "ord": order,
                 "rank": rank, "player_name": e["name"], "value": round(e["value"], 4),
                 "display": shown, "detail": detail, "photo_url": e.get("photo"),
-                "source": book["source"], "through": through,
+                "source": source, "through": through,
             })
     return rows
 

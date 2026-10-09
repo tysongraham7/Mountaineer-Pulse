@@ -628,7 +628,11 @@ function RecordBook({
     }
     l.rows.push(r);
   }
-  const { source, through } = rows[0];
+  // A sport's lists can come from more than one book (basketball: Wikipedia's tables for the
+  // big five, WVU's 2023-24 book for the rest), each counted to its own season.
+  const sources = [...new Map(rows.map((r) => [`${r.source}|${r.through}`, r])).values()]
+    .map((r) => `the ${r.source} (through ${seasonLabel(sport, r.through)})`)
+    .join(' and ');
   return (
     <>
       {groups.map((g) => (
@@ -674,7 +678,7 @@ function RecordBook({
         </View>
       ))}
       <Text style={styles.footnote}>
-        Lists through {seasonLabel(sport, through)} from the {source}. Every season since{' '}
+        Lists from {sources}. Every season since{' '}
         {seasonLabel(sport, first)} is added nightly from WVU&apos;s official stats, so a new record shows
         up here the morning after it&apos;s set.
       </Text>
