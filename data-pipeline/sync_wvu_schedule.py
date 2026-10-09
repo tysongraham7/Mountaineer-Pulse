@@ -21,6 +21,12 @@ about the trip to Maryland. They are dropped once played rather than given a sco
 places (the home-screen record, the Pulse, the Pulse detail, the final-score alert) count
 every 'final' row, and an exhibition win is not a win.
 
+Baseball rides the same path. WVU posted the whole 2027 spring slate on 2026-10-09 (titled
+"2026-27 Baseball Schedule", so it lands as season 2027 — the spring it's played in, which
+is how sync_espn.py numbers baseball too). Its page also carries fall ball: scrimmages
+against other schools are type 'S' and carried as exhibitions, and the Gold vs. Blue
+intrasquads are skipped outright — WVU playing itself isn't a game on a Scores tab.
+
 Brittleness: the same Nuxt hydration payload sync_rosters.py, sync_coaches.py and
 sync_game_themes.py read. If WVU redesigns, this writes nothing rather than nonsense, and
 whatever ESPN has stays up.
@@ -49,6 +55,7 @@ SB_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
 SCHEDULES = [
     ("mbb", "https://wvusports.com/sports/mens-basketball/schedule"),
+    ("baseball", "https://wvusports.com/sports/baseball/schedule"),
 ]
 PLACEHOLDER_BASE = 9_000_000_000
 WVU = "West Virginia Mountaineers"  # ESPN's spelling, so the app's short-name rules apply
@@ -56,6 +63,8 @@ EASTERN = ZoneInfo("America/New_York")
 SEASON_RE = re.compile(r"(20\d\d)-(\d\d)")
 # One announced start: "7 p.m.", "7:30 p.m.", "12 PM". Nothing else is a time.
 TIME_RE = re.compile(r"^\d{1,2}(:\d{2})?\s*[ap]\.?m\.?$", re.I)
+# "Gold vs. Blue": a WVU intrasquad, listed as if it were an opponent.
+INTRASQUAD_RE = re.compile(r"\bgold\b.*\bblue\b|\bblue\b.*\bgold\b", re.I)
 
 
 def die(msg: str) -> None:
@@ -100,10 +109,11 @@ def start_utc(e: dict) -> str | None:
 
 
 def opponent_of(e: dict) -> tuple[str, bool]:
-    """(name, is_exhibition). WVU writes "Maryland (exhibition)" as the opponent's name."""
+    """(name, is_exhibition). Basketball writes "Maryland (exhibition)" as the opponent's
+    name; baseball marks a fall scrimmage with type 'S' instead."""
     op = e.get("opponent")
     name = (op.get("title") or op.get("name") or "") if isinstance(op, dict) else str(op or "")
-    exhibition = "exhibition" in name.lower()
+    exhibition = "exhibition" in name.lower() or e.get("type") == "S"
     name = re.sub(r"\(\s*exhibition\s*\)", "", name, flags=re.I).strip()
     return name, exhibition
 
@@ -112,7 +122,7 @@ def venue_of(e: dict, neutral: bool) -> str | None:
     """Arena, plus the city for a neutral site (the arena alone says nothing about where
     "Michelob ULTRA Arena" is) and the event when there is one."""
     fac = e.get("facility")
-    arena = (fac.get("title") if isinstance(fac, dict) else fac) or None
+    arena = ((fac.get("title") if isinstance(fac, dict) else fac) or "").strip() or None
     city = e.get("location") if isinstance(e.get("location"), str) else None
     parts = [arena or city]
     if neutral and arena and city:
@@ -128,6 +138,8 @@ def placeholder(e: dict, sport: str, season: int) -> dict | None:
     opponent, exhibition = opponent_of(e)
     start = start_utc(e)
     if not opponent or not start or e.get("id") is None:
+        return None
+    if INTRASQUAD_RE.search(opponent):
         return None
     where = str(e.get("locationIndicator") or e.get("location_indicator") or "").upper()
     home = where == "H"
