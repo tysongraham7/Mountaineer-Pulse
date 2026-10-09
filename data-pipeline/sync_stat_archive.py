@@ -40,6 +40,7 @@ Prereqs: migrate.py has been run; .env has SUPABASE_URL, SUPABASE_SECRET_KEY
 (and CFBD_API_KEY, only needed for the one-time football records backfill).
 Run:  python sync_stat_archive.py            (incremental, what the nightly job runs)
       python sync_stat_archive.py --full     (refetch every season)
+      python sync_stat_archive.py --rerank   (re-rank from what's stored, no downloads)
 """
 
 import json
@@ -801,6 +802,10 @@ BOARDS = {
         B("ypr", "Yards / Catch", "Receiving", lambda t: ratio(g(t, "receiving.yds"), g(t, "receiving.rec")),
           fmt="1", q_season=at_least("receiving.rec", per_game=1.5), q_career=at_least("receiving.rec", total=50),
           detail=lambda t: f"{n(g(t, 'receiving.rec'))} rec"),
+        # Every point scored -- touchdowns included -- so it sits under Scoring, not Special
+        # Teams, where a quarterback's rushing TDs read as if he were kicking.
+        B("pts", "Points", "Scoring", stat("scoring.pts")),
+        B("td", "Touchdowns", "Scoring", stat("scoring.td")),
         B("tkl", "Tackles", "Defense", stat("defense.tkl"), hero=True,
           detail=lambda t: f"{n(g(t, 'defense.solo'))} solo"),
         B("tfl", "Tackles for Loss", "Defense", stat("defense.tfl"), fmt="1"),
@@ -808,7 +813,6 @@ BOARDS = {
         B("def_int", "Interceptions", "Defense", stat("defense.int")),
         B("pbu", "Pass Breakups", "Defense", stat("defense.pbu")),
         B("ff", "Forced Fumbles", "Defense", stat("defense.ff")),
-        B("pts", "Points", "Special Teams", stat("scoring.pts")),
         B("fgm", "Field Goals", "Special Teams", stat("kicking.fgm"),
           detail=lambda t: f"{n(g(t, 'kicking.fgm'))}/{n(g(t, 'kicking.fga'))}"),
         B("fg_pct", "Field Goal %", "Special Teams",
@@ -1475,6 +1479,7 @@ def main() -> None:
         if not val:
             die(f"Missing {name} in .env")
     full = "--full" in sys.argv
+    rerank = "--rerank" in sys.argv
     sb = create_client(SB_URL, SB_KEY)
     this_year = date.today().year
     failures = []
@@ -1593,13 +1598,16 @@ def main() -> None:
             if newest is not None and season < newest:
                 record_from_page(sb, sport, season, block, rec_have)
 
-        # Re-rank only when something moved: new stats, or a record book rebuilt by hand.
-        book_hash = None
-        if sport in record_book:
-            blob = json.dumps(record_book[sport], sort_keys=True).encode()
-            book_hash = hashlib.sha256(blob).hexdigest()[:16]
-        book_moved = book_hash is not None and (sync.get((sport, 0)) or {}).get("note") != book_hash
-        if not (written or book_moved or full):
+        # Re-rank only when something moved: new stats, a record book rebuilt by hand, or a
+        # change to the boards themselves (a title, a group, a board added) -- otherwise a
+        # fix to a board would wait for the next game to show up. Qualification rules are
+        # code and aren't in the signature; --rerank applies a change to those.
+        boards_sig = [(b["key"], b["title"], b["group"], b["fmt"], b["hero"], b["asc"], b["career"])
+                      for b in BOARDS[sport]]
+        blob = json.dumps([record_book.get(sport), boards_sig], sort_keys=True).encode()
+        signature = hashlib.sha256(blob).hexdigest()[:16]
+        moved = (sync.get((sport, 0)) or {}).get("note") != signature
+        if not (written or moved or full or rerank):
             print("  leaderboards and record book unchanged - not re-ranked")
             continue
 
@@ -1615,9 +1623,9 @@ def main() -> None:
         if sport in record_book:
             book_rows = merge_record_book(sport, record_book[sport], archive)
             n = replace(sb, "record_book", book_rows, {"sport_id": sport})
-            mark(sport, 0, book_hash)
             print(f"  record_book -> {len(book_rows)} rows, {n} changed "
                   f"(book through {season_label(sport, record_book[sport]['through'])})")
+        mark(sport, 0, signature)
 
     if failures:
         print("\n[!] Some seasons could not be refreshed (stored rows kept):")
