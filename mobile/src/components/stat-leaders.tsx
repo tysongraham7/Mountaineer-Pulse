@@ -47,8 +47,33 @@ type SeasonRecord = {
   conf_losses: number | null;
 };
 
-type Pane = 'players' | 'team';
+type BookRow = {
+  list_key: string;
+  title: string;
+  grp: string;
+  ord: number;
+  rank: number;
+  player_name: string;
+  display: string;
+  detail: string | null;
+  source: string;
+  through: number;
+};
+
+type Pane = 'players' | 'team' | 'records';
 type Scope = 'current' | 'year' | 'career' | 'best' | 'history';
+type BookScope = 'career' | 'season' | 'game';
+
+const PANES: { id: Pane; label: string }[] = [
+  { id: 'players', label: 'Players' },
+  { id: 'team', label: 'Team' },
+  { id: 'records', label: 'Records' },
+];
+const BOOK_SCOPES: { id: BookScope; label: string }[] = [
+  { id: 'career', label: 'Career' },
+  { id: 'season', label: 'Season' },
+  { id: 'game', label: 'Game' },
+];
 
 const PLAYER_SCOPES: { id: Scope; label: string }[] = [
   { id: 'current', label: 'This Season' },
@@ -116,6 +141,8 @@ export function StatLeaders({
   const [rows, setRows] = useState<LeaderRow[] | null>(null);
   const [teamStats, setTeamStats] = useState<TeamStat[] | null>(null);
   const [records, setRecords] = useState<SeasonRecord[] | null>(null);
+  const [bookScope, setBookScope] = useState<BookScope>('career');
+  const [book, setBook] = useState<BookRow[] | null>(null);
   const [openBoard, setOpenBoard] = useState<Board | null>(null);
   const [picked, setPicked] = useState<Player | null>(null);
   // Switching back to a scope already seen is instant; the cache empties on pull-to-refresh.
@@ -170,7 +197,19 @@ export function StatLeaders({
       });
     };
 
-    if (view === 'players') {
+    if (view === 'records') {
+      setBook(null);
+      remember(`b|${sport}|${bookScope}`, setBook, () =>
+        supabase
+          .from('record_book')
+          .select('list_key,title,grp,ord,rank,player_name,display,detail,source,through')
+          .eq('sport_id', sport)
+          .eq('scope', bookScope)
+          .order('ord')
+          .order('rank')
+          .then(({ data }) => (data ?? []) as BookRow[]),
+      );
+    } else if (view === 'players') {
       setRows(null);
       const dbScope = effScope === 'career' || effScope === 'best' ? effScope : 'season';
       remember(`p|${sport}|${dbScope}|${season}`, setRows, () =>
@@ -214,7 +253,7 @@ export function StatLeaders({
     return () => {
       live = false;
     };
-  }, [sport, view, effScope, season, current, refreshKey]);
+  }, [sport, view, effScope, season, current, bookScope, refreshKey]);
 
   // Leaders link to a profile only when they're on today's roster; a 2016 linebacker has
   // no page to open. Matched by name: the archive and the roster are different sources.
@@ -247,7 +286,13 @@ export function StatLeaders({
   const scopes = view === 'players' ? PLAYER_SCOPES : TEAM_SCOPES;
   const games = seasons.get(season);
   const context =
-    effScope === 'career'
+    view === 'records'
+      ? bookScope === 'career'
+        ? 'WVU record book · all-time career leaders'
+        : bookScope === 'season'
+          ? 'WVU record book · best single seasons, all-time'
+          : 'WVU record book · best single games, all-time'
+      : effScope === 'career'
       ? `WVU careers · official stats since ${label(first)}`
       : effScope === 'best'
         ? `Best single seasons since ${label(first)}`
@@ -258,26 +303,39 @@ export function StatLeaders({
   return (
     <View>
       <View style={styles.viewToggle}>
-        {(['players', 'team'] as const).map((v) => {
-          const active = view === v;
+        {PANES.map((v) => {
+          const active = view === v.id;
           return (
             <Pressable
-              key={v}
+              key={v.id}
               onPress={() => {
                 trackFeature('leaders_view_switch');
-                setView(v);
+                setView(v.id);
               }}
               style={[styles.viewBtn, active && { backgroundColor: c.surface2 }]}>
-              <Text style={[styles.viewText, { color: active ? c.text : c.textMuted }]}>
-                {v === 'players' ? 'Players' : 'Team'}
-              </Text>
+              <Text style={[styles.viewText, { color: active ? c.text : c.textMuted }]}>{v.label}</Text>
             </Pressable>
           );
         })}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-        {scopes.map((s) => {
+        {view === 'records'
+          ? BOOK_SCOPES.map((s) => {
+              const active = bookScope === s.id;
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => {
+                    trackFeature('leaders_scope_switch');
+                    setBookScope(s.id);
+                  }}
+                  style={[styles.chip, active ? styles.chipOn : styles.chipOff]}>
+                  <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{s.label}</Text>
+                </Pressable>
+              );
+            })
+          : scopes.map((s) => {
           const active = effScope === s.id;
           return (
             <Pressable
@@ -290,10 +348,10 @@ export function StatLeaders({
               <Text style={[styles.chipText, { color: active ? Brand.onGold : c.textSecondary }]}>{s.label}</Text>
             </Pressable>
           );
-        })}
+            })}
       </ScrollView>
 
-      {effScope === 'year' && (
+      {view !== 'records' && effScope === 'year' && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {seasonList.map((s) => {
             const active = effYear === s;
@@ -311,7 +369,15 @@ export function StatLeaders({
 
       <Text style={styles.context}>{context}</Text>
 
-      {view === 'players' ? (
+      {view === 'records' ? (
+        book == null ? (
+          <Loading />
+        ) : book.length === 0 ? (
+          <Text style={styles.empty}>No record book for this sport yet.</Text>
+        ) : (
+          <RecordBook sport={sport} rows={book} first={first} profileFor={(n) => onRoster.get(normName(n)) ?? null} onPick={setPicked} />
+        )
+      ) : view === 'players' ? (
         rows == null ? (
           <Loading />
         ) : boards.length === 0 ? (
@@ -527,6 +593,92 @@ function LeaderLine({
     <Pressable onPress={() => onPick(profile)} style={({ pressed }) => pressed && { opacity: 0.7 }}>
       {body}
     </Pressable>
+  );
+}
+
+/**
+ * The all-time lists. No headshots: most of these names predate the website, and a column of
+ * blank circles beside Jerry West says less than his name does. The source line matters more
+ * here than anywhere else in the app — these numbers come from WVU's books, then the archive.
+ */
+function RecordBook({
+  sport,
+  rows,
+  first,
+  profileFor,
+  onPick,
+}: {
+  sport: string;
+  rows: BookRow[];
+  first: number;
+  profileFor: (name: string) => Player | null;
+  onPick: (p: Player) => void;
+}) {
+  const groups: { name: string; lists: { key: string; title: string; rows: BookRow[] }[] }[] = [];
+  for (const r of rows) {
+    let g = groups[groups.length - 1];
+    if (!g || g.name !== r.grp) {
+      g = { name: r.grp, lists: [] };
+      groups.push(g);
+    }
+    let l = g.lists[g.lists.length - 1];
+    if (!l || l.key !== r.list_key) {
+      l = { key: r.list_key, title: r.title, rows: [] };
+      g.lists.push(l);
+    }
+    l.rows.push(r);
+  }
+  const { source, through } = rows[0];
+  return (
+    <>
+      {groups.map((g) => (
+        <View key={g.name}>
+          <View style={styles.sectionRow}>
+            <View style={styles.goldBar} />
+            <Text style={styles.sectionTitle}>{g.name}</Text>
+          </View>
+          {g.lists.map((l) => (
+            <View key={l.key} style={styles.card}>
+              <Text style={styles.cardTitle}>{l.title}</Text>
+              {l.rows.map((r, i) => {
+                const profile = profileFor(r.player_name);
+                const body = (
+                  <View style={[styles.line, i > 0 && styles.lineDivider]}>
+                    <Text style={[styles.rank, { color: r.rank === 1 ? Brand.gold : c.textMuted }]}>{r.rank}</Text>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.name} numberOfLines={1}>
+                        {r.player_name}
+                      </Text>
+                      {r.detail ? (
+                        <Text style={styles.sub} numberOfLines={1}>
+                          {r.detail}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={[styles.value, { color: r.rank === 1 ? Brand.gold : c.text }]}>{r.display}</Text>
+                    <View style={styles.chevron}>
+                      {profile && <Ionicons name="chevron-forward" size={13} color={c.textMuted} />}
+                    </View>
+                  </View>
+                );
+                return profile ? (
+                  <Pressable key={`${r.player_name}-${i}`} onPress={() => onPick(profile)}>
+                    {body}
+                  </Pressable>
+                ) : (
+                  <View key={`${r.player_name}-${i}`}>{body}</View>
+                );
+              })}
+            </View>
+          ))}
+        </View>
+      ))}
+      <Text style={styles.footnote}>
+        Lists through {seasonLabel(sport, through)} from the {source}. Every season since{' '}
+        {seasonLabel(sport, first)} is added nightly from WVU&apos;s official stats, so a new record shows
+        up here the morning after it&apos;s set.
+      </Text>
+    </>
   );
 }
 

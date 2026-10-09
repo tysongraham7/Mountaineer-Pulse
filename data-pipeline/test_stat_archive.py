@@ -78,6 +78,16 @@ def test_opponent_box_score_is_dropped_but_a_kicker_is_not():
     assert s.players["mike molina"]["stats"]["scoring.pts"] == 93
 
 
+def test_nameless_kicking_row_borrows_its_specialist_name():
+    block = football(defense=[row("Jackson, Josiah", "HAYES,MICHAEL", "22", gamesPlayed="13", totalTackles="1")],
+                     scoring=[row("Jackson, Josiah", "HAYES,MICHAEL", "22", points="97")])
+    block["overallIndividualStats"]["individualStats"]["individualFieldGoalStats"] = [
+        row("Jackson, Josiah", "", "22", made="17", attempts="21")]
+    s = m.parse_season("football", block)
+    assert s.players["michael hayes"]["stats"]["kicking.fgm"] == 17, "2023: Hayes's field goals"
+    assert "josiah jackson" not in s.players
+
+
 def test_roster_completes_initials_and_merges_spellings():
     s = m.parse_season("football", football(defense=[
         row("Smallwood, W", "SMALLWOOD,W", "4", gamesPlayed="13", totalTackles="1"),
@@ -143,6 +153,37 @@ def test_leaderboards_rank_ties_qualify_and_floor_best_seasons():
 
     tie = m.rank_board({"asc": False, "fmt": "int"}, [(5, "a"), (7, "b"), (5, "c"), (3, "d")])
     assert [r[0] for r in tie] == [1, 2, 2, 4], "standard competition ranking"
+
+
+def test_record_book_merge():
+    def bsb(yr, hitters):
+        s = m.parse_season("baseball", {"overallIndividualStats": {"individualStats": {
+            "individualHittingStats": [row(n, "", "1", gamesPlayed="50", atBats=ab, hits=h, homeRuns=hr)
+                                       for n, ab, h, hr in hitters]}},
+            "overallTeamStats": {"teamStats": {"ourWinsLosses": "40-20"}}, "record": ""})
+        return m.archive_rows("baseball", yr, s)
+    # McBroom 2011-14 in the book; suppose he'd played on into 2015 (archive).
+    arch = (bsb(2015, [("McBroom, Ryan", "200", "60", "10"), ("New, Slugger", "220", "90", "20")])
+            + bsb(2016, [("New, Slugger", "210", "80", "15")]))
+    book = {"source": "test", "through": 2014, "lists": [
+        {"key": "hr", "title": "Home Runs", "group": "Power", "fmt": "int", "scope": "career", "entries": [
+            {"name": "Tim McCabe", "value": 35, "seasons": [2000, 2003]},
+            {"name": "Ryan McBroom", "value": 30, "seasons": [2011, 2014]}]},
+        {"key": "hr", "title": "Home Runs", "group": "Power", "fmt": "int", "scope": "season", "entries": [
+            {"name": "Mark Landers", "value": 19, "season": 1994}]},
+        {"key": "avg", "title": "Batting Average", "group": "Hitting", "fmt": "avg", "scope": "career", "entries": [
+            {"name": "Ryan McBroom", "value": 0.380, "seasons": [2011, 2014]},
+            {"name": "Old Timer", "value": 0.350, "seasons": [1960, 1962]}]},
+    ]}
+    rows = m.merge_record_book("baseball", book, arch)
+    pick = lambda scope, key: [(r["rank"], r["player_name"], r["display"], r["detail"]) for r in rows
+                               if r["scope"] == scope and r["list_key"] == key]
+    assert pick("career", "hr") == [(1, "Ryan McBroom", "40", "2011-15"), (2, "Tim McCabe", "35", "2000-03"),
+                                    (2, "Slugger New", "35", "2015-16")], \
+        "book through 2014 + archive 2015 add; a tie at the last place stays on"
+    assert pick("season", "hr") == [(1, "Slugger New", "20", "2015")]
+    assert pick("career", "avg") == [(1, "Slugger New", ".395", "2015-16"), (2, "Ryan McBroom", ".380", "2011-14")], \
+        "a new career joins a rate list, but a listed one isn't recombined with his .300 in 2015"
 
 
 if __name__ == "__main__":

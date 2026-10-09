@@ -1,0 +1,6185 @@
+{
+ "built": "2026-10-08",
+ "football": {
+  "source": "WVU football record book (via Wikipedia's statistical leaders)",
+  "source_url": "https://en.wikipedia.org/wiki/West_Virginia_Mountaineers_football_statistical_leaders",
+  "through": 2025,
+  "lists": [
+   {
+    "key": "pass_yds",
+    "title": "Passing Yards",
+    "group": "Passing",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 11662.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 8153.0,
+      "seasons": [
+       1996,
+       1999
+      ]
+     },
+     {
+      "name": "Will Grier",
+      "value": 7354.0,
+      "seasons": [
+       2017,
+       2018
+      ]
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 7302.0,
+      "seasons": [
+       2014,
+       2016
+      ]
+     },
+     {
+      "name": "Jarret Doege",
+      "value": 6453.0,
+      "seasons": [
+       2019,
+       2021
+      ]
+     },
+     {
+      "name": "Pat White",
+      "value": 6049.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Chad Johnston",
+      "value": 5954.0,
+      "seasons": [
+       1993,
+       1996
+      ]
+     },
+     {
+      "name": "Oliver Luck",
+      "value": 5765.0,
+      "seasons": [
+       1978,
+       1981
+      ]
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 5558.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 5370.0,
+      "seasons": [
+       2020,
+       2024
+      ]
+     }
+    ]
+   },
+   {
+    "key": "pass_yds",
+    "title": "Passing Yards",
+    "group": "Passing",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 4385.0,
+      "season": 2011
+     },
+     {
+      "name": "Geno Smith",
+      "value": 4205.0,
+      "season": 2012
+     },
+     {
+      "name": "Will Grier",
+      "value": 3864.0,
+      "season": 2018
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 3607.0,
+      "season": 1998
+     },
+     {
+      "name": "Will Grier",
+      "value": 3490.0,
+      "season": 2017
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 3328.0,
+      "season": 2016
+     },
+     {
+      "name": "Clint Trickett",
+      "value": 3285.0,
+      "season": 2014
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 3145.0,
+      "season": 2015
+     },
+     {
+      "name": "Jarret Doege",
+      "value": 3048.0,
+      "season": 2021
+     },
+     {
+      "name": "Geno Smith",
+      "value": 2763.0,
+      "season": 2010
+     }
+    ]
+   },
+   {
+    "key": "pass_yds",
+    "title": "Passing Yards",
+    "group": "Passing",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 656.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Will Grier",
+      "value": 539.0,
+      "season": 2018,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 532.0,
+      "season": 2015,
+      "opponent": "Arizona State (Cactus Bowl)"
+     },
+     {
+      "name": "Clint Trickett",
+      "value": 511.0,
+      "season": 2014,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 463.0,
+      "season": 2011,
+      "opponent": "LSU"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 450.0,
+      "season": 2011,
+      "opponent": "Connecticut"
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 429.0,
+      "season": 1998,
+      "opponent": "Missouri"
+     },
+     {
+      "name": "Will Grier",
+      "value": 429.0,
+      "season": 2018,
+      "opponent": "Tennessee"
+     },
+     {
+      "name": "Mike Sherwood",
+      "value": 416.0,
+      "season": 1968,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 411.0,
+      "season": 2012,
+      "opponent": "James Madison"
+     }
+    ]
+   },
+   {
+    "key": "pass_td",
+    "title": "Passing TD",
+    "group": "Passing",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 98.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Will Grier",
+      "value": 71.0,
+      "seasons": [
+       2017,
+       2018
+      ]
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 60.0,
+      "seasons": [
+       2014,
+       2016
+      ]
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 59.0,
+      "seasons": [
+       1996,
+       1999
+      ]
+     },
+     {
+      "name": "Pat White",
+      "value": 56.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 45.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     },
+     {
+      "name": "Oliver Luck",
+      "value": 43.0,
+      "seasons": [
+       1978,
+       1981
+      ]
+     },
+     {
+      "name": "Chad Johnston",
+      "value": 43.0,
+      "seasons": [
+       1993,
+       1996
+      ]
+     },
+     {
+      "name": "Major Harris",
+      "value": 41.0,
+      "seasons": [
+       1987,
+       1989
+      ]
+     },
+     {
+      "name": "Jarret Doege",
+      "value": 40.0,
+      "seasons": [
+       2019,
+       2021
+      ]
+     }
+    ]
+   },
+   {
+    "key": "pass_td",
+    "title": "Passing TD",
+    "group": "Passing",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 42.0,
+      "season": 2012
+     },
+     {
+      "name": "Will Grier",
+      "value": 37.0,
+      "season": 2018
+     },
+     {
+      "name": "Will Grier",
+      "value": 34.0,
+      "season": 2017
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 31.0,
+      "season": 1998
+     },
+     {
+      "name": "Geno Smith",
+      "value": 31.0,
+      "season": 2011
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 26.0,
+      "season": 2015
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 26.0,
+      "season": 2016
+     },
+     {
+      "name": "Geno Smith",
+      "value": 24.0,
+      "season": 2010
+     },
+     {
+      "name": "Pat White",
+      "value": 21.0,
+      "season": 2008
+     },
+     {
+      "name": "Oliver Luck",
+      "value": 19.0,
+      "season": 1980
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 19.0,
+      "season": 2004
+     },
+     {
+      "name": "Jarret Doege",
+      "value": 19.0,
+      "season": 2021
+     }
+    ]
+   },
+   {
+    "key": "pass_td",
+    "title": "Passing TD",
+    "group": "Passing",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 8.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 6.0,
+      "season": 1998,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 6.0,
+      "season": 2011,
+      "opponent": "Clemson (Orange Bowl)"
+     },
+     {
+      "name": "Allen McCune",
+      "value": 5.0,
+      "season": 1965,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Brad Lewis",
+      "value": 5.0,
+      "season": 2000,
+      "opponent": "Ole Miss (Music City Bowl)"
+     },
+     {
+      "name": "Pat White",
+      "value": 5.0,
+      "season": 2008,
+      "opponent": "Villanova"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 5.0,
+      "season": 2012,
+      "opponent": "James Madison"
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 5.0,
+      "season": 2015,
+      "opponent": "Arizona State (Cactus Bowl)"
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 5.0,
+      "season": 2016,
+      "opponent": "Youngstown State"
+     },
+     {
+      "name": "Will Grier",
+      "value": 5.0,
+      "season": 2017,
+      "opponent": "East Carolina"
+     },
+     {
+      "name": "Will Grier",
+      "value": 5.0,
+      "season": 2017,
+      "opponent": "Texas Tech"
+     },
+     {
+      "name": "Will Grier",
+      "value": 5.0,
+      "season": 2017,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Will Grier",
+      "value": 5.0,
+      "season": 2018,
+      "opponent": "Tennessee"
+     },
+     {
+      "name": "Will Grier",
+      "value": 5.0,
+      "season": 2018,
+      "opponent": "Kansas State"
+     }
+    ]
+   },
+   {
+    "key": "rush_yds",
+    "title": "Rushing Yards",
+    "group": "Rushing",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Avon Cobourne",
+      "value": 5164.0,
+      "seasons": [
+       1999,
+       2002
+      ]
+     },
+     {
+      "name": "Pat White",
+      "value": 4480.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Noel Devine",
+      "value": 4315.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 4086.0,
+      "seasons": [
+       1996,
+       1998
+      ]
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 3923.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Leddie Brown",
+      "value": 2888.0,
+      "seasons": [
+       2018,
+       2021
+      ]
+     },
+     {
+      "name": "Arthur Owens",
+      "value": 2648.0,
+      "seasons": [
+       1972,
+       1975
+      ]
+     },
+     {
+      "name": "Robert Walker",
+      "value": 2620.0,
+      "seasons": [
+       1993,
+       1995
+      ]
+     },
+     {
+      "name": "Quincy Wilson",
+      "value": 2608.0,
+      "seasons": [
+       1999,
+       2003
+      ]
+     },
+     {
+      "name": "Wendell Smallwood",
+      "value": 2462.0,
+      "seasons": [
+       2013,
+       2015
+      ]
+     }
+    ]
+   },
+   {
+    "key": "rush_yds",
+    "title": "Rushing Yards",
+    "group": "Rushing",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Steve Slaton",
+      "value": 1744.0,
+      "season": 2006
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 1710.0,
+      "season": 2002
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 1589.0,
+      "season": 1997
+     },
+     {
+      "name": "Wendell Smallwood",
+      "value": 1519.0,
+      "season": 2015
+     },
+     {
+      "name": "Noel Devine",
+      "value": 1465.0,
+      "season": 2009
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 1462.0,
+      "season": 1998
+     },
+     {
+      "name": "Quincy Wilson",
+      "value": 1380.0,
+      "season": 2003
+     },
+     {
+      "name": "Pat White",
+      "value": 1335.0,
+      "season": 2007
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 1298.0,
+      "season": 2001
+     },
+     {
+      "name": "Robert Walker",
+      "value": 1250.0,
+      "season": 1993
+     }
+    ]
+   },
+   {
+    "key": "rush_yds",
+    "title": "Rushing Yards",
+    "group": "Rushing",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Tavon Austin",
+      "value": 344.0,
+      "season": 2012,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Kay-Jay Harris",
+      "value": 337.0,
+      "season": 2004,
+      "opponent": "East Carolina"
+     },
+     {
+      "name": "Justin Crawford",
+      "value": 331.0,
+      "season": 2016,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Dustin Garrison",
+      "value": 291.0,
+      "season": 2011,
+      "opponent": "Bowling Green"
+     },
+     {
+      "name": "Kerry Marbury",
+      "value": 291.0,
+      "season": 1971,
+      "opponent": "Temple"
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 260.0,
+      "season": 2002,
+      "opponent": "East Carolina"
+     },
+     {
+      "name": "Pat White",
+      "value": 247.0,
+      "season": 2006,
+      "opponent": "Syracuse"
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 234.0,
+      "season": 1997,
+      "opponent": "Notre Dame"
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 228.0,
+      "season": 1998,
+      "opponent": "Rutgers"
+     },
+     {
+      "name": "Pat White",
+      "value": 220.0,
+      "season": 2005,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Pat White",
+      "value": 220.0,
+      "season": 2006,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Noel Devine",
+      "value": 220.0,
+      "season": 2009,
+      "opponent": "Colorado"
+     }
+    ]
+   },
+   {
+    "key": "rush_td",
+    "title": "Rushing TD",
+    "group": "Rushing",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Steve Slaton",
+      "value": 50.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Pat White",
+      "value": 47.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Ira Errett Rodgers",
+      "value": 42.0,
+      "seasons": [
+       1915,
+       1919
+      ]
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 42.0,
+      "seasons": [
+       1999,
+       2002
+      ]
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 40.0,
+      "seasons": [
+       1996,
+       1998
+      ]
+     },
+     {
+      "name": "CJ Donaldson Jr.",
+      "value": 30.0,
+      "seasons": [
+       2022,
+       2024
+      ]
+     },
+     {
+      "name": "Noel Devine",
+      "value": 29.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 28.0,
+      "seasons": [
+       2020,
+       2024
+      ]
+     },
+     {
+      "name": "Leddie Brown",
+      "value": 27.0,
+      "seasons": [
+       2018,
+       2021
+      ]
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 24.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     }
+    ]
+   },
+   {
+    "key": "rush_td",
+    "title": "Rushing TD",
+    "group": "Rushing",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Ira Errett Rodgers",
+      "value": 19.0,
+      "season": 1919
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 18.0,
+      "season": 1997
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 18.0,
+      "season": 2006
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 17.0,
+      "season": 2002
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 17.0,
+      "season": 2005
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 17.0,
+      "season": 2007
+     },
+     {
+      "name": "Kerry Marbury",
+      "value": 16.0,
+      "season": 1972
+     },
+     {
+      "name": "Pat White",
+      "value": 16.0,
+      "season": 2006
+     },
+     {
+      "name": "Pat White",
+      "value": 14.0,
+      "season": 2007
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 13.0,
+      "season": 1998
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 13.0,
+      "season": 2002
+     },
+     {
+      "name": "Noel Devine",
+      "value": 13.0,
+      "season": 2009
+     },
+     {
+      "name": "Leddie Brown",
+      "value": 13.0,
+      "season": 2021
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 13.0,
+      "season": 2023
+     }
+    ]
+   },
+   {
+    "key": "rush_td",
+    "title": "Rushing TD",
+    "group": "Rushing",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "George Allen",
+      "value": 5.0,
+      "season": 1932,
+      "opponent": "Marquette"
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 5.0,
+      "season": 2005,
+      "opponent": "Louisville"
+     }
+    ]
+   },
+   {
+    "key": "rec",
+    "title": "Receptions",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tavon Austin",
+      "value": 288.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 210.0,
+      "seasons": [
+       2010,
+       2012
+      ]
+     },
+     {
+      "name": "Jock Sanders",
+      "value": 206.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "David Saunders",
+      "value": 191.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Sam James",
+      "value": 190.0,
+      "seasons": [
+       2018,
+       2022
+      ]
+     },
+     {
+      "name": "Daikiel Shorts",
+      "value": 177.0,
+      "seasons": [
+       2013,
+       2016
+      ]
+     },
+     {
+      "name": "Shawn Foreman",
+      "value": 169.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 168.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Khori Ivy",
+      "value": 160.0,
+      "seasons": [
+       1997,
+       2000
+      ]
+     },
+     {
+      "name": "Antonio Brown",
+      "value": 155.0,
+      "seasons": [
+       1998,
+       2001
+      ]
+     }
+    ]
+   },
+   {
+    "key": "rec",
+    "title": "Receptions",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Stedman Bailey",
+      "value": 114.0,
+      "season": 2012
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 114.0,
+      "season": 2012
+     },
+     {
+      "name": "Kevin White",
+      "value": 109.0,
+      "season": 2014
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 101.0,
+      "season": 2011
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 97.0,
+      "season": 2017
+     },
+     {
+      "name": "Shawn Foreman",
+      "value": 77.0,
+      "season": 1997
+     },
+     {
+      "name": "David Saunders",
+      "value": 77.0,
+      "season": 1998
+     },
+     {
+      "name": "David Saunders",
+      "value": 76.0,
+      "season": 1996
+     },
+     {
+      "name": "Jock Sanders",
+      "value": 72.0,
+      "season": 2009
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 72.0,
+      "season": 2011
+     }
+    ]
+   },
+   {
+    "key": "rec",
+    "title": "Receptions",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Kevin White",
+      "value": 16.0,
+      "season": 2014,
+      "opponent": "Texas"
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 14.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 14.0,
+      "season": 2012,
+      "opponent": "Oklahoma State"
+     },
+     {
+      "name": "Sam James",
+      "value": 14.0,
+      "season": 2019,
+      "opponent": "Texas Tech"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 13.0,
+      "season": 2012,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 13.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "J.D. Woods",
+      "value": 13.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 13.0,
+      "season": 2012,
+      "opponent": "James Madison"
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 13.0,
+      "season": 2012,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Kevin White",
+      "value": 13.0,
+      "season": 2014,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Kevin White",
+      "value": 13.0,
+      "season": 2014,
+      "opponent": "Texas Tech"
+     }
+    ]
+   },
+   {
+    "key": "rec_yds",
+    "title": "Receiving Yards",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tavon Austin",
+      "value": 3413.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 3218.0,
+      "seasons": [
+       2010,
+       2012
+      ]
+     },
+     {
+      "name": "David Saunders",
+      "value": 2608.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Khori Ivy",
+      "value": 2402.0,
+      "seasons": [
+       1997,
+       2000
+      ]
+     },
+     {
+      "name": "Shawn Foreman",
+      "value": 2347.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 2294.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Daikiel Shorts",
+      "value": 2263.0,
+      "seasons": [
+       2013,
+       2016
+      ]
+     },
+     {
+      "name": "Sam James",
+      "value": 2229.0,
+      "seasons": [
+       2018,
+       2022
+      ]
+     },
+     {
+      "name": "Rahsaan Vanterpool",
+      "value": 2022.0,
+      "seasons": [
+       1993,
+       1996
+      ]
+     },
+     {
+      "name": "Jock Sanders",
+      "value": 1980.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     }
+    ]
+   },
+   {
+    "key": "rec_yds",
+    "title": "Receiving Yards",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Stedman Bailey",
+      "value": 1622.0,
+      "season": 2012
+     },
+     {
+      "name": "Kevin White",
+      "value": 1447.0,
+      "season": 2014
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 1289.0,
+      "season": 2012
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 1279.0,
+      "season": 2011
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 1186.0,
+      "season": 2011
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 1096.0,
+      "season": 2017
+     },
+     {
+      "name": "David Saunders",
+      "value": 1043.0,
+      "season": 1996
+     },
+     {
+      "name": "Chris Henry",
+      "value": 1006.0,
+      "season": 2003
+     },
+     {
+      "name": "Ka'Raun White",
+      "value": 1004.0,
+      "season": 2017
+     },
+     {
+      "name": "David Sills V",
+      "value": 980.0,
+      "season": 2017
+     }
+    ]
+   },
+   {
+    "key": "rec_yds",
+    "title": "Receiving Yards",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Stedman Bailey",
+      "value": 303.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 225.0,
+      "season": 2012,
+      "opponent": "Oklahoma State"
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 225.0,
+      "season": 2018,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Sam James",
+      "value": 223.0,
+      "season": 2019,
+      "opponent": "Texas Tech"
+     },
+     {
+      "name": "Kevin White",
+      "value": 216.0,
+      "season": 2014,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Mario Alford",
+      "value": 215.0,
+      "season": 2013,
+      "opponent": "Iowa State"
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 215.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Chris Henry",
+      "value": 209.0,
+      "season": 2003,
+      "opponent": "Syracuse"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 205.0,
+      "season": 2012,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Pat Greene",
+      "value": 205.0,
+      "season": 1997,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Rahsaan Vanterpool",
+      "value": 205.0,
+      "season": 1994,
+      "opponent": "Pittsburgh"
+     }
+    ]
+   },
+   {
+    "key": "rec_td",
+    "title": "Receiving TD",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Stedman Bailey",
+      "value": 41.0,
+      "seasons": [
+       2010,
+       2012
+      ]
+     },
+     {
+      "name": "David Sills V",
+      "value": 35.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 29.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Cedric Thomas",
+      "value": 23.0,
+      "seasons": [
+       1976,
+       1980
+      ]
+     },
+     {
+      "name": "Chris Henry",
+      "value": 22.0,
+      "seasons": [
+       2003,
+       2004
+      ]
+     },
+     {
+      "name": "Khori Ivy",
+      "value": 19.0,
+      "seasons": [
+       1997,
+       2000
+      ]
+     },
+     {
+      "name": "Darius Reynaud",
+      "value": 19.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Reggie Rembert",
+      "value": 18.0,
+      "seasons": [
+       1988,
+       1989
+      ]
+     },
+     {
+      "name": "David Saunders",
+      "value": 18.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Shelton Gibson",
+      "value": 17.0,
+      "seasons": [
+       2014,
+       2016
+      ]
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 17.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     }
+    ]
+   },
+   {
+    "key": "rec_td",
+    "title": "Receiving TD",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Stedman Bailey",
+      "value": 25.0,
+      "season": 2012
+     },
+     {
+      "name": "David Sills V",
+      "value": 18.0,
+      "season": 2017
+     },
+     {
+      "name": "David Sills V",
+      "value": 15.0,
+      "season": 2018
+     },
+     {
+      "name": "Gary Jennings Jr.",
+      "value": 13.0,
+      "season": 2018
+     },
+     {
+      "name": "Chris Henry",
+      "value": 12.0,
+      "season": 2004
+     },
+     {
+      "name": "Darius Reynaud",
+      "value": 12.0,
+      "season": 2007
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 12.0,
+      "season": 2011
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 12.0,
+      "season": 2012
+     },
+     {
+      "name": "Ka'Raun White",
+      "value": 12.0,
+      "season": 2017
+     },
+     {
+      "name": "Reggie Rembert",
+      "value": 11.0,
+      "season": 1989
+     },
+     {
+      "name": "Mario Alford",
+      "value": 11.0,
+      "season": 2014
+     }
+    ]
+   },
+   {
+    "key": "rec_td",
+    "title": "Receiving TD",
+    "group": "Receiving",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Stedman Bailey",
+      "value": 5.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     }
+    ]
+   },
+   {
+    "key": "total_off",
+    "title": "Total Offense",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 12004.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Pat White",
+      "value": 10529.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 8407.0,
+      "seasons": [
+       2014,
+       2016
+      ]
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 7827.0,
+      "seasons": [
+       1996,
+       1999
+      ]
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 7598.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 7506.0,
+      "seasons": [
+       2020,
+       2024
+      ]
+     },
+     {
+      "name": "Will Grier",
+      "value": 7386.0,
+      "seasons": [
+       2017,
+       2018
+      ]
+     },
+     {
+      "name": "Major Harris",
+      "value": 7334.0,
+      "seasons": [
+       1987,
+       1989
+      ]
+     },
+     {
+      "name": "Oliver Luck",
+      "value": 6282.0,
+      "seasons": [
+       1978,
+       1981
+      ]
+     },
+     {
+      "name": "Jarret Doege",
+      "value": 6170.0,
+      "seasons": [
+       2019,
+       2021
+      ]
+     }
+    ]
+   },
+   {
+    "key": "total_off",
+    "title": "Total Offense",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 4356.0,
+      "season": 2012
+     },
+     {
+      "name": "Geno Smith",
+      "value": 4352.0,
+      "season": 2011
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 3791.0,
+      "season": 2016
+     },
+     {
+      "name": "Will Grier",
+      "value": 3774.0,
+      "season": 2018
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 3647.0,
+      "season": 2015
+     },
+     {
+      "name": "Will Grier",
+      "value": 3612.0,
+      "season": 2017
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 3515.0,
+      "season": 1998
+     },
+     {
+      "name": "Clint Trickett",
+      "value": 3179.0,
+      "season": 2014
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 3178.0,
+      "season": 2023
+     },
+     {
+      "name": "Pat White",
+      "value": 3059.0,
+      "season": 2007
+     }
+    ]
+   },
+   {
+    "key": "total_off",
+    "title": "Total Offense",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 687.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 555.0,
+      "season": 2015,
+      "opponent": "Arizona State (Cactus Bowl)"
+     },
+     {
+      "name": "Will Grier",
+      "value": 517.0,
+      "season": 2018,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Clint Trickett",
+      "value": 507.0,
+      "season": 2014,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 468.0,
+      "season": 2011,
+      "opponent": "LSU"
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 439.0,
+      "season": 2016,
+      "opponent": "Youngstown State"
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 438.0,
+      "season": 2023,
+      "opponent": "Houston"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 433.0,
+      "season": 2011,
+      "opponent": "Clemson (Orange Bowl)"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 431.0,
+      "season": 2011,
+      "opponent": "Connecticut"
+     },
+     {
+      "name": "Geno Smith",
+      "value": 429.0,
+      "season": 2012,
+      "opponent": "James Madison"
+     },
+     {
+      "name": "Will Grier",
+      "value": 429.0,
+      "season": 2018,
+      "opponent": "Tennessee"
+     }
+    ]
+   },
+   {
+    "key": "td_resp",
+    "title": "Touchdowns Responsible For",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Pat White",
+      "value": 103.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Geno Smith",
+      "value": 102.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 76.0,
+      "seasons": [
+       2014,
+       2016
+      ]
+     },
+     {
+      "name": "Will Grier",
+      "value": 76.0,
+      "seasons": [
+       2017,
+       2018
+      ]
+     },
+     {
+      "name": "Rasheed Marshall",
+      "value": 69.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     },
+     {
+      "name": "Ira Errett Rodgers",
+      "value": 66.0,
+      "seasons": [
+       1915,
+       1919
+      ]
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 64.0,
+      "seasons": [
+       2020,
+       2024
+      ]
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 61.0,
+      "seasons": [
+       1996,
+       1998
+      ]
+     },
+     {
+      "name": "Major Harris",
+      "value": 59.0,
+      "seasons": [
+       1987,
+       1989
+      ]
+     },
+     {
+      "name": "Oliver Luck",
+      "value": 54.0,
+      "seasons": [
+       1978,
+       1981
+      ]
+     }
+    ]
+   },
+   {
+    "key": "td_resp",
+    "title": "Touchdowns Responsible For",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 44.0,
+      "season": 2012
+     },
+     {
+      "name": "Will Grier",
+      "value": 40.0,
+      "season": 2018
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 36.0,
+      "season": 2016
+     },
+     {
+      "name": "Will Grier",
+      "value": 35.0,
+      "season": 2017
+     },
+     {
+      "name": "Geno Smith",
+      "value": 33.0,
+      "season": 2011
+     },
+     {
+      "name": "Skyler Howard",
+      "value": 32.0,
+      "season": 2015
+     },
+     {
+      "name": "Marc Bulger",
+      "value": 31.0,
+      "season": 1998
+     },
+     {
+      "name": "Pat White",
+      "value": 31.0,
+      "season": 2006
+     },
+     {
+      "name": "Ira Errett Rodgers",
+      "value": 30.0,
+      "season": 1919
+     },
+     {
+      "name": "Pat White",
+      "value": 29.0,
+      "season": 2008
+     },
+     {
+      "name": "Garrett Greene",
+      "value": 29.0,
+      "season": 2023
+     }
+    ]
+   },
+   {
+    "key": "td_resp",
+    "title": "Touchdowns Responsible For",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Geno Smith",
+      "value": 8.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     }
+    ]
+   },
+   {
+    "key": "apy",
+    "title": "All-Purpose Yards",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tavon Austin",
+      "value": 7286.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Noel Devine",
+      "value": 5761.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 5623.0,
+      "seasons": [
+       1999,
+       2002
+      ]
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 4775.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 4628.0,
+      "seasons": [
+       1996,
+       1998
+      ]
+     },
+     {
+      "name": "Pat White",
+      "value": 4480.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Arthur Owens",
+      "value": 3971.0,
+      "seasons": [
+       1969,
+       1971
+      ]
+     },
+     {
+      "name": "Rahsaan Vanterpool",
+      "value": 3850.0,
+      "seasons": [
+       1993,
+       1996
+      ]
+     },
+     {
+      "name": "Wendell Smallwood",
+      "value": 3630.0,
+      "seasons": [
+       2013,
+       2015
+      ]
+     },
+     {
+      "name": "Robert Alexander",
+      "value": 3575.0,
+      "seasons": [
+       1978,
+       1980
+      ]
+     }
+    ]
+   },
+   {
+    "key": "apy",
+    "title": "All-Purpose Yards",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Tavon Austin",
+      "value": 2910.0,
+      "season": 2012
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 2574.0,
+      "season": 2011
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 2104.0,
+      "season": 2006
+     },
+     {
+      "name": "Avon Cobourne",
+      "value": 1856.0,
+      "season": 2002
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 1814.0,
+      "season": 1998
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 1781.0,
+      "season": 2012
+     },
+     {
+      "name": "Noel Devine",
+      "value": 1742.0,
+      "season": 2009
+     },
+     {
+      "name": "Amos Zereoué",
+      "value": 1720.0,
+      "season": 1997
+     },
+     {
+      "name": "Mario Alford",
+      "value": 1691.0,
+      "season": 2014
+     },
+     {
+      "name": "Wendell Smallwood",
+      "value": 1679.0,
+      "season": 2015
+     }
+    ]
+   },
+   {
+    "key": "apy",
+    "title": "All-Purpose Yards",
+    "group": "Total Offense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Tavon Austin",
+      "value": 572.0,
+      "season": 2012,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Steve Slaton",
+      "value": 345.0,
+      "season": 2006,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Garrett Ford Sr.",
+      "value": 341.0,
+      "season": 1965,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Kay-Jay Harris",
+      "value": 337.0,
+      "season": 2004,
+      "opponent": "East Carolina"
+     },
+     {
+      "name": "Justin Crawford",
+      "value": 331.0,
+      "season": 2016,
+      "opponent": "Oklahoma"
+     },
+     {
+      "name": "Kerry Marbury",
+      "value": 323.0,
+      "season": 1971,
+      "opponent": "Temple"
+     },
+     {
+      "name": "Robert Gresham",
+      "value": 312.0,
+      "season": 1969,
+      "opponent": "Richmond"
+     },
+     {
+      "name": "Mario Alford",
+      "value": 311.0,
+      "season": 2013,
+      "opponent": "Iowa State"
+     },
+     {
+      "name": "Stedman Bailey",
+      "value": 303.0,
+      "season": 2012,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "Tavon Austin",
+      "value": 287.0,
+      "season": 2011,
+      "opponent": "LSU"
+     }
+    ]
+   },
+   {
+    "key": "def_int",
+    "title": "Interceptions",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Steve Newberry",
+      "value": 20.0,
+      "seasons": [
+       1980,
+       1983
+      ]
+     },
+     {
+      "name": "Aaron Beasley",
+      "value": 20.0,
+      "seasons": [
+       1992,
+       1994
+      ]
+     },
+     {
+      "name": "Bob Snider",
+      "value": 15.0,
+      "seasons": [
+       1951,
+       1956
+      ]
+     },
+     {
+      "name": "Tom Pridemore",
+      "value": 15.0,
+      "seasons": [
+       1975,
+       1977
+      ]
+     },
+     {
+      "name": "Tim Agee",
+      "value": 15.0,
+      "seasons": [
+       1980,
+       1983
+      ]
+     }
+    ]
+   },
+   {
+    "key": "def_int",
+    "title": "Interceptions",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Aaron Beasley",
+      "value": 10.0,
+      "season": 1994
+     },
+     {
+      "name": "Rasul Douglas",
+      "value": 8.0,
+      "season": 2016
+     },
+     {
+      "name": "Bob Snider",
+      "value": 7.0,
+      "season": 1952
+     },
+     {
+      "name": "Mike Slater",
+      "value": 7.0,
+      "season": 1969
+     },
+     {
+      "name": "Tom Geishauser",
+      "value": 7.0,
+      "season": 1972
+     },
+     {
+      "name": "Tim Agee",
+      "value": 7.0,
+      "season": 1983
+     },
+     {
+      "name": "Preston Waters",
+      "value": 7.0,
+      "season": 1989
+     }
+    ]
+   },
+   {
+    "key": "def_int",
+    "title": "Interceptions",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Andrew King",
+      "value": 4.0,
+      "season": 1915,
+      "opponent": "Marietta"
+     },
+     {
+      "name": "Francis Fairley",
+      "value": 4.0,
+      "season": 1925,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Mike Slater",
+      "value": 4.0,
+      "season": 1969,
+      "opponent": "Kentucky"
+     }
+    ]
+   },
+   {
+    "key": "tkl",
+    "title": "Tackles",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Grant Wiley",
+      "value": 492.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Darryl Talley",
+      "value": 484.0,
+      "seasons": [
+       1979,
+       1982
+      ]
+     },
+     {
+      "name": "Dennis Fowlkes",
+      "value": 459.0,
+      "seasons": [
+       1979,
+       1982
+      ]
+     },
+     {
+      "name": "Steve Grant",
+      "value": 445.0,
+      "seasons": [
+       1988,
+       1991
+      ]
+     },
+     {
+      "name": "Jeff Macerelli",
+      "value": 432.0,
+      "seasons": [
+       1975,
+       1978
+      ]
+     }
+    ]
+   },
+   {
+    "key": "tkl",
+    "title": "Tackles",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Steve Dunlap",
+      "value": 190.0,
+      "season": 1974
+     },
+     {
+      "name": "Chris Haering",
+      "value": 185.0,
+      "season": 1989
+     },
+     {
+      "name": "Ray Marshall",
+      "value": 175.0,
+      "season": 1975
+     },
+     {
+      "name": "Jeff Macerelli",
+      "value": 172.0,
+      "season": 1977
+     },
+     {
+      "name": "Charles Smith",
+      "value": 170.0,
+      "season": 1975
+     }
+    ]
+   },
+   {
+    "key": "tkl",
+    "title": "Tackles",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Steve Dunlap",
+      "value": 28.0,
+      "season": 1974,
+      "opponent": "Boston College"
+     },
+     {
+      "name": "Chris Haering",
+      "value": 23.0,
+      "season": 1989,
+      "opponent": "Rutgers"
+     },
+     {
+      "name": "Rick Sherrod",
+      "value": 22.0,
+      "season": 2001,
+      "opponent": "Syracuse"
+     },
+     {
+      "name": "Grant Wiley",
+      "value": 22.0,
+      "season": 2001,
+      "opponent": "Syracuse"
+     }
+    ]
+   },
+   {
+    "key": "sacks",
+    "title": "Sacks",
+    "group": "Defense",
+    "fmt": "1",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Canute Curtis",
+      "value": 34.5,
+      "seasons": [
+       1993,
+       1996
+      ]
+     },
+     {
+      "name": "Julian Miller",
+      "value": 27.5,
+      "seasons": [
+       2008,
+       2011
+      ]
+     },
+     {
+      "name": "Gary Stills",
+      "value": 26.0,
+      "seasons": [
+       1996,
+       1998
+      ]
+     },
+     {
+      "name": "Dante Stills",
+      "value": 23.5,
+      "seasons": [
+       2018,
+       2022
+      ]
+     },
+     {
+      "name": "Bruce Irvin",
+      "value": 22.5,
+      "seasons": [
+       2010,
+       2011
+      ]
+     },
+     {
+      "name": "Renaldo Turnbull",
+      "value": 22.0,
+      "seasons": [
+       1986,
+       1989
+      ]
+     },
+     {
+      "name": "Steve Hathaway",
+      "value": 20.0,
+      "seasons": [
+       1980,
+       1983
+      ]
+     },
+     {
+      "name": "Darryl Talley",
+      "value": 19.0,
+      "seasons": [
+       1979,
+       1982
+      ]
+     }
+    ]
+   },
+   {
+    "key": "sacks",
+    "title": "Sacks",
+    "group": "Defense",
+    "fmt": "1",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Canute Curtis",
+      "value": 16.5,
+      "season": 1996
+     },
+     {
+      "name": "Steve Hathaway",
+      "value": 15.0,
+      "season": 1983
+     },
+     {
+      "name": "Bruce Irvin",
+      "value": 14.0,
+      "season": 2010
+     },
+     {
+      "name": "Renaldo Turnbull",
+      "value": 12.0,
+      "season": 1988
+     },
+     {
+      "name": "Gary Stills",
+      "value": 12.0,
+      "season": 1997
+     },
+     {
+      "name": "Mike Fox",
+      "value": 10.0,
+      "season": 1989
+     },
+     {
+      "name": "Canute Curtis",
+      "value": 10.0,
+      "season": 1995
+     },
+     {
+      "name": "Gary Stills",
+      "value": 10.0,
+      "season": 1998
+     },
+     {
+      "name": "Julian Miller",
+      "value": 9.0,
+      "season": 2009
+     },
+     {
+      "name": "Julian Miller",
+      "value": 9.0,
+      "season": 2010
+     }
+    ]
+   },
+   {
+    "key": "sacks",
+    "title": "Sacks",
+    "group": "Defense",
+    "fmt": "1",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Steve Hathaway",
+      "value": 4.0,
+      "season": 1983,
+      "opponent": "Virginia Tech"
+     },
+     {
+      "name": "Gary Stills",
+      "value": 4.0,
+      "season": 1997,
+      "opponent": "Marshall"
+     },
+     {
+      "name": "James Davis",
+      "value": 4.0,
+      "season": 2000,
+      "opponent": "East Carolina"
+     },
+     {
+      "name": "Julian Miller",
+      "value": 4.0,
+      "season": 2011,
+      "opponent": "Pittsburgh"
+     }
+    ]
+   },
+   {
+    "key": "fgm",
+    "title": "Field Goals",
+    "group": "Kicking",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Paul Woodside",
+      "value": 74.0,
+      "seasons": [
+       1981,
+       1984
+      ]
+     },
+     {
+      "name": "Josh Lambert",
+      "value": 69.0,
+      "seasons": [
+       2013,
+       2016
+      ]
+     },
+     {
+      "name": "Pat McAfee",
+      "value": 58.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Jay Taylor",
+      "value": 53.0,
+      "seasons": [
+       1996,
+       1999
+      ]
+     },
+     {
+      "name": "Charlie Baumann",
+      "value": 52.0,
+      "seasons": [
+       1985,
+       1988
+      ]
+     },
+     {
+      "name": "Tyler Bitancurt",
+      "value": 50.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Casey Legg",
+      "value": 40.0,
+      "seasons": [
+       2018,
+       2022
+      ]
+     },
+     {
+      "name": "Evan Staley",
+      "value": 39.0,
+      "seasons": [
+       2017,
+       2021
+      ]
+     },
+     {
+      "name": "Michael Hayes",
+      "value": 30.0,
+      "seasons": [
+       2023,
+       2024
+      ]
+     },
+     {
+      "name": "Frank Nester",
+      "value": 25.0,
+      "seasons": [
+       1971,
+       1973
+      ]
+     },
+     {
+      "name": "Bill McKenzie",
+      "value": 25.0,
+      "seasons": [
+       1974,
+       1977
+      ]
+     }
+    ]
+   },
+   {
+    "key": "fgm",
+    "title": "Field Goals",
+    "group": "Kicking",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Josh Lambert",
+      "value": 30.0,
+      "season": 2014
+     },
+     {
+      "name": "Paul Woodside",
+      "value": 28.0,
+      "season": 1982
+     },
+     {
+      "name": "Paul Woodside",
+      "value": 21.0,
+      "season": 1983
+     },
+     {
+      "name": "Josh Lambert",
+      "value": 21.0,
+      "season": 2015
+     },
+     {
+      "name": "Charlie Baumann",
+      "value": 20.0,
+      "season": 1988
+     },
+     {
+      "name": "Casey Legg",
+      "value": 19.0,
+      "season": 2021
+     },
+     {
+      "name": "Pat McAfee",
+      "value": 17.0,
+      "season": 2006
+     },
+     {
+      "name": "Pat McAfee",
+      "value": 17.0,
+      "season": 2008
+     },
+     {
+      "name": "Josh Lambert",
+      "value": 17.0,
+      "season": 2013
+     },
+     {
+      "name": "Michael Hayes",
+      "value": 17.0,
+      "season": 2023
+     }
+    ]
+   },
+   {
+    "key": "fgm",
+    "title": "Field Goals",
+    "group": "Kicking",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Paul Woodside",
+      "value": 4.0,
+      "season": 1982,
+      "opponent": "Syracuse"
+     },
+     {
+      "name": "Paul Woodside",
+      "value": 4.0,
+      "season": 1982,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Pat McAfee",
+      "value": 4.0,
+      "season": 2006,
+      "opponent": "Rutgers"
+     },
+     {
+      "name": "Tyler Bitancurt",
+      "value": 4.0,
+      "season": 2009,
+      "opponent": "Liberty"
+     },
+     {
+      "name": "Tyler Bitancurt",
+      "value": 4.0,
+      "season": 2009,
+      "opponent": "Pittsburgh"
+     },
+     {
+      "name": "Evan Staley",
+      "value": 4.0,
+      "season": 2018,
+      "opponent": "Syracuse (Camping World Bowl)"
+     },
+     {
+      "name": "Casey Legg",
+      "value": 4.0,
+      "season": 2022,
+      "opponent": "Virginia Tech"
+     }
+    ]
+   },
+   {
+    "key": "fg_pct",
+    "title": "Field Goal %",
+    "group": "Kicking",
+    "fmt": "pct",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Brenden Rauh",
+      "value": 88.9,
+      "seasons": [
+       1998,
+       2001
+      ]
+     },
+     {
+      "name": "Michael Hayes",
+      "value": 85.7,
+      "seasons": [
+       2023,
+       2024
+      ]
+     },
+     {
+      "name": "Kade Hensley",
+      "value": 83.3,
+      "seasons": [
+       2025,
+       2025
+      ]
+     },
+     {
+      "name": "Casey Legg",
+      "value": 81.6,
+      "seasons": [
+       2018,
+       2022
+      ]
+     },
+     {
+      "name": "Paul Woodside",
+      "value": 79.6,
+      "seasons": [
+       1981,
+       1984
+      ]
+     },
+     {
+      "name": "Mike Vanderjagt",
+      "value": 75.0,
+      "seasons": [
+       1991,
+       1992
+      ]
+     },
+     {
+      "name": "Josh Lambert",
+      "value": 75.0,
+      "seasons": [
+       2013,
+       2016
+      ]
+     },
+     {
+      "name": "Charlie Baumann",
+      "value": 74.3,
+      "seasons": [
+       1985,
+       1988
+      ]
+     },
+     {
+      "name": "Jay Taylor",
+      "value": 73.6,
+      "seasons": [
+       1996,
+       1999
+      ]
+     },
+     {
+      "name": "Evan Staley",
+      "value": 73.6,
+      "seasons": [
+       2017,
+       2021
+      ]
+     },
+     {
+      "name": "Pat McAfee",
+      "value": 73.4,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Tyler Bitancurt",
+      "value": 68.5,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Frank Nester",
+      "value": 65.8,
+      "seasons": [
+       1971,
+       1973
+      ]
+     }
+    ]
+   },
+   {
+    "key": "fg_pct",
+    "title": "Field Goal %",
+    "group": "Kicking",
+    "fmt": "pct",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Casey Legg",
+      "value": 93.3,
+      "season": 2022
+     },
+     {
+      "name": "Charlie Baumann",
+      "value": 92.9,
+      "season": 1987
+     },
+     {
+      "name": "Michael Hayes",
+      "value": 92.9,
+      "season": 2024
+     },
+     {
+      "name": "Paul Woodside",
+      "value": 90.3,
+      "season": 1982
+     },
+     {
+      "name": "Jay Taylor",
+      "value": 86.7,
+      "season": 1999
+     },
+     {
+      "name": "Brenden Rauh",
+      "value": 86.7,
+      "season": 2001
+     },
+     {
+      "name": "Tyler Bitancurt",
+      "value": 86.7,
+      "season": 2009
+     },
+     {
+      "name": "Pat McAfee",
+      "value": 85.0,
+      "season": 2008
+     },
+     {
+      "name": "Paul Woodside",
+      "value": 84.0,
+      "season": 1983
+     },
+     {
+      "name": "Jay Taylor",
+      "value": 83.3,
+      "season": 1997
+     },
+     {
+      "name": "Kade Hensley",
+      "value": 83.3,
+      "season": 2025
+     }
+    ]
+   }
+  ]
+ },
+ "mbb": {
+  "source": "WVU men's basketball record book (via Wikipedia's statistical leaders)",
+  "source_url": "https://en.wikipedia.org/wiki/West_Virginia_Mountaineers_men%27s_basketball_statistical_leaders",
+  "through": 2025,
+  "lists": [
+   {
+    "key": "pts",
+    "title": "Points",
+    "group": "Scoring",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Jerry West",
+      "value": 2309.0,
+      "seasons": [
+       1958,
+       1960
+      ]
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 2180.0,
+      "seasons": [
+       1955,
+       1957
+      ]
+     },
+     {
+      "name": "Da’Sean Butler",
+      "value": 2095.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "Wil Robinson",
+      "value": 1850.0,
+      "seasons": [
+       1970,
+       1972
+      ]
+     },
+     {
+      "name": "Kevin Jones",
+      "value": 1822.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Greg Jones",
+      "value": 1797.0,
+      "seasons": [
+       1980,
+       1983
+      ]
+     },
+     {
+      "name": "Rod Thorn",
+      "value": 1785.0,
+      "seasons": [
+       1961,
+       1963
+      ]
+     },
+     {
+      "name": "Jevon Carter",
+      "value": 1758.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Kevin Pittsnogle",
+      "value": 1708.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Lowes Moore",
+      "value": 1696.0,
+      "seasons": [
+       1977,
+       1980
+      ]
+     }
+    ]
+   },
+   {
+    "key": "pts",
+    "title": "Points",
+    "group": "Scoring",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jerry West",
+      "value": 908.0,
+      "season": 1960
+     },
+     {
+      "name": "Jerry West",
+      "value": 903.0,
+      "season": 1959
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 798.0,
+      "season": 1956
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 711.0,
+      "season": 1955
+     },
+     {
+      "name": "Wil Robinson",
+      "value": 706.0,
+      "season": 1972
+     },
+     {
+      "name": "Mark Workman",
+      "value": 705.0,
+      "season": 1951
+     },
+     {
+      "name": "Greg Jones",
+      "value": 691.0,
+      "season": 1983
+     },
+     {
+      "name": "Rod Thorn",
+      "value": 688.0,
+      "season": 1962
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 671.0,
+      "season": 1957
+     },
+     {
+      "name": "Kevin Jones",
+      "value": 657.0,
+      "season": 2012
+     }
+    ]
+   },
+   {
+    "key": "pts",
+    "title": "Points",
+    "group": "Scoring",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Rod Hundley",
+      "value": 54.0,
+      "season": 1957,
+      "opponent": "Furman"
+     },
+     {
+      "name": "Mark Workman",
+      "value": 50.0,
+      "season": 1951,
+      "opponent": "Salem"
+     },
+     {
+      "name": "Mark Workman",
+      "value": 48.0,
+      "season": 1951,
+      "opponent": "Washington & Jefferson"
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 47.0,
+      "season": 1955,
+      "opponent": "Wake Forest"
+     },
+     {
+      "name": "Mark Workman",
+      "value": 46.0,
+      "season": 1952,
+      "opponent": "VMI"
+     },
+     {
+      "name": "Wil Robinson",
+      "value": 45.0,
+      "season": 1972,
+      "opponent": "Furman"
+     },
+     {
+      "name": "Wil Robinson",
+      "value": 45.0,
+      "season": 1971,
+      "opponent": "Penn State"
+     },
+     {
+      "name": "Rod Thorn",
+      "value": 44.0,
+      "season": 1963,
+      "opponent": "St. Joseph's"
+     },
+     {
+      "name": "Jerry West",
+      "value": 44.0,
+      "season": 1959,
+      "opponent": "Tennessee"
+     },
+     {
+      "name": "Mark Workman",
+      "value": 44.0,
+      "season": 1951,
+      "opponent": "George Washington"
+     }
+    ]
+   },
+   {
+    "key": "reb",
+    "title": "Rebounds",
+    "group": "Rebounding",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Jerry West",
+      "value": 1240.0,
+      "seasons": [
+       1958,
+       1960
+      ]
+     },
+     {
+      "name": "Lloyd Sharrar",
+      "value": 1178.0,
+      "seasons": [
+       1956,
+       1958
+      ]
+     },
+     {
+      "name": "Warren Baker",
+      "value": 1070.0,
+      "seasons": [
+       1973,
+       1976
+      ]
+     },
+     {
+      "name": "Kevin Jones",
+      "value": 1048.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Willie Bergines",
+      "value": 1025.0,
+      "seasons": [
+       1954,
+       1956
+      ]
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 941.0,
+      "seasons": [
+       1955,
+       1957
+      ]
+     },
+     {
+      "name": "Thomas Lowry",
+      "value": 914.0,
+      "seasons": [
+       1962,
+       1964
+      ]
+     },
+     {
+      "name": "Rod Thorn",
+      "value": 912.0,
+      "seasons": [
+       1961,
+       1963
+      ]
+     },
+     {
+      "name": "Maurice Robinson",
+      "value": 881.0,
+      "seasons": [
+       1975,
+       1978
+      ]
+     },
+     {
+      "name": "Damian Owens",
+      "value": 868.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     }
+    ]
+   },
+   {
+    "key": "reb",
+    "title": "Rebounds",
+    "group": "Rebounding",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jerry West",
+      "value": 510.0,
+      "season": 1960
+     },
+     {
+      "name": "Lloyd Sharrar",
+      "value": 443.0,
+      "season": 1957
+     },
+     {
+      "name": "Mark Workman",
+      "value": 437.0,
+      "season": 1952
+     },
+     {
+      "name": "Jerry West",
+      "value": 419.0,
+      "season": 1959
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 392.0,
+      "season": 1956
+     },
+     {
+      "name": "Lloyd Sharrar",
+      "value": 386.0,
+      "season": 1958
+     },
+     {
+      "name": "Pete White",
+      "value": 361.0,
+      "season": 1955
+     },
+     {
+      "name": "Kevin Jones",
+      "value": 360.0,
+      "season": 2012
+     },
+     {
+      "name": "Willie Bergines",
+      "value": 358.0,
+      "season": 1955
+     },
+     {
+      "name": "Rod Thorn",
+      "value": 351.0,
+      "season": 1962
+     }
+    ]
+   },
+   {
+    "key": "reb",
+    "title": "Rebounds",
+    "group": "Rebounding",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Jerry West",
+      "value": 31.0,
+      "season": 1960,
+      "opponent": "George Washington"
+     },
+     {
+      "name": "Mack Isner",
+      "value": 31.0,
+      "season": 1952,
+      "opponent": "Virginia Tech"
+     },
+     {
+      "name": "Mark Workman",
+      "value": 30.0,
+      "season": 1952,
+      "opponent": "Richmond"
+     },
+     {
+      "name": "Pete White",
+      "value": 27.0,
+      "season": 1955,
+      "opponent": "Pitt"
+     },
+     {
+      "name": "Mark Workman",
+      "value": 27.0,
+      "season": 1952,
+      "opponent": "VMI"
+     },
+     {
+      "name": "Mack Isner",
+      "value": 27.0,
+      "season": 1952,
+      "opponent": "Duke"
+     },
+     {
+      "name": "Lloyd Sharrar",
+      "value": 26.0,
+      "season": 1956,
+      "opponent": "William & Mary"
+     },
+     {
+      "name": "Rod Hundley",
+      "value": 26.0,
+      "season": 1956,
+      "opponent": "VMI"
+     },
+     {
+      "name": "Lloyd Sharrar",
+      "value": 26.0,
+      "season": 1957,
+      "opponent": "Furman"
+     }
+    ]
+   },
+   {
+    "key": "ast",
+    "title": "Assists",
+    "group": "Playmaking",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Steve Berger",
+      "value": 574.0,
+      "seasons": [
+       1987,
+       1990
+      ]
+     },
+     {
+      "name": "Jevon Carter",
+      "value": 559.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Marsalis Basey",
+      "value": 514.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Ron Williams",
+      "value": 504.0,
+      "seasons": [
+       1966,
+       1968
+      ]
+     },
+     {
+      "name": "Mike Boyd",
+      "value": 471.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Johannes Herber",
+      "value": 467.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Juwan Staten",
+      "value": 433.0,
+      "seasons": [
+       2013,
+       2015
+      ]
+     },
+     {
+      "name": "Greg Jones",
+      "value": 430.0,
+      "seasons": [
+       1980,
+       1983
+      ]
+     },
+     {
+      "name": "Alex Ruoff",
+      "value": 410.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "J. D. Collins",
+      "value": 402.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     }
+    ]
+   },
+   {
+    "key": "ast",
+    "title": "Assists",
+    "group": "Playmaking",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jevon Carter",
+      "value": 246.0,
+      "season": 2018
+     },
+     {
+      "name": "Ron Williams",
+      "value": 197.0,
+      "season": 1967
+     },
+     {
+      "name": "Juwan Staten",
+      "value": 193.0,
+      "season": 2014
+     },
+     {
+      "name": "Steve Berger",
+      "value": 193.0,
+      "season": 1989
+     },
+     {
+      "name": "Alex Ruoff",
+      "value": 191.0,
+      "season": 2007
+     },
+     {
+      "name": "Steve Berger",
+      "value": 183.0,
+      "season": 1990
+     },
+     {
+      "name": "Javon Small",
+      "value": 180.0,
+      "season": 2025
+     },
+     {
+      "name": "Mike Boyd",
+      "value": 175.0,
+      "season": 1991
+     },
+     {
+      "name": "Darris Nichols",
+      "value": 165.0,
+      "season": 2007
+     },
+     {
+      "name": "Ralph Holmes",
+      "value": 160.0,
+      "season": 1952
+     }
+    ]
+   },
+   {
+    "key": "ast",
+    "title": "Assists",
+    "group": "Playmaking",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Steve Berger",
+      "value": 16.0,
+      "season": 1990,
+      "opponent": "Pitt"
+     },
+     {
+      "name": "Ron Williams",
+      "value": 15.0,
+      "season": 1967,
+      "opponent": "Davidson"
+     },
+     {
+      "name": "Levi Phillips",
+      "value": 13.0,
+      "season": 1974,
+      "opponent": "Virginia Tech"
+     },
+     {
+      "name": "Ricky Ray",
+      "value": 13.0,
+      "season": 1964,
+      "opponent": "Syracuse"
+     },
+     {
+      "name": "Jevon Carter",
+      "value": 12.0,
+      "season": 2018,
+      "opponent": "Fordham"
+     },
+     {
+      "name": "Juwan Staten",
+      "value": 12.0,
+      "season": 2015,
+      "opponent": "TCU"
+     },
+     {
+      "name": "Tim Lyles",
+      "value": 12.0,
+      "season": 2001,
+      "opponent": "Syracuse"
+     },
+     {
+      "name": "Bob Hummell",
+      "value": 12.0,
+      "season": 1970,
+      "opponent": "Richmond"
+     }
+    ]
+   },
+   {
+    "key": "stl",
+    "title": "Steals",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Jevon Carter",
+      "value": 330.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Greg Jones",
+      "value": 251.0,
+      "seasons": [
+       1980,
+       1983
+      ]
+     },
+     {
+      "name": "Damian Owens",
+      "value": 244.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Darryl Prue",
+      "value": 230.0,
+      "seasons": [
+       1986,
+       1989
+      ]
+     },
+     {
+      "name": "Steve Berger",
+      "value": 214.0,
+      "seasons": [
+       1987,
+       1990
+      ]
+     },
+     {
+      "name": "Mike Boyd",
+      "value": 205.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Alex Ruoff",
+      "value": 189.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "Marsalis Basey",
+      "value": 182.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Daxter Miles Jr.",
+      "value": 177.0,
+      "seasons": [
+       2015,
+       2018
+      ]
+     },
+     {
+      "name": "Tracy Shelton",
+      "value": 159.0,
+      "seasons": [
+       1989,
+       1993
+      ]
+     }
+    ]
+   },
+   {
+    "key": "stl",
+    "title": "Steals",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jevon Carter",
+      "value": 112.0,
+      "season": 2018
+     },
+     {
+      "name": "Damian Owens",
+      "value": 97.0,
+      "season": 1998
+     },
+     {
+      "name": "Jevon Carter",
+      "value": 92.0,
+      "season": 2017
+     },
+     {
+      "name": "Greg Jones",
+      "value": 90.0,
+      "season": 1983
+     },
+     {
+      "name": "Elton Scott",
+      "value": 79.0,
+      "season": 1999
+     },
+     {
+      "name": "Jarrod West",
+      "value": 77.0,
+      "season": 1998
+     },
+     {
+      "name": "Alex Ruoff",
+      "value": 72.0,
+      "season": 2007
+     },
+     {
+      "name": "Greg Jones",
+      "value": 72.0,
+      "season": 1981
+     },
+     {
+      "name": "Steve Berger",
+      "value": 68.0,
+      "season": 1989
+     },
+     {
+      "name": "Jevon Carter",
+      "value": 67.0,
+      "season": 2015
+     },
+     {
+      "name": "Darryl Prue",
+      "value": 67.0,
+      "season": 1988
+     }
+    ]
+   },
+   {
+    "key": "stl",
+    "title": "Steals",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Drew Schifino",
+      "value": 11.0,
+      "season": 2002,
+      "opponent": "Arkansas-Monticello"
+     },
+     {
+      "name": "Jevon Carter",
+      "value": 9.0,
+      "season": 2018,
+      "opponent": "American"
+     },
+     {
+      "name": "Mike Boyd",
+      "value": 9.0,
+      "season": 1991,
+      "opponent": "UNC Charlotte"
+     },
+     {
+      "name": "Darryl Prue",
+      "value": 9.0,
+      "season": 1987,
+      "opponent": "George Mason"
+     },
+     {
+      "name": "Ralph Holmes",
+      "value": 9.0,
+      "season": 1953,
+      "opponent": "South Carolina"
+     },
+     {
+      "name": "Elton Scott",
+      "value": 8.0,
+      "season": 1999,
+      "opponent": "Villanova"
+     },
+     {
+      "name": "Damian Owens",
+      "value": 8.0,
+      "season": 1998,
+      "opponent": "Georgia"
+     },
+     {
+      "name": "Ralph Holmes",
+      "value": 8.0,
+      "season": 1953,
+      "opponent": "Maryland"
+     },
+     {
+      "name": "Harry Moore",
+      "value": 8.0,
+      "season": 1952,
+      "opponent": "Washington & Lee"
+     }
+    ]
+   },
+   {
+    "key": "blk",
+    "title": "Blocks",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Sagaba Konate",
+      "value": 191.0,
+      "seasons": [
+       2017,
+       2019
+      ]
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 190.0,
+      "seasons": [
+       2004,
+       2005
+      ]
+     },
+     {
+      "name": "Phil Wilson",
+      "value": 178.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Wellington Smith",
+      "value": 162.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "John Flowers",
+      "value": 157.0,
+      "seasons": [
+       2008,
+       2011
+      ]
+     },
+     {
+      "name": "Marcus Goree",
+      "value": 157.0,
+      "seasons": [
+       1900,
+       1999
+      ]
+     },
+     {
+      "name": "Pervires Greene",
+      "value": 139.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Tim Kearney",
+      "value": 119.0,
+      "seasons": [
+       1981,
+       1984
+      ]
+     },
+     {
+      "name": "Kevin Jones",
+      "value": 109.0,
+      "seasons": [
+       2009,
+       2012
+      ]
+     },
+     {
+      "name": "Kevin Pittsnogle",
+      "value": 109.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     }
+    ]
+   },
+   {
+    "key": "blk",
+    "title": "Blocks",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "D'or Fischer",
+      "value": 124.0,
+      "season": 2004
+     },
+     {
+      "name": "Sagaba Konate",
+      "value": 116.0,
+      "season": 2018
+     },
+     {
+      "name": "John Flowers",
+      "value": 74.0,
+      "season": 2011
+     },
+     {
+      "name": "Marcus Goree",
+      "value": 70.0,
+      "season": 1900
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 66.0,
+      "season": 2005
+     },
+     {
+      "name": "Wellington Smith",
+      "value": 60.0,
+      "season": 2008
+     },
+     {
+      "name": "Phil Wilson",
+      "value": 58.0,
+      "season": 1993
+     },
+     {
+      "name": "Joe Alexander",
+      "value": 54.0,
+      "season": 2008
+     },
+     {
+      "name": "Phil Wilson",
+      "value": 54.0,
+      "season": 1994
+     },
+     {
+      "name": "Sagaba Konate",
+      "value": 53.0,
+      "season": 2017
+     },
+     {
+      "name": "Wellington Smith",
+      "value": 53.0,
+      "season": 2009
+     }
+    ]
+   },
+   {
+    "key": "blk",
+    "title": "Blocks",
+    "group": "Defense",
+    "fmt": "int",
+    "scope": "game",
+    "entries": [
+     {
+      "name": "Sagaba Konate",
+      "value": 9.0,
+      "season": 2018,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 9.0,
+      "season": 2004,
+      "opponent": "Rhode Island"
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 8.0,
+      "season": 2004,
+      "opponent": "Boston College"
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 8.0,
+      "season": 2004,
+      "opponent": "James Madison"
+     },
+     {
+      "name": "Sagaba Konate",
+      "value": 7.0,
+      "season": 2018,
+      "opponent": "Kentucky"
+     },
+     {
+      "name": "Sagaba Konate",
+      "value": 7.0,
+      "season": 2018,
+      "opponent": "Baylor"
+     },
+     {
+      "name": "John Flowers",
+      "value": 7.0,
+      "season": 2011,
+      "opponent": "Oakland"
+     },
+     {
+      "name": "Joe Alexander",
+      "value": 7.0,
+      "season": 2008,
+      "opponent": "Prairie View A&M"
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 7.0,
+      "season": 2005,
+      "opponent": "St. Bonaventure"
+     },
+     {
+      "name": "D'or Fischer",
+      "value": 7.0,
+      "season": 2004,
+      "opponent": "IUPUI"
+     },
+     {
+      "name": "Marcus Goree",
+      "value": 7.0,
+      "season": 1900,
+      "opponent": "Bowling Green"
+     },
+     {
+      "name": "Marcus Goree",
+      "value": 7.0,
+      "season": 1900,
+      "opponent": "Robert Morris"
+     }
+    ]
+   }
+  ]
+ },
+ "baseball": {
+  "source": "WVU baseball record book",
+  "source_url": "https://static.wvusports.com/custompages/content/files/general/baseball_records.pdf",
+  "through": 2014,
+  "lists": [
+   {
+    "key": "avg",
+    "title": "Batting Average",
+    "group": "Hitting",
+    "fmt": "avg",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Dan DiBartolomeo",
+      "value": 0.439,
+      "season": 2009
+     },
+     {
+      "name": "Bob Bernardo",
+      "value": 0.43,
+      "season": 1984
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 0.429,
+      "season": 1998
+     },
+     {
+      "name": "Paul Popovich",
+      "value": 0.426,
+      "season": 1960
+     },
+     {
+      "name": "Steve Rolen",
+      "value": 0.425,
+      "season": 1989
+     },
+     {
+      "name": "Tyler Kuhn",
+      "value": 0.424,
+      "season": 2008
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 0.421,
+      "season": 2009
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 0.418,
+      "season": 2009
+     },
+     {
+      "name": "Greg Gilbert",
+      "value": 0.417,
+      "season": 1984
+     },
+     {
+      "name": "Jamie Hammond",
+      "value": 0.417,
+      "season": 1998
+     }
+    ]
+   },
+   {
+    "key": "avg",
+    "title": "Batting Average",
+    "group": "Hitting",
+    "fmt": "avg",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Jedd Gyorko",
+      "value": 0.404,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Darrell Whitmore",
+      "value": 0.392,
+      "seasons": [
+       1989,
+       1990
+      ]
+     },
+     {
+      "name": "Jeff Battaglia",
+      "value": 0.389,
+      "seasons": [
+       1985,
+       1986
+      ]
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 0.388,
+      "seasons": [
+       2007,
+       2009
+      ]
+     },
+     {
+      "name": "Lance Williams",
+      "value": 0.387,
+      "seasons": [
+       1998,
+       1999
+      ]
+     },
+     {
+      "name": "Jamie Hammond",
+      "value": 0.383,
+      "seasons": [
+       1997,
+       1998
+      ]
+     },
+     {
+      "name": "Steve Rolen",
+      "value": 0.38,
+      "seasons": [
+       1986,
+       1989
+      ]
+     },
+     {
+      "name": "Lee Fritz",
+      "value": 0.378,
+      "seasons": [
+       2002,
+       2005
+      ]
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 0.374,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Matt Hart",
+      "value": 0.372,
+      "seasons": [
+       1997,
+       1998
+      ]
+     }
+    ]
+   },
+   {
+    "key": "h",
+    "title": "Hits",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Tyler Kuhn",
+      "value": 101.0,
+      "season": 2008
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 96.0,
+      "season": 2009
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 95.0,
+      "season": 2008
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 94.0,
+      "season": 2006
+     },
+     {
+      "name": "Tyler Kuhn",
+      "value": 92.0,
+      "season": 2006
+     },
+     {
+      "name": "Mark Landers",
+      "value": 91.0,
+      "season": 1994
+     },
+     {
+      "name": "Dan DiBartolomeo",
+      "value": 90.0,
+      "season": 2009
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 90.0,
+      "season": 2010
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 89.0,
+      "season": 2009
+     },
+     {
+      "name": "Lee Fritz",
+      "value": 88.0,
+      "season": 2003
+     }
+    ]
+   },
+   {
+    "key": "h",
+    "title": "Hits",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tyler Kuhn",
+      "value": 324.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 281.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 253.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Tim McCabe",
+      "value": 251.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Josh Williamson",
+      "value": 244.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     },
+     {
+      "name": "Grant Buckner",
+      "value": 232.0,
+      "seasons": [
+       2008,
+       2011
+      ]
+     },
+     {
+      "name": "Lee Fritz",
+      "value": 230.0,
+      "seasons": [
+       2002,
+       2005
+      ]
+     },
+     {
+      "name": "Ryan McBroom",
+      "value": 225.0,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 223.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Mark Landers",
+      "value": 220.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     }
+    ]
+   },
+   {
+    "key": "r",
+    "title": "Runs",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Justin Parks",
+      "value": 76.0,
+      "season": 2009
+     },
+     {
+      "name": "Austin Markel",
+      "value": 75.0,
+      "season": 2009
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 74.0,
+      "season": 2009
+     },
+     {
+      "name": "Tyler Kuhn",
+      "value": 71.0,
+      "season": 2008
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 71.0,
+      "season": 2010
+     },
+     {
+      "name": "Kevin Olkowski",
+      "value": 68.0,
+      "season": 1998
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 66.0,
+      "season": 2009
+     },
+     {
+      "name": "Josh Williamson",
+      "value": 62.0,
+      "season": 1997
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 62.0,
+      "season": 2006
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 62.0,
+      "season": 2008
+     }
+    ]
+   },
+   {
+    "key": "r",
+    "title": "Runs",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tyler Kuhn",
+      "value": 219.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 207.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Josh Williamson",
+      "value": 177.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     },
+     {
+      "name": "Austin Markel",
+      "value": 173.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "Justin Parks",
+      "value": 173.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "Bobby Watts",
+      "value": 167.0,
+      "seasons": [
+       1983,
+       1986
+      ]
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 164.0,
+      "seasons": [
+       2007,
+       2009
+      ]
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 158.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Greg Gilbert",
+      "value": 152.0,
+      "seasons": [
+       1984,
+       1987
+      ]
+     },
+     {
+      "name": "Tim McCabe",
+      "value": 152.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     }
+    ]
+   },
+   {
+    "key": "2b",
+    "title": "Doubles",
+    "group": "Power",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jedd Gyorko",
+      "value": 28.0,
+      "season": 2009
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 28.0,
+      "season": 2010
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 27.0,
+      "season": 1998
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 25.0,
+      "season": 2006
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 23.0,
+      "season": 2005
+     },
+     {
+      "name": "Matt Frazer",
+      "value": 23.0,
+      "season": 2012
+     },
+     {
+      "name": "Mark Landers",
+      "value": 22.0,
+      "season": 1994
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 22.0,
+      "season": 2006
+     },
+     {
+      "name": "Dom Hayes",
+      "value": 22.0,
+      "season": 2010
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 21.0,
+      "season": 2007
+     },
+     {
+      "name": "Grant Buckner",
+      "value": 21.0,
+      "season": 2009
+     }
+    ]
+   },
+   {
+    "key": "2b",
+    "title": "Doubles",
+    "group": "Power",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Jedd Gyorko",
+      "value": 73.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 69.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Tyler Kuhn",
+      "value": 65.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 58.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Grant Buckner",
+      "value": 58.0,
+      "seasons": [
+       2008,
+       2011
+      ]
+     },
+     {
+      "name": "Mark Landers",
+      "value": 57.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Josh Williamson",
+      "value": 53.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 51.0,
+      "seasons": [
+       2007,
+       2009
+      ]
+     },
+     {
+      "name": "Ryan McBroom",
+      "value": 51.0,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Kirk Taylor",
+      "value": 45.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     }
+    ]
+   },
+   {
+    "key": "hr",
+    "title": "Home Runs",
+    "group": "Power",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Mark Landers",
+      "value": 19.0,
+      "season": 1994
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 19.0,
+      "season": 2010
+     },
+     {
+      "name": "Kirk Taylor",
+      "value": 16.0,
+      "season": 1997
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 15.0,
+      "season": 1997
+     },
+     {
+      "name": "Austin Markel",
+      "value": 15.0,
+      "season": 2009
+     },
+     {
+      "name": "Bob Bernardo",
+      "value": 14.0,
+      "season": 1985
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 13.0,
+      "season": 1998
+     },
+     {
+      "name": "Kurtis Clinton",
+      "value": 13.0,
+      "season": 2003
+     },
+     {
+      "name": "Jon Szynal",
+      "value": 12.0,
+      "season": 1988
+     },
+     {
+      "name": "Steve Rolen",
+      "value": 12.0,
+      "season": 1989
+     },
+     {
+      "name": "Bill Reep",
+      "value": 12.0,
+      "season": 1992
+     },
+     {
+      "name": "Tony Myers",
+      "value": 12.0,
+      "season": 1995
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 12.0,
+      "season": 2005
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 12.0,
+      "season": 2005
+     },
+     {
+      "name": "Justin Parks",
+      "value": 12.0,
+      "season": 2009
+     },
+     {
+      "name": "Ryan McBroom",
+      "value": 12.0,
+      "season": 2013
+     }
+    ]
+   },
+   {
+    "key": "hr",
+    "title": "Home Runs",
+    "group": "Power",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tim McCabe",
+      "value": 35.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 35.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 33.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 33.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Mark Landers",
+      "value": 32.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 30.0,
+      "seasons": [
+       1995,
+       1998
+      ]
+     },
+     {
+      "name": "Ryan McBroom",
+      "value": 29.0,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Steve Rolen",
+      "value": 28.0,
+      "seasons": [
+       1986,
+       1989
+      ]
+     },
+     {
+      "name": "Austin Markel",
+      "value": 28.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "Greg Gilbert",
+      "value": 23.0,
+      "seasons": [
+       1984,
+       1987
+      ]
+     },
+     {
+      "name": "Bill Reep",
+      "value": 23.0,
+      "seasons": [
+       1988,
+       1992
+      ]
+     },
+     {
+      "name": "Kirk Taylor",
+      "value": 23.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     }
+    ]
+   },
+   {
+    "key": "rbi",
+    "title": "RBI",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Vince Belnome",
+      "value": 84.0,
+      "season": 2009
+     },
+     {
+      "name": "Mark Landers",
+      "value": 81.0,
+      "season": 1994
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 66.0,
+      "season": 1998
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 66.0,
+      "season": 2008
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 63.0,
+      "season": 2008
+     },
+     {
+      "name": "Bob Bernardo",
+      "value": 60.0,
+      "season": 1985
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 60.0,
+      "season": 2006
+     },
+     {
+      "name": "Mark Landers",
+      "value": 59.0,
+      "season": 1993
+     },
+     {
+      "name": "Brad Elwood",
+      "value": 59.0,
+      "season": 1998
+     },
+     {
+      "name": "Dan DiBartolomeo",
+      "value": 59.0,
+      "season": 2009
+     }
+    ]
+   },
+   {
+    "key": "rbi",
+    "title": "RBI",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tyler Kuhn",
+      "value": 188.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 178.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 174.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 174.0,
+      "seasons": [
+       2007,
+       2009
+      ]
+     },
+     {
+      "name": "Mark Landers",
+      "value": 167.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Ryan McBroom",
+      "value": 162.0,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Austin Markel",
+      "value": 156.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "Tim McCabe",
+      "value": 152.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Grant Buckner",
+      "value": 149.0,
+      "seasons": [
+       2008,
+       2011
+      ]
+     },
+     {
+      "name": "Kurtis Clinton",
+      "value": 143.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     }
+    ]
+   },
+   {
+    "key": "tb",
+    "title": "Total Bases",
+    "group": "Power",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jedd Gyorko",
+      "value": 177.0,
+      "season": 2010
+     },
+     {
+      "name": "Mark Landers",
+      "value": 170.0,
+      "season": 1994
+     },
+     {
+      "name": "Tyler Kuhn",
+      "value": 157.0,
+      "season": 2008
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 152.0,
+      "season": 1998
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 150.0,
+      "season": 2009
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 149.0,
+      "season": 2006
+     },
+     {
+      "name": "Austin Markel",
+      "value": 144.0,
+      "season": 2009
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 142.0,
+      "season": 2008
+     },
+     {
+      "name": "Kirk Taylor",
+      "value": 140.0,
+      "season": 1997
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 140.0,
+      "season": 2005
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 140.0,
+      "season": 2007
+     }
+    ]
+   },
+   {
+    "key": "tb",
+    "title": "Total Bases",
+    "group": "Power",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Tyler Kuhn",
+      "value": 481.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 469.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Justin Jenkins",
+      "value": 429.0,
+      "seasons": [
+       2005,
+       2007
+      ]
+     },
+     {
+      "name": "Tim McCabe",
+      "value": 400.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 384.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Mark Landers",
+      "value": 373.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Austin Markel",
+      "value": 365.0,
+      "seasons": [
+       2006,
+       2009
+      ]
+     },
+     {
+      "name": "Ryan McBroom",
+      "value": 363.0,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Grant Buckner",
+      "value": 357.0,
+      "seasons": [
+       2008,
+       2011
+      ]
+     },
+     {
+      "name": "Kurtis Clinton",
+      "value": 324.0,
+      "seasons": [
+       2001,
+       2004
+      ]
+     }
+    ]
+   },
+   {
+    "key": "sb",
+    "title": "Stolen Bases",
+    "group": "Speed",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Mickey Mamarella",
+      "value": 29.0,
+      "season": 1986
+     },
+     {
+      "name": "Tim Neumark",
+      "value": 28.0,
+      "season": 1999
+     },
+     {
+      "name": "Bill Marovic",
+      "value": 27.0,
+      "season": 1963
+     },
+     {
+      "name": "Bill Marovic",
+      "value": 27.0,
+      "season": 1964
+     },
+     {
+      "name": "Bobby Boyd",
+      "value": 23.0,
+      "season": 2012
+     },
+     {
+      "name": "Bill Marovic",
+      "value": 20.0,
+      "season": 1965
+     },
+     {
+      "name": "Greg Gilbert",
+      "value": 20.0,
+      "season": 1986
+     },
+     {
+      "name": "Brady Wilson",
+      "value": 20.0,
+      "season": 2013
+     },
+     {
+      "name": "Jeff Battaglia",
+      "value": 19.0,
+      "season": 1986
+     },
+     {
+      "name": "Jamie Hammond",
+      "value": 19.0,
+      "season": 1998
+     },
+     {
+      "name": "Adam White",
+      "value": 19.0,
+      "season": 2006
+     }
+    ]
+   },
+   {
+    "key": "sb",
+    "title": "Stolen Bases",
+    "group": "Speed",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Bill Marovic",
+      "value": 74.0,
+      "seasons": [
+       1963,
+       1965
+      ]
+     },
+     {
+      "name": "Bobby Boyd",
+      "value": 58.0,
+      "seasons": [
+       2012,
+       2014
+      ]
+     },
+     {
+      "name": "Brady Wilson",
+      "value": 45.0,
+      "seasons": [
+       2010,
+       2013
+      ]
+     },
+     {
+      "name": "Kirk Taylor",
+      "value": 42.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     },
+     {
+      "name": "Jarod Rine",
+      "value": 42.0,
+      "seasons": [
+       2001,
+       2003
+      ]
+     },
+     {
+      "name": "Tim Neumark",
+      "value": 40.0,
+      "seasons": [
+       1999,
+       2000
+      ]
+     },
+     {
+      "name": "Mickey Mamarella",
+      "value": 36.0,
+      "seasons": [
+       1984,
+       1987
+      ]
+     },
+     {
+      "name": "Josh Williamson",
+      "value": 36.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     },
+     {
+      "name": "Jim Procopio",
+      "value": 35.0,
+      "seasons": [
+       1962,
+       1963
+      ]
+     },
+     {
+      "name": "Bobby Watts",
+      "value": 31.0,
+      "seasons": [
+       1983,
+       1986
+      ]
+     },
+     {
+      "name": "Greg Gilbert",
+      "value": 31.0,
+      "seasons": [
+       1984,
+       1987
+      ]
+     }
+    ]
+   },
+   {
+    "key": "bb",
+    "title": "Walks",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Jedd Gyorko",
+      "value": 43.0,
+      "season": 2010
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 42.0,
+      "season": 2009
+     },
+     {
+      "name": "Joe McNamee",
+      "value": 39.0,
+      "season": 1998
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 38.0,
+      "season": 2005
+     },
+     {
+      "name": "Jon Szynal",
+      "value": 37.0,
+      "season": 1988
+     },
+     {
+      "name": "Jake Serfass",
+      "value": 37.0,
+      "season": 2003
+     },
+     {
+      "name": "Benny Shreve",
+      "value": 34.0,
+      "season": 1988
+     },
+     {
+      "name": "Chad Blevins",
+      "value": 34.0,
+      "season": 2002
+     },
+     {
+      "name": "Vic Rabbits",
+      "value": 33.0,
+      "season": 1985
+     },
+     {
+      "name": "Jon Szynal",
+      "value": 33.0,
+      "season": 1987
+     },
+     {
+      "name": "Chris Schmidt",
+      "value": 33.0,
+      "season": 1999
+     }
+    ]
+   },
+   {
+    "key": "bb",
+    "title": "Walks",
+    "group": "Hitting",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Vic Rabbits",
+      "value": 110.0,
+      "seasons": [
+       1982,
+       1985
+      ]
+     },
+     {
+      "name": "Stan Posluszny",
+      "value": 102.0,
+      "seasons": [
+       2003,
+       2006
+      ]
+     },
+     {
+      "name": "Tim McCabe",
+      "value": 99.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Vince Belnome",
+      "value": 93.0,
+      "seasons": [
+       2007,
+       2009
+      ]
+     },
+     {
+      "name": "Bobby Watts",
+      "value": 92.0,
+      "seasons": [
+       1983,
+       1986
+      ]
+     },
+     {
+      "name": "Eric Grimm",
+      "value": 92.0,
+      "seasons": [
+       2000,
+       2003
+      ]
+     },
+     {
+      "name": "Tyler Kuhn",
+      "value": 92.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Jedd Gyorko",
+      "value": 92.0,
+      "seasons": [
+       2008,
+       2010
+      ]
+     },
+     {
+      "name": "Josh Williamson",
+      "value": 88.0,
+      "seasons": [
+       1994,
+       1997
+      ]
+     },
+     {
+      "name": "Matt Schubert",
+      "value": 87.0,
+      "seasons": [
+       1989,
+       1992
+      ]
+     }
+    ]
+   },
+   {
+    "key": "era",
+    "title": "ERA",
+    "group": "Pitching",
+    "fmt": "2",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Vaughn Kovach",
+      "value": 0.66,
+      "season": 1966
+     },
+     {
+      "name": "John Radosevich",
+      "value": 1.0,
+      "season": 1964
+     },
+     {
+      "name": "Paul Chuma",
+      "value": 1.15,
+      "season": 1959
+     },
+     {
+      "name": "Joe Jeran",
+      "value": 1.16,
+      "season": 1963
+     },
+     {
+      "name": "Rick Wagener",
+      "value": 1.2,
+      "season": 1971
+     },
+     {
+      "name": "John Radosevich",
+      "value": 1.4,
+      "season": 1965
+     },
+     {
+      "name": "Jerry Meadows",
+      "value": 1.52,
+      "season": 1966
+     },
+     {
+      "name": "Tom Shafer",
+      "value": 1.53,
+      "season": 1962
+     },
+     {
+      "name": "Dan Dolphin",
+      "value": 1.58,
+      "season": 1974
+     },
+     {
+      "name": "Sam Brock",
+      "value": 1.6,
+      "season": 1976
+     }
+    ]
+   },
+   {
+    "key": "era",
+    "title": "ERA",
+    "group": "Pitching",
+    "fmt": "2",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "John Radosevich",
+      "value": 1.34,
+      "seasons": [
+       1963,
+       1965
+      ]
+     },
+     {
+      "name": "Wes Shaw",
+      "value": 1.42,
+      "seasons": [
+       1987,
+       1990
+      ]
+     },
+     {
+      "name": "Tom Shafer",
+      "value": 1.69,
+      "seasons": [
+       1960,
+       1962
+      ]
+     },
+     {
+      "name": "Jerry Meadows",
+      "value": 1.73,
+      "seasons": [
+       1965,
+       1967
+      ]
+     },
+     {
+      "name": "Rick Wagener",
+      "value": 1.79,
+      "seasons": [
+       1968,
+       1971
+      ]
+     },
+     {
+      "name": "Joe Jeran",
+      "value": 1.85,
+      "seasons": [
+       1961,
+       1963
+      ]
+     },
+     {
+      "name": "Vaughn Kovach",
+      "value": 1.9,
+      "seasons": [
+       1964,
+       1966
+      ]
+     },
+     {
+      "name": "Paul Chuma",
+      "value": 2.09,
+      "seasons": [
+       1959,
+       1960
+      ]
+     },
+     {
+      "name": "Dan Dolphin",
+      "value": 2.65,
+      "seasons": [
+       1972,
+       1975
+      ]
+     },
+     {
+      "name": "John Holshey",
+      "value": 2.79,
+      "seasons": [
+       1982,
+       1983
+      ]
+     }
+    ]
+   },
+   {
+    "key": "w",
+    "title": "Wins",
+    "group": "Pitching",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Ryan Williams",
+      "value": 13.0,
+      "season": 1994
+     },
+     {
+      "name": "Chris Enochs",
+      "value": 12.0,
+      "season": 1997
+     },
+     {
+      "name": "Zac Cline",
+      "value": 12.0,
+      "season": 2003
+     },
+     {
+      "name": "Ken Smith",
+      "value": 11.0,
+      "season": 1987
+     },
+     {
+      "name": "Ken Smith",
+      "value": 10.0,
+      "season": 1986
+     },
+     {
+      "name": "Tom Shafer",
+      "value": 9.0,
+      "season": 1962
+     },
+     {
+      "name": "John Radosevich",
+      "value": 9.0,
+      "season": 1964
+     },
+     {
+      "name": "Jerry Meadows",
+      "value": 9.0,
+      "season": 1966
+     },
+     {
+      "name": "John Holshey",
+      "value": 9.0,
+      "season": 1982
+     },
+     {
+      "name": "Garrett Zyskowski",
+      "value": 9.0,
+      "season": 1998
+     },
+     {
+      "name": "Billy Gross",
+      "value": 9.0,
+      "season": 2009
+     },
+     {
+      "name": "Harrison Musgrave",
+      "value": 9.0,
+      "season": 2013
+     }
+    ]
+   },
+   {
+    "key": "w",
+    "title": "Wins",
+    "group": "Pitching",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Wes Shaw",
+      "value": 28.0,
+      "seasons": [
+       1987,
+       1990
+      ]
+     },
+     {
+      "name": "Fulton Woods",
+      "value": 26.0,
+      "seasons": [
+       1920,
+       1923
+      ]
+     },
+     {
+      "name": "Ryan Williams",
+      "value": 26.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Frank Barron",
+      "value": 25.0,
+      "seasons": [
+       1913,
+       1915
+      ]
+     },
+     {
+      "name": "John Radosevich",
+      "value": 25.0,
+      "seasons": [
+       1963,
+       1965
+      ]
+     },
+     {
+      "name": "Jim Heise",
+      "value": 24.0,
+      "seasons": [
+       1953,
+       1956
+      ]
+     },
+     {
+      "name": "Zac Cline",
+      "value": 24.0,
+      "seasons": [
+       2002,
+       2004
+      ]
+     },
+     {
+      "name": "Shane Rhodes",
+      "value": 22.0,
+      "seasons": [
+       1998,
+       2001
+      ]
+     },
+     {
+      "name": "Jack Latterner",
+      "value": 21.0,
+      "seasons": [
+       1916,
+       1919
+      ]
+     },
+     {
+      "name": "Jerry Meadows",
+      "value": 21.0,
+      "seasons": [
+       1965,
+       1967
+      ]
+     },
+     {
+      "name": "Ken Smith",
+      "value": 21.0,
+      "seasons": [
+       1986,
+       1987
+      ]
+     },
+     {
+      "name": "Chris Enochs",
+      "value": 21.0,
+      "seasons": [
+       1995,
+       1997
+      ]
+     }
+    ]
+   },
+   {
+    "key": "sv",
+    "title": "Saves",
+    "group": "Pitching",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Mike Marz",
+      "value": 10.0,
+      "season": 1994
+     },
+     {
+      "name": "Ashley Shope",
+      "value": 8.0,
+      "season": 1995
+     },
+     {
+      "name": "Pascal Paul",
+      "value": 8.0,
+      "season": 2013
+     },
+     {
+      "name": "Tony Lehosit",
+      "value": 7.0,
+      "season": 1991
+     },
+     {
+      "name": "Billy Biggs",
+      "value": 7.0,
+      "season": 2001
+     },
+     {
+      "name": "Todd Dunham",
+      "value": 7.0,
+      "season": 2005
+     },
+     {
+      "name": "Chris Enourato",
+      "value": 6.0,
+      "season": 2008
+     },
+     {
+      "name": "Chris Enourato",
+      "value": 6.0,
+      "season": 2009
+     },
+     {
+      "name": "Ryan Tezak",
+      "value": 6.0,
+      "season": 2012
+     },
+     {
+      "name": "Frank Cafaro",
+      "value": 5.0,
+      "season": 1997
+     },
+     {
+      "name": "Chris Enourato",
+      "value": 5.0,
+      "season": 2007
+     }
+    ]
+   },
+   {
+    "key": "sv",
+    "title": "Saves",
+    "group": "Pitching",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Chris Enourato",
+      "value": 21.0,
+      "seasons": [
+       2007,
+       2010
+      ]
+     },
+     {
+      "name": "Mike Marz",
+      "value": 14.0,
+      "seasons": [
+       1993,
+       1994
+      ]
+     },
+     {
+      "name": "Billy Biggs",
+      "value": 13.0,
+      "seasons": [
+       1999,
+       2002
+      ]
+     },
+     {
+      "name": "Todd Dunham",
+      "value": 12.0,
+      "seasons": [
+       2002,
+       2005
+      ]
+     },
+     {
+      "name": "Ryan Tezak",
+      "value": 11.0,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Pascal Paul",
+      "value": 10.0,
+      "seasons": [
+       2013,
+       2014
+      ]
+     },
+     {
+      "name": "Tony Lehosit",
+      "value": 8.0,
+      "seasons": [
+       1990,
+       1991
+      ]
+     },
+     {
+      "name": "Ashley Shope",
+      "value": 8.0,
+      "seasons": [
+       1994,
+       1995
+      ]
+     },
+     {
+      "name": "Andy Altemus",
+      "value": 7.0,
+      "seasons": [
+       2009,
+       2010
+      ]
+     },
+     {
+      "name": "Clayton Ewen",
+      "value": 6.0,
+      "seasons": [
+       2001,
+       2002
+      ]
+     }
+    ]
+   },
+   {
+    "key": "ip",
+    "title": "Innings",
+    "group": "Pitching",
+    "fmt": "ip",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "Zac Cline",
+      "value": 125.2,
+      "season": 2003
+     },
+     {
+      "name": "Jeremy Cummings",
+      "value": 109.2,
+      "season": 1999
+     },
+     {
+      "name": "Jim Heise",
+      "value": 106.2,
+      "season": 1955
+     },
+     {
+      "name": "Harrison Musgrave",
+      "value": 106.1,
+      "season": 2014
+     },
+     {
+      "name": "Mike Riley",
+      "value": 105.2,
+      "season": 1996
+     },
+     {
+      "name": "Andy Berry",
+      "value": 103.1,
+      "season": 2011
+     },
+     {
+      "name": "Ryan Williams",
+      "value": 100.3,
+      "season": 1994
+     },
+     {
+      "name": "Billy Biggs",
+      "value": 99.0,
+      "season": 2002
+     },
+     {
+      "name": "Corey Walter",
+      "value": 98.1,
+      "season": 2012
+     },
+     {
+      "name": "Harrison Musgrave",
+      "value": 95.1,
+      "season": 2013
+     }
+    ]
+   },
+   {
+    "key": "ip",
+    "title": "Innings",
+    "group": "Pitching",
+    "fmt": "ip",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "Shane Rhodes",
+      "value": 304.2,
+      "seasons": [
+       1998,
+       2001
+      ]
+     },
+     {
+      "name": "Jim Heise",
+      "value": 283.1,
+      "seasons": [
+       1953,
+       1956
+      ]
+     },
+     {
+      "name": "Zac Cline",
+      "value": 282.2,
+      "seasons": [
+       2002,
+       2004
+      ]
+     },
+     {
+      "name": "Wes Shaw",
+      "value": 276.4,
+      "seasons": [
+       1987,
+       1990
+      ]
+     },
+     {
+      "name": "Corey Walter",
+      "value": 266.2,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Ryan Williams",
+      "value": 265.0,
+      "seasons": [
+       1991,
+       1994
+      ]
+     },
+     {
+      "name": "Harrison Musgrave",
+      "value": 258.1,
+      "seasons": [
+       2011,
+       2014
+      ]
+     },
+     {
+      "name": "Matt Yurish",
+      "value": 247.2,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Tom Shafer",
+      "value": 235.0,
+      "seasons": [
+       1960,
+       1962
+      ]
+     },
+     {
+      "name": "Jeremy Cummings",
+      "value": 230.2,
+      "seasons": [
+       1996,
+       1999
+      ]
+     }
+    ]
+   },
+   {
+    "key": "p_so",
+    "title": "Strikeouts",
+    "group": "Pitching",
+    "fmt": "int",
+    "scope": "season",
+    "entries": [
+     {
+      "name": "John Radosevich",
+      "value": 123.0,
+      "season": 1964
+     },
+     {
+      "name": "John Radosevich",
+      "value": 120.0,
+      "season": 1965
+     },
+     {
+      "name": "Paul Chuma",
+      "value": 119.0,
+      "season": 1959
+     },
+     {
+      "name": "Jeremy Cummings",
+      "value": 116.0,
+      "season": 1999
+     },
+     {
+      "name": "Jim Heise",
+      "value": 111.0,
+      "season": 1955
+     },
+     {
+      "name": "Frank Barron",
+      "value": 108.0,
+      "season": 1915
+     },
+     {
+      "name": "Jerry Meadows",
+      "value": 105.0,
+      "season": 1967
+     },
+     {
+      "name": "Zac Cline",
+      "value": 101.0,
+      "season": 2003
+     },
+     {
+      "name": "Jarryd Summers",
+      "value": 99.0,
+      "season": 2009
+     },
+     {
+      "name": "John Radosevich",
+      "value": 95.0,
+      "season": 1963
+     }
+    ]
+   },
+   {
+    "key": "p_so",
+    "title": "Strikeouts",
+    "group": "Pitching",
+    "fmt": "int",
+    "scope": "career",
+    "entries": [
+     {
+      "name": "John Radosevich",
+      "value": 338.0,
+      "seasons": [
+       1963,
+       1965
+      ]
+     },
+     {
+      "name": "Shane Rhodes",
+      "value": 284.0,
+      "seasons": [
+       1998,
+       2001
+      ]
+     },
+     {
+      "name": "Jim Heise",
+      "value": 277.0,
+      "seasons": [
+       1953,
+       1956
+      ]
+     },
+     {
+      "name": "Paul Chuma",
+      "value": 275.0,
+      "seasons": [
+       1958,
+       1960
+      ]
+     },
+     {
+      "name": "Fulton Woods",
+      "value": 263.0,
+      "seasons": [
+       1920,
+       1923
+      ]
+     },
+     {
+      "name": "Frank Barron",
+      "value": 257.0,
+      "seasons": [
+       1913,
+       1915
+      ]
+     },
+     {
+      "name": "Matt Yurish",
+      "value": 247.0,
+      "seasons": [
+       2005,
+       2008
+      ]
+     },
+     {
+      "name": "Wes Shaw",
+      "value": 243.0,
+      "seasons": [
+       1987,
+       1990
+      ]
+     },
+     {
+      "name": "Jerry Meadows",
+      "value": 226.0,
+      "seasons": [
+       1965,
+       1967
+      ]
+     },
+     {
+      "name": "Jeremy Cummings",
+      "value": 214.0,
+      "seasons": [
+       1996,
+       1999
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -29,6 +29,8 @@ Each run:
      Seasons already there are left alone; sync_football / sync_espn own the
      current ones.
   4. Re-ranks stat_leaders for every sport from the whole archive.
+  5. Rebuilds record_book: WVU's all-time top-10 lists (record_book.json, made by
+     build_record_book.py) brought current with every archived season.
 
 A player's career is linked by normalized name (names.norm_name). wvusports.com's
 roster bio ids change every season, so they can't link seasons.
@@ -497,8 +499,24 @@ def parse_season(sport: str, block: dict) -> Season:
                 trusted.add(filed)
     out = Season(stat_gp, trusted)
     if sport == "football":
+        # A kicker's field-goal row can arrive with no stat-file name at all, leaving only
+        # the (wrong) roster link: 2023 credits Michael Hayes's 17 field goals to Josiah
+        # Jackson, who shared #22. His kickoff and scoring rows on the same link do name
+        # HAYES,MICHAEL, and a specialist's tables travel together, so a nameless row in one
+        # borrows the name filed for the same link in the others.
+        specialist = ("individualFieldGoalStats", "individualPuntingStats", "individualKickoffStats",
+                      "individualScoringStats")
+        filed_for: dict[tuple, set] = defaultdict(set)
+        for table in specialist:
+            for r in (ind or {}).get(table) or []:
+                if (r.get("nameFromStats") or "").strip():
+                    filed_for[(r.get("playerName"), r.get("playerUniform"))].add(r["nameFromStats"].strip())
         for table, (cat, fields) in FB_TABLES.items():
             for r in (ind or {}).get(table) or []:
+                if table in specialist and not (r.get("nameFromStats") or "").strip():
+                    names = filed_for.get((r.get("playerName"), r.get("playerUniform")), set())
+                    if len(names) == 1:
+                        r = {**r, "nameFromStats": next(iter(names))}
                 out.add(r, cat, fields)
         out.team_games = footer_games((ind or {}).get("individualRushingStats"))
     elif sport == "mbb":
@@ -1009,11 +1027,13 @@ def reconcile_keys(archive: list[dict]) -> dict[str, str]:
     return {k: find(k) for k in keys}
 
 
-def build_leaders(sport: str, archive: list[dict], games_by_season: dict[int, int]) -> list[dict]:
-    """Every leaderboard for one sport: per season, career and best single season."""
+def player_lines(archive: list[dict], quiet: bool = False) -> tuple[dict, dict]:
+    """The archive as (season, player) lines and per-player careers, name variants joined.
+
+    Shared by the leaderboards and the record book so both rank the same numbers."""
     canon = reconcile_keys(archive)
     merged = sum(1 for k, v in canon.items() if k != v)
-    if merged:
+    if merged and not quiet:
         print(f"  reconciled {merged} name variant(s) onto the same player")
     variants: dict[tuple[int, str], dict] = {}   # (season, stored key) -> player-season
     for r in archive:
@@ -1054,7 +1074,12 @@ def build_leaders(sport: str, archive: list[dict], games_by_season: dict[int, in
                 c["stats"][sk] = max(c["stats"][sk], v)
             else:
                 c["stats"][sk] += v
+    return lines, careers
 
+
+def build_leaders(sport: str, archive: list[dict], games_by_season: dict[int, int]) -> list[dict]:
+    """Every leaderboard for one sport: per season, career and best single season."""
+    lines, careers = player_lines(archive)
     rows: list[dict] = []
 
     def emit(scope, season, board, order, ranked, detail_of):
@@ -1115,6 +1140,186 @@ def build_leaders(sport: str, archive: list[dict], games_by_season: dict[int, in
                                         "stats": c["stats"], "seasons": c["seasons"]}))
             emit("career", 0, board, order, rank_board(board, entries),
                  lambda m: span(sport, m["seasons"]))
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# Record Book
+#
+# record_book.json (build_record_book.py) holds WVU's all-time top-10 lists as of each
+# source's last counted season (`through`). Every night the archive brings them current:
+#
+#   career   a listed player's total becomes the largest of the book's number, the
+#            archive's whole-career total (complete for anyone who started in 2014 or
+#            later, and right even if the source missed a season), and the book's number
+#            plus the archive's seasons after `through` (for careers that straddle it --
+#            the baseball book stops in 2014 and the archive starts in 2015). A player the
+#            book doesn't list joins on his archive total.
+#   season   every archived season is a candidate; one already listed keeps the book's
+#            (official) number for seasons the book has counted.
+#   rates    FG%, batting average and ERA can't be recombined without their totals, so a
+#            listed entry is never changed; only careers and seasons wholly after `through`
+#            can join, on the book's own minimums.
+#
+# A list never grows past its source's length: Wikipedia's football tackles list is five
+# deep, and padding it to ten from the archive would rank 2019 linebackers above 1990s
+# ones the source never listed.
+# ---------------------------------------------------------------------------
+
+RECORD_BOOK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "record_book.json")
+
+
+def total_of(*keys):
+    return lambda t: sum(g(t, k) for k in keys) if any(k in t for k in keys) else None
+
+
+RB_STATS = {
+    "football": {
+        "pass_yds": stat("passing.yds"), "pass_td": stat("passing.td"),
+        "rush_yds": stat("rushing.yds"), "rush_td": stat("rushing.td"),
+        "rec": stat("receiving.rec"), "rec_yds": stat("receiving.yds"), "rec_td": stat("receiving.td"),
+        "total_off": total_of("passing.yds", "rushing.yds"),
+        "td_resp": total_of("passing.td", "rushing.td"),
+        "apy": total_of("rushing.yds", "receiving.yds", "kick_ret.yds", "punt_ret.yds"),
+        "tkl": stat("defense.tkl"), "sacks": stat("defense.sacks"), "def_int": stat("defense.int"),
+        "fgm": stat("kicking.fgm"),
+        "fg_pct": lambda t: ratio(g(t, "kicking.fgm"), g(t, "kicking.fga"), 100),
+    },
+    "mbb": {
+        "pts": stat("basketball.pts"), "reb": stat("basketball.reb"), "ast": stat("basketball.ast"),
+        "stl": stat("basketball.stl"), "blk": stat("basketball.blk"),
+    },
+    "baseball": {
+        "avg": lambda t: ratio(g(t, "hitting.h"), g(t, "hitting.ab")),
+        "h": stat("hitting.h"), "r": stat("hitting.r"), "rbi": stat("hitting.rbi"),
+        "2b": stat("hitting.2b"), "hr": stat("hitting.hr"), "tb": stat("hitting.tb"),
+        "sb": stat("hitting.sb"), "bb": stat("hitting.bb"),
+        "era": lambda t: ratio(g(t, "pitching.er"), g(t, "pitching.outs"), 27),
+        "w": stat("pitching.w"), "sv": stat("pitching.sv"), "p_so": stat("pitching.so"),
+        "ip": stat("pitching.outs"),   # innings are kept as outs until display
+    },
+}
+RB_RATES = {"fg_pct", "avg", "era"}
+# The record books' own minimums for rate lists (baseball's are printed beside each list).
+RB_QUAL = {
+    ("fg_pct", "season"): lambda t, n: g(t, "kicking.fga") >= 15,
+    ("fg_pct", "career"): lambda t, n: g(t, "kicking.fga") >= 40,
+    ("avg", "season"): lambda t, n: g(t, "hitting.ab") >= 75,
+    ("avg", "career"): lambda t, n: g(t, "hitting.ab") >= 150 and n >= 2,
+    ("era", "season"): lambda t, n: g(t, "pitching.outs") >= 150,
+    ("era", "career"): lambda t, n: g(t, "pitching.outs") >= 300 and n >= 2,
+}
+
+
+def _book_value(v: float, fmt: str) -> float:
+    return innings_to_outs(v) if fmt == "ip" else v
+
+
+def _show(v: float, fmt: str) -> str:
+    if fmt == "ip":
+        o = int(round(v))
+        return f"{o // 3:,}.{o % 3}"
+    return fmt_value(v, fmt)
+
+
+def merge_record_book(sport: str, book: dict, archive: list[dict]) -> list[dict]:
+    lines, careers = player_lines(archive, quiet=True)
+    through = book["through"]
+    stats = RB_STATS.get(sport, {})
+    rows: list[dict] = []
+
+    # Keep each group's lists together. The baseball book runs Hits, Doubles, Home Runs,
+    # then RBI, so in the book's own order "Hitting" would appear on screen twice.
+    group_at: dict[str, int] = {}
+    for lst in book["lists"]:
+        group_at.setdefault(lst["group"], len(group_at))
+    ordered = sorted(enumerate(book["lists"]), key=lambda x: (group_at[x[1]["group"]], x[0]))
+
+    for order, (_, lst) in enumerate(ordered):
+        key, scope, fmt = lst["key"], lst["scope"], lst["fmt"]
+        fn, rate, asc = stats.get(key), key in RB_RATES, key == "era"
+        qual = RB_QUAL.get((key, scope))
+        entries = [{**e, "value": _book_value(e["value"], fmt), "photo": None} for e in lst["entries"]]
+        size = len(entries)
+
+        def overlaps(e, first, last):
+            a, b = e["seasons"]
+            return a - 1 <= last and first <= b + 1
+
+        if fn and scope == "career":
+            for pkey, c in careers.items():
+                v = fn(c["stats"])
+                if v is None or (not rate and v <= 0):
+                    continue
+                if qual and not qual(c["stats"], len(c["seasons"])):
+                    continue
+                first, last = min(c["seasons"]), max(c["seasons"])
+                match = next((e for e in entries if "seasons" in e and _same_player_name(e["name"], c["name"])
+                              and overlaps(e, first, last)), None)
+                if match:
+                    match["photo"] = match["photo"] or c.get("photo")
+                    if rate:
+                        continue
+                    after = sum(fn(lines[(s, pkey)]["stats"]) or 0 for s in c["seasons"] if s > through)
+                    best = max(match["value"], v, match["value"] + after)
+                    if best > match["value"]:
+                        match["value"] = best
+                        match["seasons"] = [min(match["seasons"][0], first), max(match["seasons"][1], last)]
+                elif not rate or first > through:
+                    entries.append({"name": c["name"], "value": v, "seasons": [first, last],
+                                    "photo": c.get("photo")})
+
+        elif fn and scope == "season":
+            for (season, pkey), p in lines.items():
+                v = fn(p["stats"])
+                if v is None or (not rate and v <= 0):
+                    continue
+                if qual and not qual(p["stats"], 1):
+                    continue
+                dup = next((e for e in entries if e.get("season") == season
+                            and _same_player_name(e["name"], p["name"])), None)
+                if dup:
+                    dup["photo"] = dup["photo"] or p.get("photo")
+                    if season > through and not rate:
+                        dup["value"] = max(dup["value"], v)
+                    continue
+                if rate and season <= through:
+                    continue
+                entries.append({"name": p["name"], "value": v, "season": season, "photo": p.get("photo")})
+
+        elif scope == "game" and sport == "mbb" and key == "pts":
+            # The archive knows each player's best game of a season, which is enough to
+            # put a new 40-point night on the list. Seasons the source counted are its own.
+            for (season, pkey), p in lines.items():
+                v = p["stats"].get("basketball.high")
+                if not v or season <= through:
+                    continue
+                if any(e.get("season") == season and _same_player_name(e["name"], p["name"])
+                       and e["value"] == v for e in entries):
+                    continue
+                entries.append({"name": p["name"], "value": v, "season": season, "photo": p.get("photo")})
+
+        entries.sort(key=lambda e: e["value"] if asc else -e["value"])
+        prev, prev_rank = None, 0
+        for slot, e in enumerate(entries):
+            shown = _show(e["value"], fmt)
+            rank = prev_rank if shown == prev else slot + 1
+            if rank > size:
+                break
+            prev, prev_rank = shown, rank
+            if scope == "career":
+                detail = span(sport, e["seasons"])
+            else:
+                detail = season_label(sport, e["season"])
+                if e.get("opponent"):
+                    detail += f" · vs. {e['opponent']}"
+            rows.append({
+                "id": f"{sport}|{scope}|{key}|{slot}", "sport_id": sport, "scope": scope,
+                "list_key": key, "title": lst["title"], "grp": lst["group"], "ord": order,
+                "rank": rank, "player_name": e["name"], "value": round(e["value"], 4),
+                "display": shown, "detail": detail, "photo_url": e.get("photo"),
+                "source": book["source"], "through": through,
+            })
     return rows
 
 
@@ -1225,6 +1430,13 @@ def main() -> None:
     failures = []
 
     try:
+        with open(RECORD_BOOK, encoding="utf-8") as f:
+            record_book = json.load(f)
+    except (OSError, ValueError) as e:   # the leaderboards don't need it
+        record_book = {}
+        print(f"  [!] record_book.json unreadable ({e}) - Record Book not refreshed")
+
+    try:
         backfill_football_records(sb)
     except Exception as e:   # history is a nice-to-have; never block the stats on it
         print(f"  [!] football records backfill failed: {e}")
@@ -1316,6 +1528,11 @@ def main() -> None:
                  for r in read_all(sb, "team_season_stats", "id,season,wvu", sport_id=sport, stat="games")}
         leaders = build_leaders(sport, archive, games)
         replace(sb, "stat_leaders", leaders, {"sport_id": sport})
+        if sport in record_book:
+            book_rows = merge_record_book(sport, record_book[sport], archive)
+            replace(sb, "record_book", book_rows, {"sport_id": sport})
+            print(f"  record_book -> {len(book_rows)} rows in {len(record_book[sport]['lists'])} lists "
+                  f"(book through {season_label(sport, record_book[sport]['through'])})")
         seasons = sorted({r["season"] for r in archive})
         print(f"  stat_leaders -> {len(leaders)} rows across {len(seasons)} seasons "
               f"({season_label(sport, seasons[0]) if seasons else '-'} to "

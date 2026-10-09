@@ -383,6 +383,30 @@ ALTERS = [
     # Position from that season's roster page, shown beside the name on a leaderboard.
     "alter table stat_archive add column if not exists position text;",
     "alter table stat_leaders add column if not exists position text;",
+    # The Record Book: all-time top-10 lists from record_book.json, merged nightly with the
+    # stat archive so a new record lands without anyone retyping the book.
+    """create table if not exists record_book (
+        id          text primary key,      -- sport|scope|list|slot
+        sport_id    text not null references sports(id),
+        scope       text not null,         -- career | season | game
+        list_key    text not null,
+        title       text not null,
+        grp         text not null,
+        ord         int  not null,
+        rank        int  not null,
+        player_name text not null,
+        value       numeric not null,
+        display     text not null,
+        detail      text,
+        photo_url   text,
+        source      text not null,         -- where the pre-archive lists come from
+        through     int  not null,         -- last season that source counted
+        updated_at  timestamptz not null default now()
+    );""",
+    "create index if not exists record_book_lookup_idx on record_book (sport_id, scope, ord, rank);",
+    "alter table record_book enable row level security;",
+    "drop policy if exists \"public read record_book\" on record_book;",
+    "create policy \"public read record_book\" on record_book for select using (true);",
     # Football's year-by-year record goes back to 1891, and early seasons had ties.
     "alter table team_records add column if not exists ties int not null default 0;",
 ]
